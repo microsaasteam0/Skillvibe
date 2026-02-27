@@ -130,7 +130,7 @@ export default function RepurposeInterface({
     const copyToClipboard = (text: string, key: string) => {
         navigator.clipboard.writeText(text)
         setCopiedStates({ ...copiedStates, [key]: true })
-        toast.success('PROTOCOL_CLIPBOARD_SUCCESS')
+        toast.success('Copied to clipboard!')
         setTimeout(() => {
             setCopiedStates(prev => ({ ...prev, [key]: false }))
         }, 2000)
@@ -138,7 +138,7 @@ export default function RepurposeInterface({
 
     const handleExport = (data: string | string[], platform: string, format: 'txt' | 'json' | 'csv' = 'txt') => {
         if (!user?.is_premium) {
-            toast.error('PRO_ACCESS_REQUIRED: Exporting is a premium feature.')
+            toast.error('Pro Required: This is a premium feature.')
             return
         }
 
@@ -176,7 +176,7 @@ export default function RepurposeInterface({
         a.click()
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
-        toast.success(`EXPORT_COMPLETE: ${format.toUpperCase()}`)
+        toast.success(`Export Finished: ${format.toUpperCase()}`)
     }
 
     return (
@@ -223,7 +223,7 @@ export default function RepurposeInterface({
                                             <div className="p-2 bg-indigo-500/10 rounded-xl">
                                                 <Zap className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                                             </div>
-                                            <span className="font-black text-zinc-900 dark:text-white text-[10px] sm:text-[11px] uppercase tracking-widest">Morning plan</span>
+                                            <span className="font-black text-zinc-900 dark:text-white text-[10px] sm:text-[11px] uppercase tracking-widest">Today's Goals</span>
                                         </div>
                                         <div className="text-[9px] sm:text-[10px] font-black text-indigo-600 dark:text-indigo-400 px-3 py-1 bg-indigo-500/10 rounded-lg border border-indigo-500/20 whitespace-nowrap">
                                             {tasks.filter(t => t.completed).length}/{tasks.length} tasks
@@ -324,7 +324,7 @@ export default function RepurposeInterface({
                                         <div className="p-2 bg-indigo-500/10 rounded-xl">
                                             <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                                         </div>
-                                        <span className="font-black text-zinc-900 dark:text-white text-[10px] sm:text-[11px] tracking-widest">Evening reflection</span>
+                                        <span className="font-black text-zinc-900 dark:text-white text-[10px] sm:text-[11px] tracking-widest">How did it go?</span>
                                     </div>
                                     <textarea
                                         value={eveningReflection}
@@ -420,21 +420,21 @@ export default function RepurposeInterface({
                                         onClick={() => {
                                             // ... existing validation
                                             if (tasks.length === 0) {
-                                                toast.error('PROTOCOL_HALTED: Morning Plan [TO-DO] input is mandatory.')
+                                                toast.error('Wait: Please add at least one goal for today.')
                                                 return
                                             }
                                             if (!eveningReflection.trim()) {
-                                                toast.error('PROTOCOL_HALTED: Evening Reflection data is missing.')
+                                                toast.error('Wait: Please write something about your day.')
                                                 return
                                             }
                                             if (!personalization.audience?.trim()) {
                                                 if (!showPersonalization) setShowPersonalization(true)
-                                                toast.error('PROTOCOL_HALTED: Target Audience definition is required.')
+                                                toast.error('Wait: Who are these posts for?')
                                                 return
                                             }
                                             if (!personalization.tone?.trim()) {
                                                 if (!showPersonalization) setShowPersonalization(true)
-                                                toast.error('PROTOCOL_HALTED: Tone of Voice selection is required.')
+                                                toast.error('Wait: How should the posts sound?')
                                                 return
                                             }
                                             handleSubmit()

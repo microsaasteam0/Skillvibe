@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://reword-production.up.railway.app/',
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://skillvibe-production.up.railway.app/',
   },
   typescript: {
     ignoreBuildErrors: true,
@@ -56,10 +56,10 @@ const nextConfig = {
         has: [
           {
             type: "host",
-            value: "www.reword.entrext.com",
+            value: "www.skillvibe.entrext.com",
           },
         ],
-        destination: "https://reword.entrext.com/:path*",
+        destination: "https://skillvibe.entrext.com/:path*",
         permanent: true,
       },
     ];

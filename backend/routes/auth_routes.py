@@ -30,6 +30,7 @@ class UserCreate(BaseModel):
     username: str
     password: str
     full_name: Optional[str] = None
+    role: Optional[str] = "candidate"
 
 class UserResponse(BaseModel):
     id: int
@@ -37,6 +38,7 @@ class UserResponse(BaseModel):
     username: str
     full_name: Optional[str] = None
     profile_picture: Optional[str] = None
+    role: Optional[str] = "founder"
     is_active: bool
     is_verified: bool
     is_premium: bool
@@ -73,6 +75,9 @@ class UserProfileUpdate(BaseModel):
     username: Optional[str] = None
     full_name: Optional[str] = None
     profile_picture: Optional[str] = None
+
+class RoleUpdate(BaseModel):
+    role: str
 
 def validate_password(password: str) -> bool:
     """Validate password strength"""
@@ -270,6 +275,7 @@ async def google_oauth_callback(
                 email=user.email,
                 username=user.username,
                 full_name=user.full_name,
+                role=user.role,
                 profile_picture=user.profile_picture,
                 is_active=user.is_active,
                 is_verified=user.is_verified,
@@ -387,6 +393,7 @@ async def google_auth(google_data: GoogleAuthRequest, db: Session = Depends(get_
             email=user.email,
             username=user.username,
             full_name=user.full_name,
+            role=user.role,
             profile_picture=user.profile_picture,
             is_active=user.is_active,
             is_verified=user.is_verified,
@@ -443,6 +450,15 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks, db:
             detail="Username already taken"
         )
     
+    # Validate and normalize role
+    selected_role = (user_data.role or "candidate").strip().lower()
+    allowed_roles = ['candidate', 'recruiter']
+    if selected_role not in allowed_roles:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Role must be one of: {', '.join(allowed_roles)}"
+        )
+
     # Create user
     try:
         user = create_user(
@@ -450,7 +466,8 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks, db:
             email=user_data.email,
             username=user_data.username,
             password=user_data.password,
-            full_name=user_data.full_name
+            full_name=user_data.full_name,
+            role=selected_role
         )
         
         # Send verification email in background
@@ -468,6 +485,7 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks, db:
             email=user.email,
             username=user.username,
             full_name=user.full_name,
+            role=user.role,
             profile_picture=user.profile_picture,
             is_active=user.is_active,
             is_verified=user.is_verified,
@@ -505,7 +523,12 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks, db:
         )
 
 @auth_router.post("/login", response_model=Token)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    role: Optional[str] = Form(default=None),
+    selected_role: Optional[str] = Form(default=None),
+    db: Session = Depends(get_db)
+):
     """Login user"""
     user = authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -527,6 +550,16 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Please verify your email address before logging in. Check your inbox for the verification link."
         )
+
+    # Honor role selected in login modal (candidate/recruiter) in the same request.
+    effective_role = selected_role or role
+    if effective_role:
+        selected_role_normalized = effective_role.strip().lower()
+        allowed_roles = ['candidate', 'recruiter']
+        if selected_role_normalized in allowed_roles and user.role != selected_role_normalized:
+            user.role = selected_role_normalized
+            db.commit()
+            db.refresh(user)
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -539,6 +572,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         email=user.email,
         username=user.username,
         full_name=user.full_name,
+        role=user.role,
         profile_picture=user.profile_picture,
         is_active=user.is_active,
         is_verified=user.is_verified,
@@ -588,6 +622,7 @@ async def get_current_user_info(current_user: User = Depends(get_current_active_
         email=current_user.email,
         username=current_user.username,
         full_name=current_user.full_name,
+        role=current_user.role,
         profile_picture=current_user.profile_picture,
         is_active=current_user.is_active,
         is_verified=current_user.is_verified,
@@ -653,6 +688,7 @@ async def update_profile(
             email=current_user.email,
             username=current_user.username,
             full_name=current_user.full_name,
+            role=current_user.role,
             profile_picture=current_user.profile_picture,
             is_active=current_user.is_active,
             is_verified=current_user.is_verified,
@@ -667,6 +703,37 @@ async def update_profile(
             status_code=500,
             detail="Failed to update profile"
         )
+
+@auth_router.put("/role", response_model=UserResponse)
+async def update_role(
+    role_data: RoleUpdate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    """Update the user's role (candidate or recruiter)"""
+    allowed_roles = ['candidate', 'recruiter']
+    if role_data.role not in allowed_roles:
+        raise HTTPException(status_code=400, detail=f"Role must be one of: {', '.join(allowed_roles)}")
+    
+    current_user.role = role_data.role
+    try:
+        db.commit()
+        db.refresh(current_user)
+        return UserResponse(
+            id=current_user.id,
+            email=current_user.email,
+            username=current_user.username,
+            full_name=current_user.full_name,
+            role=current_user.role,
+            profile_picture=current_user.profile_picture,
+            is_active=current_user.is_active,
+            is_verified=current_user.is_verified,
+            is_premium=current_user.is_premium,
+            created_at=current_user.created_at.isoformat()
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail="Failed to update role")
 
 @auth_router.get("/usage-stats")
 async def get_usage_stats(
@@ -716,13 +783,32 @@ async def get_usage_stats(
         recent_usage = get_usage_robust(recent_usage_query, twenty_four_hours_ago)
         remaining_requests = max(0, rate_limit - recent_usage)
         
+        # Leaderboard Rank
+        from models import Profile, User
+        rank = "N/A"
+        # Find the specific user's profile
+        profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
+        if profile and profile.ranking_score > 0:
+            # Calculate rank based on ranking_score among candidates
+            # This matches the leaderboard logic
+            higher_rank_count = db.query(Profile).join(User, Profile.user_id == User.id).filter(
+                User.role == 'candidate',
+                Profile.ranking_score > profile.ranking_score
+            ).count()
+            rank = f"#{higher_rank_count + 1}"
+        elif current_user.role == 'recruiter':
+            rank = "Verified Scout"
+        elif current_user.role == 'admin':
+            rank = "Admin"
+            
         return {
             "total_generations": total_generations,
             "recent_generations": recent_generations,
             "rate_limit": rate_limit,
             "remaining_requests": remaining_requests,
             "is_premium": current_user.is_premium,
-            "reset_period_hours": 24
+            "reset_period_hours": 24,
+            "leaderboard_rank": rank
         }
     except Exception as e:
         print(f"❌ Error in get_usage_stats: {str(e)}")

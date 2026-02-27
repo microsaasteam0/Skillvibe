@@ -197,14 +197,14 @@ async def normalize_path_middleware(request: Request, call_next):
 # Configure CORS properly
 # Note: allow_origins cannot be ["*"] when allow_credentials is True
 allowed_origins = [
-    "https://buildinpublic.entrext.com",
-    "https://buildinpublic-alpha.vercel.app",
+    "https://skillvibe.entrext.com",
+    "https://skillvibe-alpha.vercel.app",
     "https://build-in-public.vercel.app",
     "https://build-in-public-alpha.vercel.app",
     "https://build-in-public-app.vercel.app",
     "http://localhost:3000",
     "http://localhost:8000",
-    "https://www.buildinpublic.entrext.com"
+    "https://www.skillvibe.entrext.com"
 ]
 
 app.add_middleware(

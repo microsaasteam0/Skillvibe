@@ -1,0 +1,2 @@
+app/profile/[slug]/page.tsx(87,19): error TS2339: Property 'role' does not exist on type 'User'.
+app/profile/[slug]/page.tsx(136,19): error TS2339: Property 'role' does not exist on type 'User'.

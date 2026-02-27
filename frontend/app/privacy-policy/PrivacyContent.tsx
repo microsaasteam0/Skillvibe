@@ -1,16 +1,20 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { Shield, ArrowLeft, Lock, Eye, FileText, ChevronRight } from 'lucide-react'
 import Navbar from '../../components/Navbar'
-import AuthenticatedNavbar from '../../components/AuthenticatedNavbar'
 import { useAuth } from '../../contexts/AuthContext'
 import Footer from '../../components/Footer'
+import AuthModal from '../../components/AuthModal'
+import DashboardModal from '../../components/DashboardModal'
 
 export default function PrivacyPolicy() {
     const { isAuthenticated, isLoading } = useAuth()
-    const lastUpdated = 'February 14, 2026'
+    const [showAuthModal, setShowAuthModal] = useState(false)
+    const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login')
+    const [showDashboard, setShowDashboard] = useState(false)
+    const lastUpdated = 'February 27, 2026'
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 selection:bg-indigo-500/30 font-sans overflow-x-hidden">
@@ -26,11 +30,21 @@ export default function PrivacyPolicy() {
             </div>
 
             {/* Navigation Schematic */}
-            {isAuthenticated ? (
-                <AuthenticatedNavbar isLoading={isLoading} />
-            ) : (
-                <Navbar isAuthenticated={false} onSignIn={() => { }} onSignUp={() => { }} />
-            )}
+            <Navbar
+                onSignIn={() => { setShowAuthModal(true); setAuthModalMode('login') }}
+                onSignUp={() => { setShowAuthModal(true); setAuthModalMode('register') }}
+                onUserDashboard={() => setShowDashboard(true)}
+            />
+
+            <AuthModal
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
+                initialMode={authModalMode}
+            />
+            <DashboardModal
+                isOpen={showDashboard}
+                onClose={() => setShowDashboard(false)}
+            />
 
             {/* Header - Manifesto Identity */}
             <main className="relative z-10 pt-40 pb-24 px-6">
@@ -68,7 +82,7 @@ export default function PrivacyPolicy() {
                                     </div>
                                     <div className="text-slate-600 dark:text-slate-400 leading-relaxed font-bold text-[15px] space-y-6 max-w-3xl">
                                         <p>
-                                            BuildInPublic (the "Distribution Engine") is co-engineered with the belief that transparency requires security. This Manifesto outlines our internal logic for handling your personal data across buildinpublic.entrext.com.
+                                            SkillVibe (the "Reputation Engine") is co-engineered with the belief that transparency requires security. This Manifesto outlines our internal logic for handling your personal data across skillvibe.ai.
                                         </p>
                                         <p>
                                             By initializing our Services, you synchronize with this security architecture. We decommission any use of your data that does not align with your direct growth protocols.

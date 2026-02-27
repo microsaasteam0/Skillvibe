@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Sparkles, Heart, ChevronDown, Mail, Instagram, Linkedin, MessageSquare, ExternalLink, Globe, Twitter, Rocket, Zap } from 'lucide-react'
+import { Sparkles, Heart, ChevronDown, Mail, Instagram, Linkedin, MessageSquare, ExternalLink, Globe, Twitter, Rocket, Zap, Target, ShieldCheck } from 'lucide-react'
+import { motion } from 'framer-motion'
 import Link from 'next/link'
 import Image from 'next/image'
 import toast from 'react-hot-toast'
@@ -22,223 +23,167 @@ export default function Footer({ onSupportClick }: FooterProps) {
       toast.error('Please enter your email')
       return
     }
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(newsletterEmail)) {
-      toast.error('Invalid email address')
-      return
-    }
     setIsSubscribing(true)
     try {
-      const encodedEmail = encodeURIComponent(newsletterEmail)
-      const substackUrl = `https://entrextlabs.substack.com/subscribe?email=${encodedEmail}`
-      toast.success('Redirecting to Substack...')
+      const substackUrl = `https://entrextlabs.substack.com/subscribe?email=${encodeURIComponent(newsletterEmail)}`
+      toast.success('Establishing connection...')
       setTimeout(() => {
         window.open(substackUrl, '_blank')
         setNewsletterEmail('')
       }, 1000)
-    } catch (error) {
-      toast.error('Something went wrong')
     } finally {
       setIsSubscribing(false)
     }
   }
 
+  const isRecruiter = user?.role === 'recruiter'
+
   const sections = [
     {
-      title: 'Product',
+      title: 'Links',
       links: [
+        { name: 'Home', href: '/', external: false },
+        { name: 'Rankings', href: '/leaderboard', external: false },
+        ...(isAuthenticated ? [
+          { name: isRecruiter ? 'Find Talent' : 'My Profile', href: isRecruiter ? '/recruiter' : '/profile', external: false }
+        ] : []),
         { name: 'Pricing', href: '/pricing', external: false },
-        { name: 'Features', href: '/features', external: false },
-        { name: 'Dashboard', href: isAuthenticated ? '/dashboard' : '/pricing', external: false },
-        { name: 'Updates', href: '/updates', external: false },
       ]
     },
     {
       title: 'Company',
       links: [
-        { name: 'About', href: '/about', external: false, internalAbout: true },
+        { name: 'About Us', href: '/about', external: false },
         { name: 'Entrext Labs', href: 'https://www.entrext.com/', external: true },
-        { name: 'Careers', href: 'https://deformity.ai/d/C-P5znqtG_ZZ', external: true },
+        { name: 'Join Us', href: 'https://deformity.ai/d/C-P5znqtG_ZZ', external: true },
       ]
     },
     {
       title: 'Legal',
       links: [
-        { name: 'Privacy Policy', href: '/privacy-policy', external: false },
-        { name: 'Terms of Service', href: '/terms-of-service', external: false },
-        { name: 'Cookie Policy', href: '/cookie-policy', external: false },
+        { name: 'Privacy', href: '/privacy-policy', external: false },
+        { name: 'Terms', href: '/terms-of-service', external: false },
+        { name: 'Cookies', href: '/cookie-policy', external: false },
       ]
     }
   ]
 
   const socialLinks = [
-    {
-      name: 'Discord',
-      href: 'https://discord.com/invite/ZZx3cBrx2',
-      icon: <MessageSquare className="w-5 h-5" />,
-      color: 'bg-[#5865F2]/10 text-[#5865F2] hover:bg-[#5865F2] hover:text-white'
-    },
-    {
-      name: 'Entrext Labs',
-      href: 'https://linktr.ee/entrext.in',
-      icon: <Globe className="w-5 h-5" />,
-      color: 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-600 hover:text-white'
-    },
-    {
-      name: 'LinkedIn',
-      href: 'https://www.linkedin.com/company/entrext/posts/?feedView=all',
-      icon: <Linkedin className="w-5 h-5" />,
-      color: 'bg-[#0077b5]/10 text-[#0077b5] hover:bg-[#0077b5] hover:text-white'
-    },
-    {
-      name: 'Instagram',
-      href: 'https://www.instagram.com/entrext.labs/',
-      icon: <Instagram className="w-5 h-5" />,
-      color: 'bg-[#E1306C]/10 text-[#E1306C] hover:bg-[#E1306C] hover:text-white'
-    },
-    {
-      name: 'Newsletter',
-      href: 'https://entrextlabs.substack.com/subscribe',
-      icon: <Mail className="w-5 h-5" />,
-      color: 'bg-[#FF6719]/10 text-[#FF6719] hover:bg-[#FF6719] hover:text-white'
-    }
+    { name: 'Discord', href: 'https://discord.com/invite/ZZx3cBrx2', icon: <MessageSquare className="w-5 h-5" /> },
+    { name: 'Global', href: 'https://linktr.ee/entrext.in', icon: <Globe className="w-5 h-5" /> },
+    { name: 'LinkedIn', href: 'https://www.linkedin.com/company/entrext/posts/?feedView=all', icon: <Linkedin className="w-5 h-5" /> },
+    { name: 'Instagram', href: 'https://www.instagram.com/entrext.labs/', icon: <Instagram className="w-5 h-5" /> },
   ]
 
   return (
-    <footer className="bg-zinc-50 dark:bg-slate-950 border-t border-zinc-200 dark:border-slate-800 mt-20 relative overflow-hidden" aria-label="BuildInPublic Footer">
-      {/* Industrial Decorative Layer */}
-      <div className="absolute inset-0 bg-grid-blueprint opacity-[0.05] pointer-events-none" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-gradient-to-b from-indigo-500/[0.03] to-transparent pointer-events-none" />
+    <footer className="bg-background border-t border-white/5 mt-32 relative overflow-hidden" aria-label="SkillVibe Footer">
+      {/* Background Decor */}
+      <div className="absolute inset-0 bg-cyber-grid opacity-10 pointer-events-none" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[600px] bg-gradient-to-b from-cyan-500/5 to-transparent pointer-events-none" />
 
-      <div className="max-w-7xl mx-auto px-6 py-12 lg:py-24 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
+      <div className="container mx-auto px-6 py-20 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 xl:gap-24">
 
-          {/* Brand Identity & Newsletter Protocol */}
-          <div className="lg:col-span-5 space-y-12">
-            <div className="flex flex-col space-y-8">
+          {/* Core Identity */}
+          <div className="lg:col-span-5 flex flex-col justify-between">
+            <div className="space-y-10">
               <Link href="/" className="flex items-center group gap-4 w-fit">
-                <div className="relative w-12 h-12 bg-zinc-100 dark:bg-slate-900 rounded-2xl shadow-2xl flex items-center justify-center p-2 border border-zinc-200 dark:border-slate-800 transform transition-all duration-500 group-hover:rotate-6">
-                  <Image src="/logo.png" alt="Logo" width={40} height={40} className="w-full h-full object-contain" />
+                <div className="relative w-14 h-14 bg-black rounded-2xl border border-white/10 flex items-center justify-center p-2 group-hover:glow-cyan group-hover:scale-110 transition-all duration-500">
+                  <Image src="/logo.png" alt="Logo" width={40} height={40} className="w-full h-full object-contain filter dark:invert-0 invert" />
                 </div>
-                <span className="text-3xl font-display font-black tracking-tighter text-zinc-900 dark:text-white">
-                  BuildIn<span className="text-indigo-600 dark:text-indigo-400">Public</span>
+                <span className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic">
+                  SKILL<span className="text-cyan-500">VIBE</span>
                 </span>
               </Link>
-              <p className="text-slate-500 dark:text-slate-400 text-lg leading-relaxed max-w-sm font-bold tracking-tight opacity-80">
-                Turn your notes into social growth. Built for founders.
+
+              <p className="text-slate-500 dark:text-slate-500 text-xl font-bold tracking-tight max-w-sm leading-relaxed">
+                The easiest <span className="text-cyan-500">Trust System</span> for the world's best workers.
               </p>
 
-              {/* Security_Sync Socials */}
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-4">
                 {socialLinks.map((social) => (
-                  <a
+                  <motion.a
                     key={social.name}
                     href={social.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={`p-3.5 rounded-2xl border border-zinc-200 dark:border-slate-800 transition-all duration-300 bg-zinc-100 dark:bg-slate-900 group shadow-sm hover:border-indigo-500/50 hover:shadow-xl hover:shadow-indigo-500/10`}
-                    title={social.name}
+                    whileHover={{ scale: 1.1, y: -5 }}
+                    className="w-12 h-12 glass-panel border border-white/10 rounded-xl flex items-center justify-center text-slate-600 dark:text-slate-400 hover:text-cyan-500 hover:border-cyan-500/50 transition-colors"
                   >
-                    <div className="transition-transform duration-300 group-hover:-translate-y-1">
-                      {social.icon}
-                    </div>
-                  </a>
+                    {social.icon}
+                  </motion.a>
                 ))}
               </div>
             </div>
 
-            {/* Newsletter Protocol */}
-            <div className="p-6 sm:p-10 bg-zinc-100 dark:bg-slate-900 rounded-[2.5rem] border border-zinc-200 dark:border-slate-800 shadow-2xl relative overflow-hidden group">
-              <div className="absolute inset-0 bg-grid-blueprint opacity-[0.02] pointer-events-none" />
-              <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2" />
-
-              <div className="flex items-center gap-5 mb-8">
-                <div className="w-14 h-14 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-600/20">
-                  <Zap className="w-7 h-7" />
+            <div className="mt-16 lg:mt-24 p-8 glass-card rounded-card border border-white/10 glow-cyan relative group">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center text-cyan-500">
+                  <Zap className="w-6 h-6" />
                 </div>
-                <div>
-                  <h4 className="text-lg font-black text-slate-900 dark:text-white tracking-tight leading-none mb-1.5">Weekly newsletter</h4>
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <p className="text-[10px] font-black text-slate-500 tracking-widest">Get updates</p>
-                  </div>
-                </div>
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-slate-800 dark:text-white italic">GET UPDATES</span>
               </div>
-
-              <form onSubmit={handleNewsletterSubscribe} className="space-y-4 relative z-10">
+              <form onSubmit={handleNewsletterSubscribe} className="flex gap-2">
                 <input
                   type="email"
-                  placeholder="Email address"
+                  placeholder="name@email.com"
+                  className="flex-1 bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs font-mono tracking-widest outline-none focus:border-cyan-500/50 transition-colors"
                   value={newsletterEmail}
                   onChange={(e) => setNewsletterEmail(e.target.value)}
-                  className="w-full bg-zinc-50 dark:bg-slate-950 border border-zinc-200 dark:border-slate-800 rounded-2xl px-5 py-4 text-xs font-black tracking-tight sm:tracking-widest focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all dark:text-white placeholder:text-zinc-400/50"
-                  disabled={isSubscribing}
                 />
-                <button
-                  type="submit"
-                  disabled={isSubscribing}
-                  className="w-full py-5 bg-zinc-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl text-[10px] sm:text-[11px] font-black tracking-widest sm:tracking-[0.3em] transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 disabled:opacity-50"
-                >
-                  {isSubscribing ? 'Processing...' : 'Subscribe'}
-                  {!isSubscribing && <ChevronDown className="w-4 h-4 -rotate-90" />}
+                <button className="bg-cyan-500 text-black px-6 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all">
+                  Join
                 </button>
               </form>
             </div>
           </div>
 
-          {/* Links Grid */}
-          <div className="lg:col-span-7 grid grid-cols-2 md:grid-cols-3 gap-10 md:gap-12 pt-0 lg:pt-8">
+          {/* Links */}
+          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-12 pt-8">
             {sections.map((section) => (
-              <div key={section.title} className="space-y-10">
-                <h3 className="text-[10px] font-black tracking-[0.4em] text-slate-400 dark:text-slate-500 flex items-center gap-2">
-                  <div className="w-4 h-[1px] bg-slate-400/30" />
+              <div key={section.title}>
+                <h3 className="text-[10px] font-black tracking-[0.4em] text-slate-400 dark:text-slate-600 mb-10 flex items-center gap-3">
+                  <div className="w-6 h-px bg-slate-600/30" />
                   {section.title}
                 </h3>
-                <ul className="space-y-5">
+                <ul className="space-y-6">
                   {section.links.map((link) => (
                     <li key={link.name}>
                       <Link
                         href={link.href}
                         target={link.external ? "_blank" : "_self"}
-                        className="text-[13px] font-black tracking-widest text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all flex items-center gap-2 group w-fit"
+                        className="text-[13px] font-black uppercase tracking-widest text-slate-600 dark:text-slate-400 hover:text-cyan-500 transition-all flex items-center gap-3 group"
                       >
-                        <span className="opacity-0 group-hover:opacity-100 transition-opacity translate-x-[-10px] group-hover:translate-x-0">_</span>
+                        <div className="w-1.5 h-1.5 rounded-full bg-cyan-500/0 group-hover:bg-cyan-500 transition-all" />
                         {link.name}
-                        {link.external && <ExternalLink className="w-3 h-3 opacity-30" />}
                       </Link>
                     </li>
                   ))}
-                  {section.title === 'Company' && (
-                    <li>
-                      <button
-                        onClick={onSupportClick}
-                        className="text-[13px] font-black tracking-widest text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all flex items-center gap-2 group"
-                      >
-                        <span className="opacity-0 group-hover:opacity-100 transition-opacity translate-x-[-10px] group-hover:translate-x-0">_</span>
-                        Support
-                      </button>
-                    </li>
-                  )}
                 </ul>
               </div>
             ))}
           </div>
+
         </div>
 
-        {/* Bottom Bar - Industrial Footer Protocol */}
-        <div className="mt-20 pt-10 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-8">
-          <p className="text-[10px] font-black tracking-[0.3em] text-zinc-400 dark:text-slate-500 text-center md:text-left">
-            © {new Date().getFullYear()} BuildInPublic. All rights reserved.
-          </p>
-
-          <div className="flex items-center gap-3 text-[10px] font-black tracking-[0.3em] text-zinc-900 dark:text-white bg-zinc-100 dark:bg-slate-900 border border-zinc-200 dark:border-slate-800 px-6 py-3 rounded-2xl shadow-xl">
-            <span className="opacity-60">Built by</span>
-            <div className="w-[1px] h-3 bg-slate-200 dark:bg-slate-800" />
-            <a href="https://entrext.in" target="_blank" className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-2">
-              Entrext Labs
-              <Zap className="w-3 h-3 text-indigo-500 fill-current animate-pulse" />
-            </a>
+        {/* Bottom */}
+        <div className="mt-32 pt-10 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-10">
+          <div className="flex flex-col md:flex-row items-center gap-6">
+            <span className="text-[10px] font-black tracking-[0.3em] text-slate-600 uppercase">
+              © 2026 SKILLVIBE
+            </span>
+            <div className="hidden md:block w-px h-4 bg-white/10" />
+            <div className="flex items-center gap-4 text-[10px] font-black tracking-[0.3em] text-slate-600 uppercase">
+              <ShieldCheck className="w-4 h-4 text-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+              100% SECURE
+            </div>
           </div>
+
+          <a href="https://entrext.in" target="_blank" className="flex items-center gap-3 glass-panel px-6 py-3 rounded-xl border border-white/10 group hover:glow-cyan transition-all">
+            <span className="text-[10px] font-black tracking-[0.3em] text-slate-500 uppercase">Architected by</span>
+            <span className="text-[11px] font-black text-slate-800 dark:text-white uppercase transition-colors group-hover:text-cyan-500">Entrext Labs</span>
+            <Target className="w-4 h-4 text-cyan-500 animate-pulse" />
+          </a>
         </div>
       </div>
     </footer>

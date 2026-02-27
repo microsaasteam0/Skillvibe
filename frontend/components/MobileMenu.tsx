@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { Menu, X, Crown, Users, Home, Zap, Sparkles, MessageSquare, Info, LayoutDashboard, LogOut, Rocket } from 'lucide-react'
+import { Menu, X, Crown, Users, Home, Zap, Sparkles, MessageSquare, Info, LayoutDashboard, LogOut, Rocket, Trophy, Briefcase } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -16,19 +16,25 @@ interface MobileMenuProps {
   onSignUp?: () => void
   onDashboard?: () => void
   onTabChange?: (tab: string) => void
+  usageStats?: any
 }
 
 export default function MobileMenu({
-  isAuthenticated,
-  user,
+  isAuthenticated: propIsAuthenticated,
+  user: propUser,
   onSignIn,
   onSignUp,
   onDashboard,
-  onTabChange
+  onTabChange,
+  usageStats
 }: MobileMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const { logout } = useAuth()
+  const { logout, user: authUser, isAuthenticated: authIsAuthenticated } = useAuth()
+
+  const user = propUser !== undefined ? propUser : authUser
+  const isAuthenticated = propIsAuthenticated !== undefined ? propIsAuthenticated : authIsAuthenticated
+
   const pathname = usePathname()
 
   const closeMenu = () => setIsOpen(false)
@@ -52,9 +58,6 @@ export default function MobileMenu({
     closeMenu()
   }, [pathname])
 
-  const isActive = (path: string) =>
-    pathname === path || (path !== '/' && pathname.startsWith(path))
-
   const isValidImageUrl = (url: string): boolean => {
     if (!url || url.trim() === '') return false
     if (url.startsWith('data:image/')) return true
@@ -66,20 +69,33 @@ export default function MobileMenu({
     }
   }
 
+  const isRecruiter = user?.role === 'recruiter'
+
   const allLinks = [
     { name: 'Home', href: '/', icon: isAuthenticated ? Zap : Home },
+    ...(isAuthenticated ? [
+      { name: isRecruiter ? 'Find Talent' : 'My Profile', href: isRecruiter ? '/recruiter' : '/profile', icon: isRecruiter ? Users : Sparkles },
+      ...(isRecruiter ? [{ name: 'Job Posts', href: '/recruiter/jobs', icon: Briefcase }] : []),
+    ] : []),
+    { name: 'Jobs', href: '/jobs', icon: Briefcase },
+    { name: 'Rankings', href: '/leaderboard', icon: Trophy },
     { name: 'Pricing', href: '/pricing', icon: Crown },
-    { name: 'Community', href: '/community', icon: Users, authOnly: true },
-    { name: 'Blog', href: '/blog', icon: MessageSquare },
-    { name: 'Features', href: '/features', icon: Sparkles, marketingOnly: true },
-    { name: 'Updates', href: '/updates', icon: Rocket, marketingOnly: true },
-    { name: 'About', href: '/about', icon: Info, marketingOnly: true },
+    { name: 'About Us', href: '/about', icon: Info, marketingOnly: true },
   ]
 
   const navLinks = allLinks.filter(link => {
     if (isAuthenticated) return !link.marketingOnly
-    return !link.authOnly
+    return true
   })
+
+  const matchesPath = (href: string) => {
+    if (href === '/') return pathname === '/'
+    return pathname === href || pathname.startsWith(`${href}/`)
+  }
+  const activeHref = navLinks
+    .map(link => link.href)
+    .filter(matchesPath)
+    .sort((a, b) => b.length - a.length)[0]
 
   const menuContent = (
     <AnimatePresence>
@@ -119,8 +135,8 @@ export default function MobileMenu({
                   <div className="w-8 h-8 bg-white dark:bg-slate-900 rounded-xl flex items-center justify-center p-1.5 border border-zinc-200 dark:border-slate-800 shadow-sm">
                     <Image src="/logo.png" alt="BuildInPublic" width={28} height={28} className="w-full h-full object-contain" />
                   </div>
-                  <span className="text-base font-black tracking-tighter text-slate-900 dark:text-white">
-                    Build<span className="text-indigo-600 dark:text-indigo-400">In</span>Public
+                  <span className="text-base font-black tracking-tighter text-slate-900 dark:text-white uppercase italic">
+                    Skill<span className="text-cyan-500">Vibe</span>
                   </span>
                 </div>
                 <button
@@ -142,6 +158,7 @@ export default function MobileMenu({
                           src={user.profile_picture}
                           alt="Profile"
                           fill
+                          sizes="44px"
                           className="object-cover"
                         />
                       ) : (
@@ -158,8 +175,13 @@ export default function MobileMenu({
                         {user.email}
                       </p>
                       {user.is_premium && (
-                        <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full text-[9px] font-black text-amber-600 dark:text-amber-400 tracking-widest">
+                        <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded-full text-[9px] font-black text-amber-600 dark:text-amber-400 tracking-widest uppercase">
                           <Crown className="w-2.5 h-2.5" /> Pro
+                        </span>
+                      )}
+                      {usageStats?.leaderboard_rank && user?.role !== 'recruiter' && (
+                        <span className="inline-flex items-center gap-1 mt-1 ml-1 px-2 py-0.5 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-[9px] font-black text-indigo-600 dark:text-indigo-400 tracking-widest uppercase">
+                          <Trophy className="w-2.5 h-2.5" /> {usageStats.leaderboard_rank.startsWith('#') ? 'Rank: ' : ''}{usageStats.leaderboard_rank}
                         </span>
                       )}
                     </div>
@@ -167,9 +189,9 @@ export default function MobileMenu({
 
                   <button
                     onClick={() => { onDashboard?.(); closeMenu(); }}
-                    className="w-full py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 border border-indigo-500/20 tracking-widest"
+                    className="w-full py-2.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 rounded-xl text-xs font-black transition-all flex items-center justify-center gap-2 border border-cyan-500/20 tracking-widest uppercase italic"
                   >
-                    <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard
+                    <LayoutDashboard className="w-3.5 h-3.5" /> MY ACCOUNT
                   </button>
                 </div>
               )}
@@ -178,23 +200,23 @@ export default function MobileMenu({
               <nav className="flex-1 px-4 py-4 space-y-1">
                 {navLinks.map((link) => {
                   const Icon = link.icon
-                  const active = isActive(link.href)
+                  const active = activeHref === link.href
                   return (
                     <Link
                       key={link.name}
                       href={link.href}
                       onClick={closeMenu}
-                      className={`flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all font-black text-sm tracking-wide ${active
-                        ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20'
-                        : 'text-slate-500 dark:text-slate-400 hover:bg-zinc-100 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white border border-transparent'
+                      className={`flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all font-black text-sm tracking-[0.1em] uppercase italic ${active
+                        ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 glow-cyan'
+                        : 'text-slate-500 dark:text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'
                         }`}
                     >
-                      <Icon className={`w-4.5 h-4.5 flex-shrink-0 ${active ? 'text-indigo-500' : 'opacity-60'}`} />
+                      <Icon className={`w-4.5 h-4.5 flex-shrink-0 ${active ? 'text-cyan-500' : 'opacity-60'}`} />
                       <span>{link.name}</span>
                       {link.href === '/pricing' && isAuthenticated && !user?.is_premium && (
                         <span className="ml-auto flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-indigo-400 opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500" />
+                          <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-cyan-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
                         </span>
                       )}
                     </Link>
@@ -207,29 +229,29 @@ export default function MobileMenu({
                 {isAuthenticated ? (
                   <button
                     onClick={() => { logout(); closeMenu(); }}
-                    className="w-full px-4 py-3 rounded-2xl bg-red-500/10 text-red-500 dark:text-red-400 font-black text-xs tracking-widest hover:bg-red-500/20 transition-all flex items-center justify-center gap-2 border border-red-500/20"
+                    className="w-full px-4 py-3 rounded-2xl bg-red-500/10 text-red-500 font-black text-xs tracking-widest hover:bg-red-500/20 transition-all flex items-center justify-center gap-2 border border-red-500/20 uppercase italic"
                   >
-                    <LogOut className="w-4 h-4" /> Sign out
+                    <LogOut className="w-4 h-4" /> LOG OUT
                   </button>
                 ) : (
                   <div className="space-y-3">
                     <button
                       onClick={() => { onSignUp?.(); closeMenu(); }}
-                      className="w-full px-4 py-3.5 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black text-xs tracking-widest transition-all shadow-lg shadow-indigo-600/20 hover:shadow-indigo-600/40 hover:-translate-y-0.5 active:scale-95"
+                      className="w-full px-4 py-3.5 rounded-2xl bg-cyan-500 hover:bg-cyan-600 text-black font-black text-xs tracking-widest transition-all shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 hover:-translate-y-0.5 active:scale-95 uppercase italic"
                     >
-                      Get started free 🚀
+                      JOIN NOW
                     </button>
                     <button
                       onClick={() => { onSignIn?.(); closeMenu(); }}
-                      className="w-full px-4 py-3.5 rounded-2xl bg-zinc-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-black text-xs tracking-widest hover:bg-zinc-200 dark:hover:bg-slate-700 transition-all border border-zinc-200 dark:border-slate-700"
+                      className="w-full px-4 py-3.5 rounded-2xl bg-white/5 text-white font-black text-xs tracking-widest hover:bg-white/10 transition-all border border-white/10 uppercase italic"
                     >
-                      Sign In
+                      LOG IN
                     </button>
                   </div>
                 )}
 
                 <p className="mt-5 text-center text-[10px] text-slate-400 dark:text-slate-600 font-mono">
-                  © 2026 BuildInPublic · Entrext Labs
+                  © 2026 SkillVibe · Entrext Labs
                 </p>
               </div>
 

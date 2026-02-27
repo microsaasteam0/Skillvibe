@@ -2,6 +2,7 @@ import { Inter, Plus_Jakarta_Sans } from 'next/font/google'
 import { Metadata } from 'next'
 import './globals.css'
 import ClientProviders from '../components/ClientProviders'
+import SmoothScroll from '../components/SmoothScroll'
 import Script from 'next/script'
 
 const inter = Inter({
@@ -18,15 +19,15 @@ const plusJakarta = Plus_Jakarta_Sans({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NODE_ENV === 'production'
-    ? 'https://buildinpublic.entrext.com'
+    ? 'https://skillvibe.entrext.com'
     : 'http://localhost:3000'
   ),
   title: {
-    default: 'BuildInPublic - The Engine for Founders',
-    template: '%s | BuildInPublic'
+    default: 'SkillVibe - The Reputation Layer for Elite Talent',
+    template: '%s | SkillVibe'
   },
-  description: 'The public engine for modern founders. Turn your build logs into high-authority social content instantly.',
-  keywords: ['build in public', 'founder content engine', 'X thread generator', 'Twitter thread generator', 'build log to social', 'AI content creation', 'founder marketing', 'social media automation', 'BuildInPublic AI'],
+  description: 'The elite reputation protocol for modern talent. Verify your prowess, rank against the best, and get discovered by founders.',
+  keywords: ['talent ranking', 'skill verification', 'elite portfolio', 'reputation layer', 'AI talent discovery', 'proof of work', 'founder hiring', 'skillvibe', 'SkillVibe AI'],
   authors: [{ name: 'Entrext Labs', url: 'https://entrext.in' }],
   creator: 'Entrext Labs',
   publisher: 'Entrext Labs',
@@ -45,23 +46,23 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: '/',
-    siteName: 'BuildInPublic',
-    title: 'BuildInPublic - The Engine for Founders',
-    description: 'The public engine for modern founders. Turn your build logs into high-authority social content instantly.',
+    siteName: 'SkillVibe',
+    title: 'SkillVibe - The Reputation Layer for Elite Talent',
+    description: 'The elite reputation protocol for modern talent. Verify your prowess, rank against the best, and get discovered by founders.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'BuildInPublic - AI Content Transformation',
+        alt: 'SkillVibe - Elite Talent Verification',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'BuildInPublic - The Engine for Founders',
-    description: 'The public engine for modern founders. Turn your build logs into high-authority social content instantly.',
-    creator: '@entrextlabs',
+    title: 'SkillVibe - The Reputation Layer for Elite Talent',
+    description: 'The elite reputation protocol for modern talent. Verify your prowess and get discovered.',
+    creator: '@skillvibe',
     images: ['/twitter-image.png'],
   },
   alternates: {
@@ -94,7 +95,7 @@ export default function RootLayout({
               (function() {
                 function setTheme() {
                   try {
-                    var theme = localStorage.getItem('buildinpublic-theme') || 'dark';
+                    var theme = localStorage.getItem('skillvibe-theme') || 'dark';
                     var resolvedTheme = theme;
                     
                     if (theme === 'system') {
@@ -182,18 +183,18 @@ export default function RootLayout({
             __html: JSON.stringify({
               "@context": "https://schema.org",
               "@type": "WebApplication",
-              "name": "BuildInPublic",
-              "alternateName": "BuildInPublic AI",
-              "description": "BuildInPublic is an AI-powered engine for founders building in public. Transform your daily build logs into high-authority X (Twitter) threads instantly.",
-              "url": "https://buildinpublic.entrext.com",
-              "applicationCategory": "BusinessApplication",
+              "name": "SkillVibe",
+              "alternateName": "SkillVibe AI",
+              "description": "SkillVibe is an AI-powered reputation layer for elite talent. Verify your expertise through proof-of-work and rank among the top 1% globally.",
+              "url": "https://skillvibe.entrext.com",
+              "applicationCategory": "BusinessApplication, RecruitmentApplication",
               "operatingSystem": "Web, Windows, macOS, Linux, Android, iOS",
-              "keywords": "build in public, founder content, X thread generator, Twitter thread generator, build log automation, AI writing assistant",
+              "keywords": "talent ranking, skill verification, recruitment protocol, AI hiring, proof of work automation",
               "offers": {
                 "@type": "AggregateOffer",
                 "priceCurrency": "USD",
                 "lowPrice": "0",
-                "highPrice": "15.00",
+                "highPrice": "29.00",
                 "offerCount": "2",
                 "offers": [
                   {
@@ -204,8 +205,8 @@ export default function RootLayout({
                   },
                   {
                     "@type": "Offer",
-                    "name": "Pro Plan",
-                    "price": "15.00",
+                    "name": "Elite Plan",
+                    "price": "29.00",
                     "priceCurrency": "USD"
                   }
                 ]
@@ -216,24 +217,24 @@ export default function RootLayout({
                 "url": "https://entrext.in",
                 "logo": {
                   "@type": "ImageObject",
-                  "url": "https://buildinpublic.entrext.com/logo.png"
+                  "url": "https://skillvibe.entrext.com/logo.png"
                 }
               },
               "featureList": [
-                "Build Log to X Thread Transformation",
-                "X Thread Generation & Optimization",
-                "Multi-Thread Synthesis",
-                "Custom Content Templates",
-                "Advanced AI Usage Statistics",
-                "Thread Analytics & Insights"
+                "AI-Verified Skill Ranking",
+                "Elite Vibe Generation",
+                "Hybrid Vibe Score",
+                "Industry-Standard Proof of Work",
+                "Global Talent Rankings"
               ],
-              "screenshot": "https://buildinpublic.entrext.com/og-image.png",
-              "softwareVersion": "1.0.0"
+              "screenshot": "https://skillvibe.entrext.com/og-image.png",
+              "softwareVersion": "2.0.0"
             })
           }}
         />
 
         <ClientProviders>
+          <SmoothScroll />
           {children}
         </ClientProviders>
       </body>

@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { createPortal } from 'react-dom'
 import { X, AlertTriangle, Crown, Users, FileText, Download, Zap, Shield, Loader2, Activity, Box, Terminal, Workflow, Database } from 'lucide-react'
 
@@ -12,20 +13,8 @@ interface DowngradeModalProps {
 }
 
 export default function DowngradeModal({ isOpen, onClose, onConfirm, isLoading }: DowngradeModalProps) {
-  // Lock body scroll when modal is open
-  React.useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-      document.documentElement.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-      document.documentElement.style.overflow = 'unset'
-    }
-    return () => {
-      document.body.style.overflow = 'unset'
-      document.documentElement.style.overflow = 'unset'
-    }
-  }, [isOpen])
+  // Lock scroll (CSS + Lenis) when modal is open
+  useScrollLock(isOpen)
 
   if (!isOpen) return null
 
@@ -37,12 +26,12 @@ export default function DowngradeModal({ isOpen, onClose, onConfirm, isLoading }
     },
     {
       icon: <Activity className="w-5 h-5 text-red-500" />,
-      title: 'Deep Build-Log Analysis',
-      description: 'Loss of high-velocity narrative ingestion'
+      title: 'Deep Profile Analysis',
+      description: 'Lose access to advanced insights'
     },
     {
       icon: <Workflow className="w-5 h-5 text-red-500" />,
-      title: 'Multi-Thread Synthesis',
+      title: 'Unlimited Generation',
       description: 'No more automated serial distribution'
     },
     {
@@ -57,8 +46,8 @@ export default function DowngradeModal({ isOpen, onClose, onConfirm, isLoading }
     },
     {
       icon: <Download className="w-5 h-5 text-red-500" />,
-      title: 'Technical Data Export',
-      description: 'No Markdown or JSON schematic dumps'
+      title: 'Data Export',
+      description: 'No Markdown or JSON exports'
     }
   ]
 
@@ -66,7 +55,7 @@ export default function DowngradeModal({ isOpen, onClose, onConfirm, isLoading }
     <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[2000000] flex items-center justify-center p-4">
       <div className="relative bg-slate-900 rounded-[2.5rem] border border-red-500/30 max-w-xl w-full max-h-[90vh] overflow-hidden shadow-3xl animate-kinetic-glow">
 
-        {/* Innovative 'Builder' Background Matrix */}
+        {/* Background */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <div className="absolute inset-0 bg-grid-blueprint-light opacity-[0.10]" />
           <div className="absolute inset-0 bg-gradient-to-b from-red-500/5 via-transparent to-transparent pointer-events-none" />
@@ -82,7 +71,7 @@ export default function DowngradeModal({ isOpen, onClose, onConfirm, isLoading }
           <div className="flex flex-col gap-1">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-500/10 text-red-500 rounded-full text-[10px] font-black uppercase tracking-wider border border-red-500/20 mb-2">
               <Activity className="w-3 h-3" />
-              CANCEL_PRO_PLAN
+              CANCEL PRO PLAN
             </div>
             <div className="flex items-center gap-3 text-white">
               <div className="p-2.5 bg-red-500/20 rounded-xl border border-red-500/30">
@@ -114,10 +103,10 @@ export default function DowngradeModal({ isOpen, onClose, onConfirm, isLoading }
               </div>
               <div>
                 <h3 className="font-black text-red-500 mb-1 sm:mb-1.5 uppercase tracking-tighter text-xs sm:text-sm flex items-center gap-2">
-                  <span className="animate-pulse">●</span> ERROR: IRREVERSIBLE_ACTION
+                  <span className="animate-pulse">●</span> WARNING: THIS CANNOT BE UNDONE
                 </h3>
                 <p className="text-red-400/80 text-[10px] sm:text-xs font-medium leading-relaxed">
-                  Your Pro_Engine environment will be terminated. Access to neural synthesis vaults and personalization schematics will be restricted. Data in your permanent vault may be archived or inaccessible.
+                  Your Pro membership will be canceled. Access to premium features and templates will be restricted. Some of your saved data may become inaccessible.
                 </p>
               </div>
             </div>
@@ -197,9 +186,9 @@ export default function DowngradeModal({ isOpen, onClose, onConfirm, isLoading }
             <div className="flex flex-col gap-1 items-center md:items-start text-center md:text-left">
               <div className="text-[9px] sm:text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-2 justify-center md:justify-start">
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                TERMINATION_IMMEDIATE_EFFECT
+                TAKES EFFECT IMMEDIATELY
               </div>
-              <p className="text-slate-500 text-[8px] sm:text-[9px] uppercase font-bold tracking-tighter">ENVIRONMENT_WIPE_SCHEDULED_T-0</p>
+              <p className="text-slate-500 text-[8px] sm:text-[9px] uppercase font-bold tracking-tighter">Your Pro access will end right away</p>
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full md:w-auto">
@@ -208,7 +197,7 @@ export default function DowngradeModal({ isOpen, onClose, onConfirm, isLoading }
                 disabled={isLoading}
                 className="w-full sm:w-auto text-[10px] font-black text-slate-400 hover:text-white uppercase tracking-wider px-6 py-2.5 transition-colors font-mono whitespace-nowrap"
               >
-                ABORT_TERMINATION
+                KEEP MY PLAN
               </button>
               <button
                 onClick={onConfirm}
@@ -224,7 +213,7 @@ export default function DowngradeModal({ isOpen, onClose, onConfirm, isLoading }
                     </>
                   ) : (
                     <>
-                      CONFIRM_DOWNGRADE
+                      CONFIRM CANCELLATION
                       <Box className="w-3.5 h-3.5 group-hover:rotate-12 transition-transform" />
                     </>
                   )}

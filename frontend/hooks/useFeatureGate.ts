@@ -60,8 +60,16 @@ export const useFeatureGate = () => {
       }
 
       try {
-        const response = await axios.get(`${API_URL}/api/v1/auth/feature-limits`)
-        setFeatureLimits(response.data)
+        const cacheKey = `feature-limits-${user?.id || 'anon'}`
+        const data = await requestCache.get(
+          cacheKey,
+          async () => {
+            const response = await axios.get(`${API_URL}/api/v1/auth/feature-limits`)
+            return response.data
+          },
+          60 * 1000
+        )
+        setFeatureLimits(data)
       } catch (error: any) {
         // Suppress 401 errors from console
         if (error?.response?.status !== 401) {
@@ -93,7 +101,7 @@ export const useFeatureGate = () => {
     }
 
     fetchFeatureLimits()
-  }, [isAuthenticated, user?.is_premium, isProcessingPayment]) // Added isProcessingPayment
+  }, [isAuthenticated, user?.id, user?.is_premium, isProcessingPayment]) // Added isProcessingPayment
 
   const getUpgradePrompt = useCallback(async (feature: string): Promise<UpgradePrompt> => {
     try {
@@ -112,17 +120,26 @@ export const useFeatureGate = () => {
   }, [])
 
   const refreshLimits = useCallback(async () => {
-    if (!isAuthenticated) return
+    if (!isAuthenticated || !user?.id) return
 
     try {
-      const response = await axios.get(`${API_URL}/api/v1/auth/feature-limits`)
-      setFeatureLimits(response.data)
+      const cacheKey = `feature-limits-${user.id}`
+      requestCache.invalidate(cacheKey)
+      const data = await requestCache.get(
+        cacheKey,
+        async () => {
+          const response = await axios.get(`${API_URL}/api/v1/auth/feature-limits`)
+          return response.data
+        },
+        60 * 1000
+      )
+      setFeatureLimits(data)
     } catch (error: any) {
       if (error?.response?.status !== 401) {
         console.error('Error refreshing feature limits:', error)
       }
     }
-  }, [isAuthenticated])
+  }, [isAuthenticated, user?.id])
 
   return {
     // Feature checks

@@ -1,16 +1,20 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { Cookie, ArrowLeft, Info, Settings, Database, ChevronRight } from 'lucide-react'
 import Navbar from '../../components/Navbar'
-import AuthenticatedNavbar from '../../components/AuthenticatedNavbar'
 import { useAuth } from '../../contexts/AuthContext'
 import Footer from '../../components/Footer'
+import AuthModal from '../../components/AuthModal'
+import DashboardModal from '../../components/DashboardModal'
 
 export default function CookiePolicy() {
     const { isAuthenticated, isLoading } = useAuth()
-    const lastUpdated = 'February 14, 2026'
+    const [showAuthModal, setShowAuthModal] = useState(false)
+    const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login')
+    const [showDashboard, setShowDashboard] = useState(false)
+    const lastUpdated = 'February 27, 2026'
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 selection:bg-indigo-500/30 font-sans overflow-x-hidden">
@@ -26,11 +30,21 @@ export default function CookiePolicy() {
             </div>
 
             {/* Navigation Schematic */}
-            {isAuthenticated ? (
-                <AuthenticatedNavbar isLoading={isLoading} />
-            ) : (
-                <Navbar isAuthenticated={false} onSignIn={() => { }} onSignUp={() => { }} />
-            )}
+            <Navbar
+                onSignIn={() => { setShowAuthModal(true); setAuthModalMode('login') }}
+                onSignUp={() => { setShowAuthModal(true); setAuthModalMode('register') }}
+                onUserDashboard={() => setShowDashboard(true)}
+            />
+
+            <AuthModal
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
+                initialMode={authModalMode}
+            />
+            <DashboardModal
+                isOpen={showDashboard}
+                onClose={() => setShowDashboard(false)}
+            />
 
             {/* Header - Cookie Schematic Identity */}
             <main className="relative z-10 pt-40 pb-24 px-6">
@@ -68,7 +82,7 @@ export default function CookiePolicy() {
                                     </div>
                                     <div className="text-slate-600 dark:text-slate-400 leading-relaxed font-bold text-[15px] space-y-6 max-w-3xl">
                                         <p>
-                                            Cookies are discrete data packets stored within your local architecture. They are critical for the Distribution Engine to maintain session persistence and operational continuity.
+                                            Cookies are discrete data packets stored within your local architecture. They are critical for the Reputation Engine to maintain session persistence and operational continuity.
                                         </p>
                                     </div>
                                 </div>

@@ -6,7 +6,7 @@ Disallow: /verify-email
 Disallow: /*?token=
 
 # Sitemap
-Sitemap: https://buildinpublic.entrext.com/sitemap.xml
+Sitemap: https://skillvibe.entrext.com/sitemap.xml
 
 
 # Crawl-delay for polite crawling

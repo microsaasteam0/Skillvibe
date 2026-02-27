@@ -188,10 +188,10 @@ const SupportWidget = () => {
                       <MessageCircle className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-black tracking-tighter uppercase font-display leading-none">Support_Hub</h3>
+                      <h3 className="text-2xl font-black tracking-tighter uppercase font-display leading-none">Support Hub</h3>
                       <div className="flex items-center gap-1.5 mt-1">
                         <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Systems.Active</span>
+                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Online</span>
                       </div>
                     </div>
                   </div>
@@ -219,9 +219,9 @@ const SupportWidget = () => {
                         <div className="absolute top-0 right-0 p-2 opacity-[0.05] grayscale group-hover:grayscale-0 group-hover:opacity-10 transition-all duration-500">
                           <Rocket className="w-12 h-12 text-indigo-500" />
                         </div>
-                        <h4 className="font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Identity_Greeting</h4>
+                        <h4 className="font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Need Help?</h4>
                         <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-[1.6]">
-                          High-authority distribution starts with stable support. Select a schematic or use the logic tabs.
+                          Get the help you need. Select an option below to get started.
                         </p>
                       </div>
 
@@ -235,8 +235,8 @@ const SupportWidget = () => {
                               <Send className="w-5 h-5" />
                             </div>
                             <div>
-                              <div className="font-black text-slate-900 dark:text-white text-[13px] uppercase tracking-wide">Direct_Sync</div>
-                              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">Email dispatch protocols</div>
+                              <div className="font-black text-slate-900 dark:text-white text-[13px] uppercase tracking-wide">Contact Us</div>
+                              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">Email our support team</div>
                             </div>
                           </div>
                           <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" />
@@ -251,8 +251,8 @@ const SupportWidget = () => {
                               <HelpCircle className="w-5 h-5" />
                             </div>
                             <div>
-                              <div className="font-black text-slate-900 dark:text-white text-[13px] uppercase tracking-wide">Knowledge_Base</div>
-                              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">Instant schematic lookup</div>
+                              <div className="font-black text-slate-900 dark:text-white text-[13px] uppercase tracking-wide">FAQ</div>
+                              <div className="text-[11px] text-slate-500 dark:text-slate-400 font-bold">Find answers instantly</div>
                             </div>
                           </div>
                           <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-violet-500 group-hover:translate-x-1 transition-all" />
@@ -263,10 +263,10 @@ const SupportWidget = () => {
                         <div className="absolute inset-0 bg-grid-blueprint-light dark:bg-grid-blueprint opacity-[0.03] pointer-events-none" />
                         <h5 className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.3em] mb-3 flex items-center">
                           <Zap className="w-3.5 h-3.5 mr-2 fill-current" />
-                          Build_Insight
+                          Pro Tip
                         </h5>
                         <p className="text-[12px] text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
-                          Optimize your distribution: convert your <span className="text-slate-900 dark:text-white font-black underline decoration-indigo-500/30">raw build logs</span> into high-impact X threads with one click.
+                          Optimize your workflow: convert your <span className="text-slate-900 dark:text-white font-black underline decoration-indigo-500/30">content</span> into high-impact X threads with one click.
                         </p>
                       </div>
                     </motion.div>
@@ -284,14 +284,14 @@ const SupportWidget = () => {
                     >
                       <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl shadow-sm border border-slate-200/50 dark:border-slate-800/50 text-center">
                         <p className="text-slate-600 dark:text-slate-400 text-xs font-black uppercase tracking-widest leading-relaxed">
-                          Protocol: Secure Dispatch. <br />
-                          We will respond to your registered Identity.
+                          Secure Contact. <br />
+                          We will respond to your email.
                         </p>
                       </div>
 
                       <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-1">Id_Channel</label>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-1">Email Address</label>
                           <input
                             type="email"
                             required
@@ -301,7 +301,7 @@ const SupportWidget = () => {
                             className="w-full px-5 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all dark:text-white font-medium text-sm"
                           />
 
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-1 mt-4 block">Event_Category</label>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-1 mt-4 block">Category</label>
                           <div className="relative">
                             <select
                               value={category}
@@ -318,13 +318,13 @@ const SupportWidget = () => {
                         </div>
 
                         <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-1">Data_Payload</label>
+                          <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] pl-1">Message</label>
                           <textarea
                             required
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
                             rows={5}
-                            placeholder="Define the structural issue..."
+                            placeholder="How can we help?"
                             className="w-full px-5 py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all resize-none custom-scrollbar dark:text-white font-medium text-sm"
                           />
                         </div>
@@ -338,7 +338,7 @@ const SupportWidget = () => {
                             <div className="w-5 h-5 border-2 border-slate-500/30 border-t-slate-500 rounded-full animate-spin" />
                           ) : (
                             <>
-                              <span>Dispatch_Message</span>
+                              <span>Send Message</span>
                               <Send className="w-4 h-4 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                             </>
                           )}

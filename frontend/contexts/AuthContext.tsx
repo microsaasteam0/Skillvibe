@@ -11,6 +11,7 @@ interface User {
   username: string
   full_name?: string
   profile_picture?: string
+  role?: string
   is_active: boolean
   is_verified: boolean
   is_premium: boolean
@@ -22,8 +23,8 @@ interface AuthContextType {
   token: string | null
   isLoading: boolean
   isAuthenticated: boolean
-  login: (email: string, password: string) => Promise<boolean>
-  register: (email: string, username: string, password: string, fullName?: string) => Promise<boolean>
+  login: (email: string, password: string, role?: string) => Promise<boolean>
+  register: (email: string, username: string, password: string, fullName?: string, role?: string) => Promise<boolean>
   googleAuth: (googleToken: string) => Promise<boolean>
   logout: () => void
   refreshToken: () => Promise<boolean>
@@ -221,13 +222,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth()
   }, [])
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string, role?: string): Promise<boolean> => {
     try {
       setIsLoading(true)
 
-      const formData = new FormData()
+      const normalizedRole = role?.toLowerCase()
+      const formData = new URLSearchParams()
       formData.append('username', email)
       formData.append('password', password)
+      if (normalizedRole) {
+        formData.append('role', normalizedRole)
+        formData.append('selected_role', normalizedRole)
+      }
 
       const response = await axios.post(
         `${API_URL}/api/v1/auth/login`,
@@ -241,26 +247,60 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       const { access_token, refresh_token, user: userData } = response.data
 
+      // If the selected role differs from DB role, update it
+      let finalUserData = userData
+      if (normalizedRole && normalizedRole !== userData.role) {
+        try {
+          const roleResponse = await axios.put(
+            `${API_URL}/api/v1/auth/role`,
+            { role: normalizedRole },
+            { headers: { 'Authorization': `Bearer ${access_token}` } }
+          )
+          finalUserData = roleResponse.data
+        } catch (roleErr) {
+          // Role switching is explicit user intent in login flow.
+          // If this fails, do not silently continue with stale role.
+          console.warn('Role update failed:', roleErr)
+          toast.error('Could not switch role. Please try again.')
+          return false
+        }
+      }
+
+      // Always fetch fresh user after login/role change to avoid stale role in UI.
+      try {
+        const meResponse = await axios.get(`${API_URL}/api/v1/auth/me`, {
+          headers: { 'Authorization': `Bearer ${access_token}` },
+        })
+        finalUserData = meResponse.data
+      } catch (meErr) {
+        console.warn('Failed to refresh user after login:', meErr)
+      }
+
+      if (normalizedRole && finalUserData?.role !== normalizedRole) {
+        toast.error(`Role is still '${finalUserData?.role || 'unknown'}'. Please retry role switch.`)
+        return false
+      }
+
       // Store tokens and user data
       localStorage.setItem('access_token', access_token)
       localStorage.setItem('refresh_token', refresh_token)
-      localStorage.setItem('user', JSON.stringify(userData))
+      localStorage.setItem('user', JSON.stringify(finalUserData))
 
       setToken(access_token)
       setRefreshTokenValue(refresh_token)
-      setUser(userData)
-      setLastLoginTime(Date.now()) // Track login time
+      setUser(finalUserData)
+      setLastLoginTime(Date.now())
 
       // Set default authorization header
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
 
       // Preload usage stats
       setTimeout(() => {
-        preloadUsageStats(userData)
-        preloadContentHistory(userData)
+        preloadUsageStats(finalUserData)
+        preloadContentHistory(finalUserData)
       }, 100)
 
-      toast.success('IDENTITY_RECOGNIZED')
+      toast.success('Welcome back!')
       return true
     } catch (error: any) {
       // console.error('Login error:', error)
@@ -318,7 +358,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         preloadContentHistory(userData)
       }, 100)
 
-      toast.success('ENGINE_SYNC_COMPLETE')
+      toast.success('Signed in with Google!')
       return true
     } catch (error: any) {
       // console.error('❌ Google auth error:', error)
@@ -343,7 +383,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     email: string,
     username: string,
     password: string,
-    fullName?: string
+    fullName?: string,
+    role?: string
   ): Promise<boolean> => {
     try {
       setIsLoading(true)
@@ -355,6 +396,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           username,
           password,
           full_name: fullName,
+          role: (role || 'candidate').toLowerCase()
         }
       )
 
@@ -385,7 +427,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         preloadUsageStats(userData)
       }, 100)
 
-      toast.success('IDENTITY_REGISTERED_SUCCESS')
+      toast.success('Account created! Please check your email to verify.')
       return true
     } catch (error: any) {
       // console.error('Registration error:', error)
@@ -468,7 +510,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Only show logout success if user was actually authenticated
     if (wasLoggedIn) {
-      toast.success('SESSION_TERMINATED')
+      toast.success('Logged out successfully.')
     }
   }
 
@@ -522,7 +564,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           } else {
             // console.log('❌ Token refresh failed, logging out user')
             clearAuthData()
-            toast.error('SESSION_EXPIRED_RE_AUTH_REQUIRED')
+            toast.error('Your session has expired. Please log in again.')
           }
         }
 
@@ -565,13 +607,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         setIsLoading(true)
         await axios.post(`${API_URL}/api/v1/auth/request-password-reset`, { email })
-        toast.success('IF_ACCOUNT_EXISTS_EMAIL_SENT')
+        toast.success('If an account exists with that email, a reset link has been sent.')
         return true
       } catch (error: any) {
         // Even if it fails, we typically don't show specific error for security, 
         // but if the API returns a generic success for all requests, we might never get here unless network error.
         console.error('Password reset request error:', error)
-        toast.error('FAILED_TO_SEND_RESET_LINK')
+        toast.error('Failed to send reset link. Please try again.')
         return false
       } finally {
         setIsLoading(false)

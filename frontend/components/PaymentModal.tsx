@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { createPortal } from 'react-dom'
 import { X, Crown, Check, Loader2, ExternalLink, ShieldCheck, Terminal, Box, Lock, Activity } from 'lucide-react'
 import axios from 'axios'
@@ -68,19 +69,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     }
   }
 
-  React.useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-      document.documentElement.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-      document.documentElement.style.overflow = 'unset'
-    }
-    return () => {
-      document.body.style.overflow = 'unset'
-      document.documentElement.style.overflow = 'unset'
-    }
-  }, [isOpen])
+  // Lock scroll (CSS + Lenis) when modal is open
+  useScrollLock(isOpen)
 
   if (!isOpen || !mounted) return null
 
@@ -88,7 +78,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[2000000] flex items-center justify-center p-4">
       <div className="relative bg-slate-900 dark:bg-[#020617] rounded-[2.5rem] border border-indigo-500/30 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-3xl overflow-hidden animate-kinetic-glow">
 
-        {/* Innovative 'Builder' Background Matrix */}
+        {/* Background */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <div className="absolute inset-0 bg-grid-blueprint-light opacity-[0.15]" />
           <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 via-transparent to-transparent pointer-events-none" />
@@ -148,7 +138,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
             <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent my-6"></div>
 
-            {/* Feature Matrix */}
+            {/* Features */}
             <ul className="grid gap-4">
               {[
                 "20 Daily Posts",

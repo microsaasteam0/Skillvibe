@@ -223,6 +223,27 @@ async def get_current_user(
     
     return user
 
+optional_security = HTTPBearer(auto_error=False)
+
+async def get_optional_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(optional_security),
+    db: Session = Depends(get_db)
+):
+    """Get current user if authenticated, else return None"""
+    if not credentials:
+        return None
+    
+    try:
+        token = credentials.credentials
+        email = verify_token(token, "access")
+        if email is None:
+            return None
+        
+        user = get_user_by_email(db, email=email)
+        return user
+    except Exception:
+        return None
+
 async def get_current_active_user(current_user: User = Depends(get_current_user)):
     """Get current active user"""
     if not current_user.is_active:
@@ -230,7 +251,7 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
     return current_user
 
 @db_retry(max_retries=3, delay=0.5)
-def create_user(db: Session, email: str, username: str, password: str, full_name: str = None):
+def create_user(db: Session, email: str, username: str, password: str, full_name: str = None, role: str = "founder"):
     """Create new user"""
     hashed_password = get_password_hash(password)
     verification_token = secrets.token_hex(32)
@@ -238,6 +259,7 @@ def create_user(db: Session, email: str, username: str, password: str, full_name
         email=email,
         username=username,
         full_name=full_name,
+        role=role,
         hashed_password=hashed_password,
         verification_token=verification_token,
         auth_provider='local'

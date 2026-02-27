@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { X, Send, Loader2, MessageSquare, AlertCircle, Sparkles, HelpCircle } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { supportClient } from '../lib/support/client'
@@ -27,26 +28,14 @@ export default function SupportModal({ isOpen, onClose }: SupportModalProps) {
         }
     }, [user])
 
-    // Lock body scroll when modal is open
-    useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = 'hidden'
-            document.documentElement.style.overflow = 'hidden'
-        } else {
-            document.body.style.overflow = 'unset'
-            document.documentElement.style.overflow = 'unset'
-        }
-        return () => {
-            document.body.style.overflow = 'unset'
-            document.documentElement.style.overflow = 'unset'
-        }
-    }, [isOpen])
+    // Lock scroll (CSS + Lenis) when modal is open
+    useScrollLock(isOpen)
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
 
         if (!email || !message) {
-            toast.error('ERROR_INPUT_FIELD_REQUIRED')
+            toast.error('Email and message are required')
             return
         }
 
@@ -65,12 +54,12 @@ export default function SupportModal({ isOpen, onClose }: SupportModalProps) {
                 }
             })
 
-            toast.success('PROTOCOL_SUPPORT_DISPATCH_SUCCESS')
+            toast.success('Message sent successfully')
             setMessage('')
             onClose()
         } catch (err) {
             console.error('Support submission error:', err)
-            toast.error('ERROR_DISPATCH_FAILURE')
+            toast.error('Failed to send message')
         } finally {
             setIsLoading(false)
         }

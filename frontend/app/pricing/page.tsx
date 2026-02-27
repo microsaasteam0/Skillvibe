@@ -2,12 +2,12 @@ import { Metadata } from 'next'
 import PricingClient from './PricingClient'
 
 export const metadata: Metadata = {
-  title: 'Pricing - Pro_Engine & Free_Build Tiers | BuildInPublic',
-  description: 'Choose the best engine configuration for your build-in-public journey. Compare BuildInPublic tiers for high-velocity X (Twitter) thread synthesis and founder content automation.',
-  keywords: 'BuildInPublic pricing, X thread generator cost, founder content plans, build in public tool, AI thread generation',
+  title: 'Pricing - Elite_Access & Skill_Engine Tiers | SkillVibe',
+  description: 'Choose the best Reputation Layer configuration for your journey. Compare SkillVibe tiers for high-velocity talent scouting and elite portfolio automation.',
+  keywords: 'SkillVibe pricing, talent scouting cost, elite portfolio plans, reputation layer tool, AI talent analysis, Reputation Layer',
   openGraph: {
-    title: 'BuildInPublic AI - Professional Pricing Plans',
-    description: 'Affordable AI-powered content repurposing for creators and marketers.',
+    title: 'SkillVibe AI - Professional Reputation Layer Plans',
+    description: 'Affordable AI-powered reputation verification for creators and recruiters.',
     type: 'website',
   },
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Check, X, Crown, Users, Sparkles, BarChart3, Heart, Plus, Minus, Zap, Shield, ArrowRight, Star, Quote, Terminal, Box, Cpu, Workflow, Database, Brackets, Activity, Lock, Rocket, Network } from 'lucide-react'
+import { Check, X, Crown, Users, Sparkles, BarChart3, Heart, Plus, Minus, Zap, Shield, ArrowRight, Star, Quote, Terminal, Box, Cpu, Workflow, Database, Brackets, Activity, Lock, Rocket, Network, ShieldCheck, Target, Radio } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import PaymentModal from './PaymentModal'
 import AuthModal from './AuthModal'
@@ -18,36 +18,47 @@ interface FAQItemProps {
     question: string
     answer: string
   }
+  index: number
 }
 
-function FAQItem({ faq }: FAQItemProps) {
+function FAQItem({ faq, index }: FAQItemProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
-    <div className="border border-zinc-200 dark:border-slate-800/80 rounded-[2.5rem] overflow-hidden bg-zinc-100/40 dark:bg-slate-900/40 backdrop-blur-xl transition-all duration-300 group">
+    <div className="glass-card rounded-2xl overflow-hidden border border-white/5 bg-white/[0.02] backdrop-blur-3xl transition-all duration-500 group">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-6 md:px-10 py-6 md:py-8 text-left flex items-center justify-between hover:bg-indigo-500/[0.02] transition-colors duration-200"
+        className="w-full px-8 py-7 text-left flex items-center justify-between hover:bg-cyan-500/[0.05] transition-colors"
       >
-        <span className="text-lg md:text-xl font-black text-slate-900 dark:text-white pr-6 tracking-tight">
-          {faq.question}
-        </span>
-        <div className={`flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${isExpanded ? "bg-indigo-600 text-white rotate-180 shadow-lg shadow-indigo-600/20" : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+        <div className="flex items-center gap-6">
+          <span className="text-cyan-500 font-mono text-[10px] opacity-40">[0{index + 1}]</span>
+          <span className="text-xl font-black text-white pr-6 tracking-tight uppercase italic group-hover:text-cyan-400 transition-colors">
+            {faq.question}
+          </span>
+        </div>
+        <div className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500 ${isExpanded ? "bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]" : "bg-white/5 text-slate-500 hover:text-white"
           }`}>
-          {isExpanded ? <Minus className="w-5 h-5 md:w-6 md:h-6" /> : <Plus className="w-5 h-5 md:w-6 md:h-6" />}
+          {isExpanded ? <Minus className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
         </div>
       </button>
 
-      {isExpanded && (
-        <div className="overflow-hidden border-t border-slate-200 dark:border-slate-800/50">
-          <div className="px-6 md:px-10 pb-8 md:pb-10 pt-8 text-slate-600 dark:text-slate-400 leading-relaxed text-base md:text-lg font-medium mt-2">
-            <div className="flex gap-4">
-              <div className="w-1 h-auto md:w-1.5 bg-indigo-500/20 rounded-full shrink-0" />
-              {faq.answer}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden border-t border-white/5"
+          >
+            <div className="px-8 pb-10 pt-8 text-slate-400 leading-relaxed text-lg font-medium">
+              <div className="flex gap-6">
+                <div className="w-1.5 h-auto bg-cyan-500/20 rounded-full shrink-0 group-hover:bg-cyan-500 transition-colors" />
+                <p className="opacity-80">{faq.answer}</p>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -56,7 +67,6 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
   const { isAuthenticated, user, updateUser, refreshUser } = useAuth()
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
 
-  // Refresh user data on mount to ensure accurate plan status
   React.useEffect(() => {
     if (isAuthenticated) {
       refreshUser()
@@ -88,18 +98,18 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
         window.dispatchEvent(new CustomEvent('subscription-cancelled', {
           detail: { is_premium: false }
         }))
-        toast.success('SUBSCRIPTION_TERMINATED_SUCCESS')
+        toast.success('Subscription cancelled successfully.')
         setShowDowngradeModal(false)
         onSignUp('free')
       } else {
-        toast.error(response.data.message || 'ERROR_DOWNGRADE_FAILURE')
+        toast.error(response.data.message || 'Failed to cancel subscription. Please try again.')
       }
     } catch (error: any) {
       console.error('Error downgrading subscription:', error)
       if (error.response?.status === 400) {
-        toast.error('ERROR_NO_ACTIVE_SUBSCRIPTION')
+        toast.error('No active subscription found.')
       } else {
-        toast.error('ERROR_DOWNGRADE_FAILURE')
+        toast.error('Failed to cancel subscription. Please try again.')
       }
     } finally {
       setIsDowngrading(false)
@@ -137,116 +147,114 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
   const plans = [
     {
       id: 'free',
-      name: 'Free',
-      description: 'The basics for sharing your work.',
+      name: 'FREE PLAN',
+      description: 'Core protocols for establishing baseline reputation.',
       price: { monthly: 0, yearly: 0 },
-      badge: 'FREE',
+      badge: 'STARTER',
       features: [
-        '2 Daily Posts [X/Twitter]',
-        'Basic Post Creation',
-        'Standard Templates',
-        '24-Hour History',
-        'Basic Tone Settings'
+        'AI Profile Generation',
+        'Global Leaderboard Indexinging',
+        'Standard Impact Audit',
+        '24H Performance Refresh',
+        'Basic Brand Decipher'
       ],
       limitations: [
-        'No Advanced Thread Formats',
-        'No Thread Analytics',
-        'No Unlimited Saved Posts',
-        'No Custom AI Voices'
+        'No Advanced Scout Analytics',
+        'No Premium Templates',
+        'Limited Profile Propagation',
+        'No Advanced Analytics'
       ],
-      cta: 'Get started',
+      cta: 'GET STARTED',
       popular: false,
     },
     {
       id: 'pro',
-      name: 'Pro',
-      description: 'Everything you need to grow faster.',
+      name: 'PRO PLAN',
+      description: 'Maximum velocity for high-signal professionals.',
       price: { monthly: 15, yearly: 144 },
-      badge: 'RECOMMENDED',
+      badge: 'PROFESSIONAL',
       features: [
-        '20 Daily Posts [X/Twitter]',
-        'Advanced Content Analysis',
-        'Automated Thread Creation',
-        'Unlimited Saved Posts',
-        'Custom AI Voice Profiles',
-        'Priority Processing',
-        'Early Access: New Formats',
-        'Export to Markdown & JSON'
+        'Unlimited Brand Architectures',
+        'Priority Leaderboard Position',
+        'Deep Profile Analysis',
+        'Real-time Interaction Analytics',
+        'Custom Kinetic Visual Fields',
+        'Priority Discovery for Recruiters',
+        'Early Access: New Design Assets',
+        'Direct Professional Roadmap'
       ],
       limitations: [],
-      cta: 'Go Pro',
+      cta: 'UPGRADE TO PRO',
       popular: true,
     }
   ]
 
   const faqs = [
     {
-      question: 'When do my post limits reset?',
-      answer: "Limits reset every 24 hours. Pro users get 20 posts a day."
+      question: 'How is the score calculated?',
+      answer: "Our neural engine scans your professional artifacts, factoring in skill complexity, brand prestige of previous associations, and velocity of career trajectory."
     },
     {
-      question: 'Which social media sites can I use?',
-      answer: "We focus on Twitter threads. More platforms are coming soon."
+      question: 'Who can see my digital profile?',
+      answer: "By default, your profile is indexed in the global leaderboard. Pro members can control their visibility and see who has viewed their profile."
     },
     {
-      question: 'Can I use messy notes?',
-      answer: "Yes. Our AI turns messy notes or bullet points into clear social posts."
+      question: 'Can I integrate external data sources?',
+      answer: "Yes. You can ingest LinkedIn data, GitHub commits, and professional whitepapers to feed the ranking engine."
     },
     {
-      question: 'Is my data private?',
-      answer: "Yes. Your notes and posts are private and never shared with others."
+      question: 'What is a "Premium Template"?',
+      answer: "It's a high-end architectural framework for your digital presence. Each template is engineered for maximum conversion and trust signals."
     },
     {
-      question: 'How does saving posts work?',
-      answer: "You can save any post forever. Pro users can look back at everything they've built."
+      question: 'How do I reach the #1 Rank?',
+      answer: "Rank is determined by a combination of your objective skill data and the social interactions (Upvotes, Views, Shares) your profile generates."
     }
   ]
 
   return (
     <div className="space-y-40 py-16">
+      {/* Background Decor */}
+      <div className="fixed inset-0 bg-cyber-grid opacity-10 pointer-events-none" />
 
-      {/* Header Section - Builder Aesthetic */}
-      <div className="text-center space-y-6 sm:space-y-10 max-w-4xl mx-auto px-4 sm:px-6">
-        <div className="inline-flex items-center px-4 sm:px-5 py-2 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 text-[9px] sm:text-[10px] font-black tracking-widest sm:tracking-[0.4em] font-mono shadow-sm">
-          <Activity className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-2 sm:mr-3" />
-          {user?.is_premium ? 'Pro plan' : 'Free plan'}
+      {/* Header Section */}
+      <div className="text-center space-y-8 max-w-5xl mx-auto px-6 relative z-10">
+        <div className="inline-flex items-center px-6 py-2.5 rounded-full glass-panel border border-cyan-500/30 text-cyan-500 text-[10px] font-black uppercase tracking-[0.4em] glow-cyan">
+          <Activity className="w-4 h-4 mr-3" />
+          {user?.is_premium ? 'PRO ACTIVE' : 'FREE ACTIVE'}
         </div>
 
-        <div className="relative inline-block w-full">
-          <h1 className="text-4xl sm:text-6xl md:text-8xl font-display font-black text-slate-900 dark:text-white tracking-tighter leading-none relative z-20">
-            Choose your <br />
-            <span className="text-indigo-600 dark:text-indigo-400 inline-block font-black">
-              plan
-            </span>
-          </h1>
-        </div>
+        <h1 className="text-6xl md:text-9xl font-black text-white tracking-tighter leading-none uppercase italic">
+          SELECT YOUR <br />
+          <span className="text-gradient-cyan">PLAN</span>
+        </h1>
 
-        <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 leading-relaxed font-medium max-w-2xl mx-auto text-balance">
-          Pick a plan that works for you. Start growing today.
+        <p className="text-xl text-slate-500 font-bold max-w-2xl mx-auto leading-relaxed group">
+          Choose a plan that matches your current momentum. <br />
+          <span className="text-cyan-500/60 font-mono text-sm">[ ENCRYPTION: SECURE ]</span>
         </p>
 
-        {/* Improved Billing Toggle - Industrial Design */}
-        <div className="flex justify-center pt-6 sm:pt-8">
-          <div className="bg-zinc-200/50 dark:bg-slate-900/50 p-1.5 sm:p-2 rounded-[1.5rem] sm:rounded-3xl border-2 border-zinc-200 dark:border-slate-800 inline-flex shadow-inner backdrop-blur-3xl relative overflow-hidden group max-w-full">
-            <div className="absolute inset-0 bg-grid-blueprint-light opacity-5 pointer-events-none" />
+        {/* Improved Billing Toggle */}
+        <div className="flex justify-center pt-10">
+          <div className="glass-panel p-2 rounded-2xl border border-white/10 flex gap-2 relative group max-w-full hover:glow-cyan transition-all duration-700">
             <button
               onClick={() => setBillingCycle('monthly')}
-              className={`px-6 sm:px-10 py-3 sm:py-4 rounded-2xl font-black text-[10px] sm:text-sm tracking-widest transition-all duration-500 relative z-10 ${billingCycle === 'monthly'
-                ? 'bg-indigo-600 text-white shadow-2xl shadow-indigo-600/40'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+              className={`px-10 py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] transition-all duration-500 relative z-10 ${billingCycle === 'monthly'
+                ? 'bg-cyan-500 text-black shadow-xl shadow-cyan-500/40'
+                : 'text-slate-500 hover:text-white'
                 }`}
             >
-              Monthly
+              MONTHLY
             </button>
             <button
               onClick={() => setBillingCycle('yearly')}
-              className={`px-6 sm:px-10 py-3 sm:py-4 rounded-2xl font-black text-[10px] sm:text-sm tracking-widest transition-all duration-500 flex items-center gap-2 sm:gap-3 relative z-10 ${billingCycle === 'yearly'
-                ? 'bg-indigo-600 text-white shadow-2xl shadow-indigo-600/40'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+              className={`px-10 py-4 rounded-xl font-black text-xs uppercase tracking-[0.2em] transition-all duration-500 flex items-center gap-3 relative z-10 ${billingCycle === 'yearly'
+                ? 'bg-cyan-500 text-black shadow-xl shadow-cyan-500/40'
+                : 'text-slate-500 hover:text-white'
                 }`}
             >
-              Yearly
-              <span className="text-[9px] sm:text-[11px] px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-600 border border-emerald-500/30 font-black">
+              YEARLY
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-black">
                 -20%
               </span>
             </button>
@@ -254,70 +262,63 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
         </div>
       </div>
 
-      {/* Modern Pricing Cards - High Authority */}
-      <div className="grid md:grid-cols-2 gap-8 md:gap-12 max-w-7xl mx-auto px-4 sm:px-6 relative">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full md:w-[1000px] h-[300px] md:h-[600px] bg-indigo-500/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none -z-10" />
-
+      {/* Pricing Cards */}
+      <div className="grid md:grid-cols-2 gap-12 max-w-7xl mx-auto px-6 relative z-10">
         {plans.map((plan) => (
           <div
             key={plan.id}
-            className={`relative p-6 sm:p-8 md:p-10 rounded-[2.5rem] sm:rounded-[3rem] md:rounded-[4rem] flex flex-col group overflow-hidden ${plan.popular
-              ? 'bg-zinc-50 dark:bg-[#020617] border-2 border-indigo-600 shadow-4xl shadow-indigo-600/20 md:scale-[1.02] z-20'
-              : 'bg-zinc-100/40 dark:bg-slate-900/40 backdrop-blur-3xl border border-zinc-200 dark:border-slate-800/80'
+            className={`relative p-10 md:p-14 rounded-[4rem] flex flex-col group overflow-hidden transition-all duration-700 ${plan.popular
+              ? 'bg-black border-2 border-cyan-500/60 shadow-4xl shadow-cyan-500/20 md:scale-105 z-20'
+              : 'bg-white/[0.03] backdrop-blur-3xl border border-white/10 shadow-3xl'
               }`}
           >
-            {/* Blueprint Overlay on Cards */}
-            <div className="absolute inset-0 bg-grid-blueprint-light opacity-0 group-hover:opacity-10 transition-opacity pointer-events-none" />
+            {/* Visual Deco */}
+            <div className="absolute inset-0 bg-cyber-grid opacity-5 pointer-events-none" />
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent opacity-0 group-hover:opacity-100 group-hover:animate-scanline" />
 
-            {/* Horizontal Scanline */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-indigo-500/50 blur-sm opacity-0 group-hover:opacity-100 group-hover:animate-scanline pointer-events-none" />
-
-            <div className="flex justify-between items-start mb-6 sm:mb-8 relative z-10 gap-4">
-              <div className="space-y-3 min-w-0">
-                <span className={`px-4 py-1.5 rounded-xl text-[10px] sm:text-[11px] font-black tracking-[0.1em] sm:tracking-[0.2em] border ${plan.popular ? "bg-indigo-600/10 text-indigo-500 border-indigo-500/20" : "bg-slate-500/10 text-slate-500 border-slate-500/20"
+            <div className="flex justify-between items-start mb-10 gap-4">
+              <div className="space-y-4">
+                <span className={`px-4 py-1.5 rounded-lg text-[10px] font-black tracking-[0.3em] border uppercase ${plan.popular ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30" : "bg-white/5 text-slate-500 border-white/10"
                   }`}>
-                  {plan.badge || "Stable build"}
+                  {plan.badge}
                 </span>
-                <h3 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tighter truncate">{plan.name}</h3>
-                <p className="text-slate-500 font-bold text-[10px] sm:text-xs tracking-widest">{plan.description}</p>
+                <h3 className="text-4xl md:text-5xl font-black text-white tracking-tighter uppercase italic">{plan.name}</h3>
+                <p className="text-slate-500 font-bold text-xs tracking-[0.1em] uppercase">{plan.description}</p>
               </div>
 
-              <div className={`p-4 rounded-[1.5rem] sm:rounded-[2rem] flex-shrink-0 ${plan.popular ? "bg-indigo-600 text-white shadow-xl shadow-indigo-600/30" : "bg-slate-100 dark:bg-slate-800 text-slate-400"}`}>
-                {plan.id === 'pro' ? <Cpu className="w-6 h-6 sm:w-8 sm:h-8" /> : <Brackets className="w-6 h-6 sm:w-8 sm:h-8" />}
-              </div>
-            </div>
-
-            <div className="mb-6 sm:mb-8 p-6 sm:p-8 rounded-[2.5rem] sm:rounded-[3.5rem] bg-zinc-200/50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 relative overflow-hidden group/price">
-              <div className="absolute inset-0 bg-grid-blueprint-light opacity-5 pointer-events-none" />
-              <div className="relative z-10 flex items-center justify-center gap-4">
-                <div className="text-center">
-                  <span className="text-2xl sm:text-4xl font-black text-slate-900/40 dark:text-white/20 mr-2">$</span>
-                  <span className="text-6xl sm:text-8xl font-black text-slate-900 dark:text-white tracking-tighter transition-transform group-hover/price:scale-110 duration-700 inline-block">
-                    {plan.price[billingCycle]}
-                  </span>
-                  <span className="text-slate-500 font-black text-[10px] sm:text-xs tracking-widest block mt-3 sm:mt-4">
-                    / {billingCycle === 'monthly' ? 'month' : 'year'}
-                  </span>
-                </div>
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-all duration-500 ${plan.popular ? "bg-cyan-500 text-black shadow-xl shadow-cyan-500/30 group-hover:rotate-12" : "bg-white/5 text-slate-600 border border-white/5"}`}>
+                {plan.id === 'pro' ? <Cpu className="w-8 h-8" /> : <Target className="w-8 h-8" />}
               </div>
             </div>
 
-            <ul className="space-y-4 mb-8 flex-1 relative z-10">
+            <div className="mb-10 p-10 rounded-[3rem] bg-white/5 border border-white/5 relative overflow-hidden group/price flex flex-col items-center">
+              <div className="flex items-end gap-1">
+                <span className="text-3xl font-black text-white/20 mb-3">$</span>
+                <span className="text-8xl font-black text-white tracking-tighter transition-transform group-hover/price:scale-110 duration-700">
+                  {plan.price[billingCycle]}
+                </span>
+              </div>
+              <span className="text-slate-500 font-black text-xs tracking-[0.3em] uppercase mt-4">
+                / {billingCycle === 'monthly' ? 'PER MONTH' : 'PER YEAR'}
+              </span>
+            </div>
+
+            <ul className="space-y-5 mb-12 flex-1 relative z-10">
               {plan.features.map((feature, i) => (
                 <li key={i} className="flex items-center text-sm group/feat">
-                  <div className={`mr-4 p-1.5 rounded-xl border transition-all ${plan.popular ? "bg-indigo-600/10 border-indigo-500/20 text-indigo-500" : "bg-slate-100 dark:bg-slate-800 border-transparent text-slate-400"
+                  <div className={`mr-5 p-2 rounded-lg border transition-all duration-500 ${plan.popular ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-400" : "bg-white/5 border-white/10 text-slate-500"
                     }`}>
                     <Check className="w-4 h-4" />
                   </div>
-                  <span className="text-slate-700 dark:text-slate-300 font-bold tracking-tight text-xs group-hover/feat:text-indigo-500 transition-colors">{feature}</span>
+                  <span className="text-slate-300 font-bold transition-colors group-hover/feat:text-cyan-400 uppercase tracking-tight">{feature}</span>
                 </li>
               ))}
               {plan.limitations.map((limitation, i) => (
-                <li key={i} className="flex items-center text-sm opacity-30 grayscale blur-[0.5px]">
-                  <div className="mr-4 p-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent text-slate-400">
+                <li key={i} className="flex items-center text-sm opacity-20 grayscale blur-[0.5px]">
+                  <div className="mr-5 p-2 rounded-lg bg-white/5 border border-white/10 text-slate-600">
                     <X className="w-4 h-4" />
                   </div>
-                  <span className="text-slate-500 font-black text-[10px] tracking-widest">{limitation}</span>
+                  <span className="text-slate-600 font-black text-[10px] tracking-widest uppercase">{limitation}</span>
                 </li>
               ))}
             </ul>
@@ -328,22 +329,22 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
                 (plan.id === 'free' && !user?.is_premium) ||
                 (plan.id === 'pro' && user?.is_premium)
               )}
-              className={`w-full py-4 sm:py-5 rounded-[1.5rem] sm:rounded-[2.5rem] font-black text-base sm:text-lg tracking-tight sm:tracking-[0.1em] transition-all duration-500 relative overflow-hidden flex items-center justify-center gap-3 sm:gap-4 ${isAuthenticated && ((plan.id === 'free' && !user?.is_premium) || (plan.id === 'pro' && user?.is_premium))
-                ? 'bg-emerald-500/10 text-emerald-500 border-2 border-emerald-500/20 cursor-not-allowed'
+              className={`w-full py-6 rounded-2xl font-black text-sm uppercase tracking-[0.3em] transition-all duration-500 relative overflow-hidden flex items-center justify-center gap-4 ${isAuthenticated && ((plan.id === 'free' && !user?.is_premium) || (plan.id === 'pro' && user?.is_premium))
+                ? 'bg-emerald-500/10 text-emerald-400 border-2 border-emerald-500/20 cursor-not-allowed shadow-[0_0_20px_rgba(16,185,129,0.1)]'
                 : plan.popular
-                  ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-3xl shadow-indigo-600/40 hover:scale-[1.03] active:scale-95 group/btn'
-                  : 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:scale-[1.03] active:scale-95 group/btn'
+                  ? 'bg-cyan-500 hover:bg-cyan-400 text-black shadow-2xl shadow-cyan-500/30 hover:glow-cyan group/btn'
+                  : 'bg-white/5 text-white border-2 border-white/10 hover:bg-white/10 group/btn'
                 }`}
             >
               {isAuthenticated && ((plan.id === 'free' && !user?.is_premium) || (plan.id === 'pro' && user?.is_premium)) ? (
-                <span className="flex items-center justify-center gap-2 sm:gap-3 text-sm sm:text-base tracking-tight sm:tracking-widest">
-                  <Lock className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-                  <span className="whitespace-nowrap">Current plan active</span>
+                <span className="flex items-center justify-center gap-3">
+                  <ShieldCheck className="w-5 h-5 shrink-0" />
+                  CURRENT PLAN
                 </span>
               ) : (
                 <>
-                  {plan.popular && <Rocket className="w-5 h-5 sm:w-6 sm:h-6 group-hover/btn:translate-x-1 group-hover/btn:-translate-y-1 transition-transform shrink-0" />}
-                  <span className="truncate">{plan.cta}</span>
+                  {plan.popular && <Rocket className="w-6 h-6 group-hover/btn:translate-x-2 group-hover/btn:-translate-y-2 transition-transform" />}
+                  {plan.cta}
                 </>
               )}
             </button>
@@ -351,191 +352,242 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
         ))}
       </div>
 
-      {/* Technical Comparison Matrix - Engineered Layout */}
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="bg-zinc-100/60 dark:bg-slate-900/40 backdrop-blur-3xl rounded-[3rem] md:rounded-[5rem] overflow-hidden border border-zinc-200 dark:border-white/10 shadow-5xl group relative">
-          {/* Internal Blueprint Texture */}
-          <div className="absolute inset-0 bg-grid-blueprint-light opacity-5 pointer-events-none" />
+      {/* Feature Comparison - Full Redesign */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 relative z-10">
+        {/* Header */}
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-3 px-5 py-2 rounded-full bg-cyan-500/10 text-cyan-500 text-[11px] font-black uppercase tracking-[0.4em] border border-cyan-500/20 mb-6">
+            <Sparkles className="w-4 h-4" />
+            COMPARE PLANS
+          </div>
+          <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter uppercase italic leading-[0.85]">
+            FULL FEATURE <span className="text-gradient-cyan">BREAKDOWN</span>
+          </h2>
+          <p className="text-slate-400 mt-4 text-lg font-medium">Everything you get — no surprises</p>
+        </div>
 
-          <div className="p-10 md:p-20 border-b border-slate-200 dark:border-white/5 text-center relative overflow-hidden group/header">
-            {/* Corner Markers */}
-            <div className="absolute top-8 left-8 w-4 h-4 border-t-2 border-l-2 border-indigo-500/30" />
-            <div className="absolute top-8 right-8 w-4 h-4 border-t-2 border-r-2 border-indigo-500/30" />
+        {/* Sticky Column Headers */}
+        <div className="grid grid-cols-3 mb-4 sticky top-20 z-20">
+          <div className="col-span-1" />
+          <div className="col-span-1 text-center py-4 px-6">
+            <div className="text-xs font-black text-slate-400 uppercase tracking-widest">Free</div>
+            <div className="text-2xl font-black text-white mt-1">$0<span className="text-sm font-medium text-slate-500">/mo</span></div>
+          </div>
+          <div className="col-span-1 text-center py-4 px-6 bg-cyan-500/5 rounded-2xl border border-cyan-500/20 relative">
+            <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-black text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest whitespace-nowrap">Most Popular</div>
+            <div className="text-xs font-black text-cyan-500 uppercase tracking-widest">Pro</div>
+            <div className="text-2xl font-black text-white mt-1">$12<span className="text-sm font-medium text-slate-500">/mo</span></div>
+          </div>
+        </div>
 
-            {/* Kinetic Scanline for Header */}
-            <div className="absolute inset-x-0 h-[1px] bg-indigo-500/20 top-0 animate-scanline pointer-events-none" />
-
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-lg bg-indigo-600/10 text-indigo-500 text-[10px] sm:text-[11px] font-black tracking-widest border border-indigo-500/20 mb-6 relative z-10">
-              <Terminal className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              Compare plans
+        {/* Feature Categories */}
+        {[
+          {
+            category: '🗂️  Vibe',
+            features: [
+              { name: 'AI-generated vibe', free: true, pro: true, type: 'bool' },
+              { name: 'Profile templates', free: '3 Basic', pro: 'Unlimited', type: 'value' },
+              { name: 'Custom domain', free: false, pro: true, type: 'bool' },
+              { name: 'Profile views analytics', free: false, pro: true, type: 'bool' },
+              { name: 'Who viewed my profile', free: false, pro: true, type: 'bool' },
+              { name: 'Profile badge (Verified)', free: false, pro: true, type: 'bool' },
+            ]
+          },
+          {
+            category: '🤖  AI & Generation',
+            features: [
+              { name: 'Resume uploads per day', free: '2', pro: 'Unlimited', type: 'value' },
+              { name: 'AI vibe generation', free: true, pro: true, type: 'bool' },
+              { name: 'AI rewrite & optimization', free: false, pro: true, type: 'bool' },
+              { name: 'Smart skill detection', free: 'Basic', pro: 'Advanced', type: 'value' },
+              { name: 'Vibe score / Ranking', free: true, pro: true, type: 'bool' },
+              { name: 'Leaderboard position', free: 'Visible', pro: 'Pinned + Boost', type: 'value' },
+            ]
+          },
+          {
+            category: '🔍  Discovery',
+            features: [
+              { name: 'Listed on public leaderboard', free: true, pro: true, type: 'bool' },
+              { name: 'Recruiter visibility', free: 'Standard', pro: 'Priority', type: 'value' },
+              { name: 'Appear in recruiter search', free: false, pro: true, type: 'bool' },
+              { name: 'Featured on homepage', free: false, pro: true, type: 'bool' },
+              { name: 'Social share cards', free: false, pro: true, type: 'bool' },
+            ]
+          },
+          {
+            category: '🎨  Customization',
+            features: [
+              { name: 'Custom template styles', free: false, pro: true, type: 'bool' },
+              { name: 'Profile color themes', free: '1', pro: 'Unlimited', type: 'value' },
+              { name: 'Custom sections', free: false, pro: true, type: 'bool' },
+              { name: 'PDF export of portfolio', free: false, pro: true, type: 'bool' },
+              { name: 'JSON / Markdown export', free: false, pro: true, type: 'bool' },
+            ]
+          },
+          {
+            category: '🛡️  Support & Security',
+            features: [
+              { name: 'Email support', free: true, pro: true, type: 'bool' },
+              { name: 'Priority support', free: false, pro: true, type: 'bool' },
+              { name: 'Early access to new features', free: false, pro: true, type: 'bool' },
+              { name: 'Profile history & versioning', free: '24 hours', pro: 'Unlimited', type: 'value' },
+              { name: 'Auto-save drafts', free: false, pro: true, type: 'bool' },
+            ]
+          },
+        ].map((section, si) => (
+          <div key={si} className="mb-6">
+            {/* Category Label */}
+            <div className="py-3 px-4 mb-2">
+              <span className="text-[11px] font-black text-slate-500 uppercase tracking-[0.3em]">{section.category}</span>
             </div>
 
-            <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-black text-slate-900 dark:text-white tracking-tighter relative z-10 leading-[0.85]">
-              All features
-            </h2>
-            <p className="text-slate-500 dark:text-slate-400 font-bold text-[9px] sm:text-[10px] md:text-xs tracking-widest sm:tracking-[0.4em] mt-4 flex items-center justify-center gap-4 px-2">
-              <span className="hidden md:block w-12 h-[1px] bg-slate-200 dark:bg-white/10" />
-              Complete feature comparison
-              <span className="hidden md:block w-12 h-[1px] bg-slate-200 dark:bg-white/10" />
-            </p>
-          </div>
+            {/* Rows */}
+            <div className="rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.01]">
+              {section.features.map((feat, fi) => (
+                <div
+                  key={fi}
+                  className={`grid grid-cols-3 items-center border-b border-white/[0.04] last:border-0 hover:bg-white/[0.03] transition-colors group ${fi % 2 === 0 ? '' : 'bg-white/[0.01]'}`}
+                >
+                  {/* Feature Name */}
+                  <div className="col-span-1 px-5 py-5 text-sm font-semibold text-slate-300 group-hover:text-white transition-colors">
+                    {feat.name}
+                  </div>
 
-          <div className="overflow-x-auto custom-scrollbar">
-            <table className="w-full text-sm text-center border-collapse min-w-[600px] md:min-w-0">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-white/[0.02] border-b border-slate-200 dark:border-white/5">
-                  <th className="px-4 sm:px-6 md:px-12 py-6 sm:py-8 md:py-10 text-left font-black text-[9px] sm:text-[11px] tracking-widest sm:tracking-[0.4em] text-zinc-400 dark:text-slate-400 font-mono">
-                    [00] Parameter
-                  </th>
-                  <th className="px-4 sm:px-6 md:px-12 py-6 sm:py-8 md:py-10 font-black text-[9px] sm:text-[11px] tracking-widest sm:tracking-[0.4em] text-zinc-400 dark:text-slate-400 font-mono">
-                    Free
-                  </th>
-                  <th className="px-4 sm:px-6 md:px-12 py-6 sm:py-8 md:py-10 font-black text-[9px] sm:text-[11px] tracking-widest sm:tracking-[0.4em] text-indigo-500 font-mono bg-indigo-500/[0.02]">
-                    Pro
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200/50 dark:divide-white/5">
-                {[
-                  { name: 'LATENCY', free: 'STD', pro: 'ULTRA_LOW', icon: Zap },
-                  { name: 'LOG_ANALYSIS', free: false, pro: true, icon: Database },
-                  { name: 'INGESTION', free: '10K', pro: '50K', icon: Cpu },
-                  { name: 'RETENTION', free: '24H', pro: 'LIFETIME', icon: Lock },
-                  { name: 'SCHEMATICS', free: false, pro: true, icon: Brackets },
-                  { name: 'DISTRIBUTION', free: false, pro: true, icon: Network },
-                ].map((row, i) => (
-                  <tr key={i} className="hover:bg-indigo-600/[0.04] border-b border-slate-200/50 dark:border-white/[0.03] last:border-0 transition-all group/row font-mono relative overflow-hidden">
-                    <td className="px-4 sm:px-6 md:px-12 py-6 sm:py-8 md:py-10 text-left font-black text-[12px] sm:text-[13px] text-slate-800 dark:text-slate-100 group-hover/row:text-indigo-500 transition-colors flex items-center gap-3 sm:gap-6">
-                      <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 rounded-xl sm:rounded-2xl bg-slate-100 dark:bg-white/5 flex items-center justify-center opacity-70 group-hover/row:opacity-100 group-hover/row:scale-110 group-hover/row:bg-indigo-500/10 transition-all border border-transparent group-hover/row:border-indigo-500/20 shadow-inner shrink-0">
-                        {row.icon && <row.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-zinc-500 dark:text-slate-300 group-hover/row:text-indigo-500" />}
-                      </div>
-                      <span className="tracking-tight text-[10px] sm:text-xs md:text-sm truncate">{row.name.replace(/_/g, ' ')}</span>
-                    </td>
-                    <td className="px-4 sm:px-6 md:px-12 py-6 sm:py-8 md:py-10 text-slate-500 dark:text-slate-500 font-bold text-[10px] sm:text-xs">
-                      {typeof row.free === 'boolean' ? (
-                        row.free ? (
-                          <div className="inline-flex items-center gap-2 text-emerald-500/50">
-                            <Check className="w-4 h-4 sm:w-5 sm:h-5" />
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center gap-2 opacity-40">
-                            <div className="w-8 sm:w-16 h-1 bg-slate-200 dark:bg-white/10 rounded-full" />
-                          </div>
-                        )
-                      ) : (
-                        <span className="uppercase tracking-widest">{row.free}</span>
-                      )}
-                    </td>
-                    <td className="px-4 sm:px-6 md:px-12 py-6 sm:py-8 md:py-10 font-black text-slate-900 dark:text-white text-xs sm:text-base tracking-tighter bg-indigo-500/[0.02] relative">
-                      <div className="absolute inset-y-0 left-0 w-[2px] bg-indigo-500/20 group-hover/row:bg-indigo-500 transition-colors" />
-                      {typeof row.pro === 'boolean' ? (
-                        row.pro ? (
-                          <div className="inline-flex items-center gap-2 sm:gap-3 text-indigo-500">
-                            <div className="p-1.5 sm:p-2 rounded-lg sm:rounded-xl bg-indigo-600 text-white shadow-xl shadow-indigo-600/40">
-                              <Shield className="w-4 h-4 sm:w-5 sm:h-5" />
-                            </div>
-                            <span className="text-[11px] sm:text-[13px] font-black tracking-widest sm:tracking-[0.2em]">ACT</span>
-                          </div>
-                        ) : (
-                          <Minus className="w-5 h-5 sm:w-6 sm:h-6 mx-auto opacity-10" />
-                        )
-                      ) : (
-                        <div className="flex flex-col items-center gap-1 sm:gap-2">
-                          <span className="text-[11px] sm:text-sm md:text-base font-black tracking-tight sm:tracking-[0.1em] bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 via-indigo-300 to-indigo-600 truncate max-w-[80px] sm:max-w-none">{row.pro}</span>
-                          <div className="flex gap-1 justify-center">
-                            {[1, 2, 3].map(d => (
-                              <div key={d} className="w-3 sm:w-4 h-1 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]" />
-                            ))}
-                          </div>
+                  {/* Free Value */}
+                  <div className="col-span-1 flex items-center justify-center px-4 py-5">
+                    {feat.type === 'bool' ? (
+                      feat.free ? (
+                        <div className="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                          <Check className="w-3.5 h-3.5 text-emerald-400" />
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                          <X className="w-3.5 h-3.5 text-slate-600" />
+                        </div>
+                      )
+                    ) : (
+                      <span className="text-xs font-bold text-slate-500 bg-white/5 px-3 py-1 rounded-full">
+                        {feat.free as string}
+                      </span>
+                    )}
+                  </div>
 
-          {/* Footer Technical Note */}
-          <div className="p-6 bg-zinc-100/50 dark:bg-white/[0.02] border-t border-zinc-200 dark:border-white/5 text-center">
-            <p className="text-[11px] font-black text-slate-400 tracking-[0.5em]">
-              [ Secure environment stable v1.04 ]
-            </p>
+                  {/* Pro Value */}
+                  <div className="col-span-1 flex items-center justify-center px-4 py-5 bg-cyan-500/[0.02] border-l border-cyan-500/10 relative">
+                    {feat.type === 'bool' ? (
+                      feat.pro ? (
+                        <div className="w-6 h-6 rounded-full bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+                          <Check className="w-3.5 h-3.5 text-cyan-400" />
+                        </div>
+                      ) : (
+                        <div className="w-6 h-6 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                          <X className="w-3.5 h-3.5 text-slate-600" />
+                        </div>
+                      )
+                    ) : (
+                      <span className="text-xs font-black text-cyan-400 bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 rounded-full shadow-[0_0_10px_rgba(6,182,212,0.1)]">
+                        {feat.pro as string}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        {/* CTA Strip */}
+        <div className="mt-10 grid grid-cols-3">
+          <div className="col-span-1" />
+          <div className="col-span-1 px-4 py-6 flex items-center justify-center">
+            <span className="text-slate-500 text-sm font-bold">Always free</span>
+          </div>
+          <div className="col-span-1 px-4 py-6 flex items-center justify-center bg-cyan-500/5 rounded-2xl border border-cyan-500/20">
+            <button
+              onClick={() => handlePlanSelection('pro')}
+              className="px-8 py-3 bg-cyan-500 text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-cyan-400 transition-all hover:scale-105 shadow-[0_0_20px_rgba(6,182,212,0.3)] flex items-center gap-2"
+            >
+              <Rocket className="w-4 h-4" />
+              Get Pro
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Testimonials Grid */}
-      <div className="max-w-7xl mx-auto px-6 py-24">
+
+
+
+      {/* Testimonials */}
+      <div className="max-w-7xl mx-auto px-6 py-24 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {[
             {
               name: "Alex Rivera",
-              role: "SaaS Founder",
+              role: "FOUNDER",
               initials: "AR",
-              content: "BuildInPublic has completely changed how I share my journey. I just dump my notes, and it gives me a week's worth of content.",
-              color: "indigo"
+              content: "The profile generation is flawless. It captured 8 years of engineering complexity into a single high-quality brand in minutes.",
+              color: "cyan"
             },
             {
               name: "Sarah Chen",
-              role: "Indie Hacker",
+              role: "STRATEGIST",
               initials: "SC",
-              content: "The smart writing engine is scary good. It captures my tone perfectly every time. It's like having a social media manager.",
-              color: "purple"
+              content: "Traditional vibes are dead. Custom premium templates on SkillVibe are the only way to stand out now.",
+              color: "blue"
             },
             {
               name: "David Park",
-              role: "Frontend Dev",
+              role: "DEVELOPER",
               initials: "DP",
-              content: "I used to spend hours struggling with what to tweet. Now it takes me 2 minutes. The Twitter thread output is elite.",
-              color: "blue"
+              content: "Reached #4 on the global leaderboard and got 3 recruiter messages in 48 hours. Pro pays for itself instantly.",
+              color: "indigo"
             }
           ].map((t, i) => (
-            <div key={i} className="glass-card p-10 rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800/50 bg-indigo-500/[0.02] relative overflow-hidden group hover:bg-indigo-500/[0.04] transition-all">
-              <Quote className="absolute top-6 right-6 w-12 h-12 text-indigo-500 opacity-5 group-hover:opacity-10 transition-opacity" />
+            <div key={i} className="glass-card p-12 rounded-[3rem] border border-white/10 bg-white/[0.02] relative overflow-hidden group hover:border-cyan-500/40 hover:glow-cyan transition-all duration-700">
+              <Quote className="absolute top-8 right-8 w-14 h-14 text-cyan-500 opacity-5 group-hover:opacity-20 transition-all" />
               <div className="relative z-10">
-                <div className="flex gap-1 mb-6">
-                  {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-4 h-4 text-amber-500 fill-current" />)}
+                <div className="flex gap-1.5 mb-8">
+                  {[1, 2, 3, 4, 5].map(s => <Star key={s} className="w-4 h-4 text-cyan-500 fill-current shadow-cyan-500" />)}
                 </div>
-                <p className="text-lg font-bold text-slate-900 dark:text-white mb-8 leading-relaxed italic">
+                <p className="text-xl font-bold text-white mb-10 leading-relaxed italic opacity-90">
                   "{t.content}"
                 </p>
-                <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-xl bg-${t.color}-500/10 border border-${t.color}-500/20 flex items-center justify-center text-${t.color}-500 font-black text-xs uppercase`}>
+                <div className="flex items-center gap-5">
+                  <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-500 font-black text-xs">
                     {t.initials}
                   </div>
                   <div className="text-left">
-                    <h4 className="font-black text-slate-900 dark:text-white leading-none text-sm">{t.name}</h4>
-                    <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mt-1">{t.role}</p>
+                    <h4 className="font-black text-white leading-none text-sm tracking-widest">{t.name}</h4>
+                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-2">{t.role}</p>
                   </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </div >
 
-      {/* Engineering FAQ Section */}
-      <div className="max-w-5xl mx-auto px-6 pb-40">
-        <div className="text-center mb-24 space-y-6">
-          <div className="inline-flex items-center gap-3 px-4 py-1 rounded-lg bg-indigo-600/10 text-indigo-500 text-[10px] font-black tracking-widest border border-indigo-500/20">
-            <Workflow className="w-3.5 h-3.5" />
-            Help center
+      {/* FAQ Section */}
+      < div className="max-w-5xl mx-auto px-6 pb-40 relative z-10" >
+        <div className="text-center mb-24 space-y-8">
+          <div className="inline-flex items-center gap-4 px-6 py-2 rounded-lg bg-cyan-500/10 text-cyan-500 text-[11px] font-black uppercase tracking-[0.4em] border border-cyan-500/20">
+            <Workflow className="w-4 h-4" />
+            HELP CENTER
           </div>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-display font-black text-slate-900 dark:text-white tracking-tighter leading-[0.9]">Common questions</h2>
-          <p className="text-slate-500 font-bold text-[10px] tracking-widest">Everything you need to know</p>
+          <h2 className="text-5xl md:text-7xl font-black text-white tracking-tighter uppercase italic leading-[0.9]">QUESTIONS & ANSWERS</h2>
         </div>
-        <div className="grid md:grid-cols-1 gap-8">
+        <div className="space-y-6">
           {faqs.map((faq, index) => (
-            <FAQItem key={index} faq={faq} />
+            <FAQItem key={index} faq={faq} index={index} />
           ))}
         </div>
-      </div>
+      </div >
 
       {/* Modals */}
-      <PaymentModal
+      < PaymentModal
         isOpen={showPaymentModal}
-        onClose={() => setShowPaymentModal(false)}
+        onClose={() => setShowPaymentModal(false)
+        }
         selectedPlan={selectedPlan}
         billingCycle={billingCycle}
       />
@@ -552,6 +604,6 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
         onConfirm={handleDowngradeToFree}
         isLoading={isDowngrading}
       />
-    </div>
+    </div >
   )
 }

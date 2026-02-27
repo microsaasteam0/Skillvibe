@@ -14,7 +14,7 @@ function GoogleCallbackContent() {
   const searchParams = useSearchParams()
   const { login } = useAuth()
   const [status, setStatus] = useState<'processing' | 'success' | 'error'>('processing')
-  const [message, setMessage] = useState('Initializing Google_Protocol...')
+  const [message, setMessage] = useState('Connecting with Google...')
   const hasProcessedRef = useRef(false)
   const processingRef = useRef(false)
 
@@ -35,20 +35,20 @@ function GoogleCallbackContent() {
         }
 
         hasProcessedRef.current = true
-        if (error) throw new Error(`AUTH_PROTOCOL_ERR: ${error}`)
-        if (!code) throw new Error('SECURE_CODE_NULL')
+        if (error) throw new Error(`Sign-in was cancelled or failed: ${error}`)
+        if (!code) throw new Error('No authorization code received from Google.')
 
         const existingToken = localStorage.getItem('access_token')
         const existingUser = localStorage.getItem('user')
 
         if (existingToken && existingUser) {
           setStatus('success')
-          setMessage('ACTIVE_SESSION_FOUND. SYNCING...')
+          setMessage('Already signed in. Taking you home...')
           setTimeout(() => window.location.replace('/'), 800)
           return
         }
 
-        setMessage('AUTHENTICATING_WITH_NEURAL_PIPE...')
+        setMessage('Verifying your Google account...')
 
         const formData = new FormData()
         formData.append('code', String(code))
@@ -59,21 +59,43 @@ function GoogleCallbackContent() {
         })
 
         if (authResponse.data && authResponse.data.access_token) {
-          localStorage.setItem('access_token', authResponse.data.access_token)
-          localStorage.setItem('refresh_token', authResponse.data.refresh_token || '')
-          localStorage.setItem('user', JSON.stringify(authResponse.data.user))
-          axios.defaults.headers.common['Authorization'] = `Bearer ${authResponse.data.access_token}`
+          const accessToken = authResponse.data.access_token
+          const refreshToken = authResponse.data.refresh_token || ''
+          const selectedRole = sessionStorage.getItem('google_oauth_role')
+          let finalUser = authResponse.data.user
+
+          axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
+
+          if ((selectedRole === 'candidate' || selectedRole === 'recruiter') && finalUser?.role !== selectedRole) {
+            try {
+              const roleResponse = await axios.put(
+                `${API_URL}/api/v1/auth/role`,
+                { role: selectedRole },
+                { headers: { Authorization: `Bearer ${accessToken}` } }
+              )
+              finalUser = roleResponse.data
+            } catch (roleErr) {
+              console.error('Role update after Google callback failed:', roleErr)
+              toast.error('Signed in, but role update failed. Please switch role again.')
+            }
+          }
+
+          localStorage.setItem('access_token', accessToken)
+          localStorage.setItem('refresh_token', refreshToken)
+          localStorage.setItem('user', JSON.stringify(finalUser))
+          sessionStorage.removeItem('google_oauth_role')
+          sessionStorage.removeItem('google_oauth_state')
 
           window.dispatchEvent(new CustomEvent('auth-success', {
-            detail: { user: authResponse.data.user }
+            detail: { user: finalUser }
           }))
 
           setStatus('success')
-          setMessage('SYNC_COMPLETE. REDIRECTING_TO_CONTROL_NODE...')
-          toast.success('🎉 WELCOME_BACK_SYSTEM_ARCHITECT')
+          setMessage('Signed in! Taking you home...')
+          toast.success('🎉 Welcome back!')
           setTimeout(() => window.location.replace('/'), 1200)
         } else {
-          throw new Error('AUTH_PAYLOAD_INVALID')
+          throw new Error('Sign-in response was invalid. Please try again.')
         }
       } catch (error: any) {
         if (error.response?.status === 400) {
@@ -82,7 +104,7 @@ function GoogleCallbackContent() {
             const storedUser = localStorage.getItem('user')
             if (storedToken && storedUser) {
               setStatus('success')
-              setMessage('RECOVERY_SYNC_SUCCESSful...')
+              setMessage('Session restored. Taking you home...')
               axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
               window.dispatchEvent(new CustomEvent('auth-success', {
                 detail: { user: JSON.parse(storedUser) }
@@ -90,13 +112,13 @@ function GoogleCallbackContent() {
               setTimeout(() => window.location.replace('/'), 800)
             } else {
               setStatus('error')
-              setMessage('SYSTEM_RECOVERY_FAILED. RE_INITIALIZE.')
+              setMessage('Could not restore session. Please sign in again.')
               setTimeout(() => router.push('/'), 3000)
             }
           }, 200)
         } else {
           setStatus('error')
-          setMessage(error.message || 'PROTOCOL_BREACH')
+          setMessage(error.message || 'Something went wrong. Please try again.')
           setTimeout(() => router.push('/'), 3000)
         }
       } finally {
@@ -169,12 +191,12 @@ function GoogleCallbackContent() {
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 text-[10px] font-black uppercase tracking-widest text-slate-500">
               <Terminal className="w-3 h-3" />
-              SYSTEM_PROTOCOL
+              GOOGLE SIGN IN
             </div>
             <h1 className="text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
-              {status === 'processing' && 'Syncing Access'}
-              {status === 'success' && 'Ready to Build'}
-              {status === 'error' && 'Sync_Failed'}
+              {status === 'processing' && 'Signing You In...'}
+              {status === 'success' && 'You\'re In!'}
+              {status === 'error' && 'Sign In Failed'}
             </h1>
           </div>
 
@@ -205,7 +227,7 @@ function GoogleCallbackContent() {
               onClick={() => router.push('/')}
               className="w-full py-4 bg-slate-900 text-white font-black rounded-2xl hover:scale-[1.02] active:scale-95 transition-all text-xs uppercase tracking-[0.2em]"
             >
-              Emergency Home Sync
+              Go Back Home
             </button>
           )}
         </div>

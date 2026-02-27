@@ -1,0 +1,16 @@
+7d1e58d HEAD@{0}: commit: feat: Introduce new content repurposing workspace with a landing page, navigation, and core UI components.
+fe49b37 HEAD@{1}: commit: feat: Update allowed CORS origins to include `http://localhost:8000` and ensure proper formatting
+8032b5e HEAD@{2}: commit: feat: Add `https://www.buildinpublic.entrext.com` to allowed CORS origins
+9b24205 HEAD@{3}: commit: feat: Add `ThemedToaster` component for theme-aware notifications with dismiss functionality.
+95ea2e7 HEAD@{4}: commit: feat: Implement a new responsive navigation bar with mobile menu and integrated authentication features.
+402ec17 HEAD@{5}: commit: feat: Implement pricing page, authenticated navigation, and core landing page sections.
+cac0cb9 HEAD@{6}: commit: feat: Add the RepurposeInterface component, enabling content input, task management, result display, and export functionality.
+07d5f06 HEAD@{7}: commit: feat: Introduce a downgrade confirmation modal and a client-side pricing component.
+f225f4a HEAD@{8}: commit: feat: introduce DowngradeModal component for confirming plan downgrades and detailing feature loss.
+91a5d73 HEAD@{9}: commit: feat: Add DowngradeModal component to confirm subscription downgrades and display feature changes.
+344b616 HEAD@{10}: commit: feat: add DowngradeModal component to display downgrade warnings, lost features, and retained capabilities.
+50b6d8f HEAD@{11}: commit: feat: add downgrade confirmation modal component with feature loss and retention details.
+b179163 HEAD@{12}: commit: feat: introduce subscription management with pricing page, payment/downgrade modals, and backend feature gates.
+4c0e22b HEAD@{13}: commit: feat: initialize FastAPI backend with core application setup, database management, middleware, and Vercel deployment configuration.
+535a78a HEAD@{14}: commit: feat: Rename project to BuildInPublic, initialize FastAPI backend, and add frontend user preferences context.
+3120a8e HEAD@{15}: commit (initial): chore: Install frontend and backend project dependencies.

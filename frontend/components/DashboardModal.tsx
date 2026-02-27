@@ -1,9 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useScrollLock } from '../hooks/useScrollLock'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
-import { User, Settings, History, Heart, BarChart3, Crown, LogOut, Save, Trash2, Star, Download, Eye, Filter, Edit2, Check, X, FileText, Copy, RefreshCw, Zap, TrendingUp, Clock, Sparkles, ArrowRight, Twitter, Plus, Sun, Moon, CheckCircle } from 'lucide-react'
+import { User, Settings, History, Heart, BarChart3, Crown, LogOut, Save, Trash2, Star, Download, Eye, Filter, Edit2, Check, X, FileText, Copy, RefreshCw, Zap, TrendingUp, Clock, Sparkles, ArrowRight, Twitter, Plus, Sun, Moon, CheckCircle, Trophy, ShieldCheck, Cpu, Target, Terminal, Briefcase, MapPin } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
 import { useFeatureGate } from '../hooks/useFeatureGate'
@@ -43,6 +44,20 @@ interface UsageStats {
   rate_limit: number
   remaining_requests: number
   is_premium: boolean
+  leaderboard_rank?: string
+}
+
+interface AppliedJob {
+  application_id: number
+  status: string
+  created_at: string
+  job: {
+    id: number
+    title: string
+    company_name: string
+    location?: string
+    is_active: boolean
+  }
 }
 
 interface DashboardModalProps {
@@ -73,6 +88,8 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
   const [isLoading, setIsLoading] = useState(false)
   const [isLoadingContent, setIsLoadingContent] = useState(false)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
+  const [isLoadingApplications, setIsLoadingApplications] = useState(false)
+  const [appliedJobs, setAppliedJobs] = useState<AppliedJob[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [viewingContent, setViewingContent] = useState<SavedContent | null>(null)
@@ -97,6 +114,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
     scale: 1
   })
   const [imageEditorRef, setImageEditorRef] = useState<HTMLCanvasElement | null>(null)
+  const canViewApplications = user?.role === 'candidate' || user?.role === 'admin'
 
   // Helper function to validate image URL
   const isValidImageUrl = (url: string): boolean => {
@@ -296,25 +314,16 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
     setMounted(true)
   }, [])
 
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (isOpen && user) {
-      document.body.style.overflow = 'hidden'
-      document.documentElement.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'unset'
-      document.documentElement.style.overflow = 'unset'
-    }
-    return () => {
-      document.body.style.overflow = 'unset'
-      document.documentElement.style.overflow = 'unset'
-    }
-  }, [isOpen])
+  // Lock page scroll and stop Lenis to prevent background scrolling.
+  useScrollLock(isOpen)
 
   // Load data when modal opens
   useEffect(() => {
     if (isOpen && user) {
       loadInitialDataFast()
+      if (canViewApplications) {
+        loadAppliedJobs()
+      }
 
       // Initialize profile editing state
       setEditedUsername(user.username || '')
@@ -338,7 +347,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
       }
       loadSectionData('history')
     }
-  }, [isOpen, user])
+  }, [isOpen, user, canViewApplications])
 
   // Preload data when user is available (even when modal is closed)
   useEffect(() => {
@@ -355,7 +364,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
             })
             return response.data
           },
-          10 * 1000 // 10s short-lived cache
+          60 * 1000 // 60s short-lived cache
         ).catch(() => { }) // Silent fail for background loading
       }
 
@@ -412,7 +421,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
           })
           return response.data
         },
-        10 * 1000 // 10s short-lived cache
+        60 * 1000 // 60s short-lived cache
       )
 
       setUsageStats(stats)
@@ -427,6 +436,31 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
         is_premium: user?.is_premium || false
       }
       setUsageStats(fallbackStats)
+    }
+  }
+
+  const loadAppliedJobs = async () => {
+    if (!canViewApplications || !user?.id) return
+
+    setIsLoadingApplications(true)
+    try {
+      const cacheKey = `dashboard-applied-jobs-${user.id}`
+      const jobs = await requestCache.get(
+        cacheKey,
+        async () => {
+          const response = await axios.get(`${API_URL}/api/v1/jobs/candidate/me`, {
+            timeout: 10000
+          })
+          return response.data || []
+        },
+        30 * 1000
+      )
+      setAppliedJobs(jobs)
+    } catch (error) {
+      console.error('Error loading applied jobs:', error)
+      setAppliedJobs([])
+    } finally {
+      setIsLoadingApplications(false)
     }
   }
 
@@ -462,11 +496,6 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
       } catch (error: any) {
         console.error('Error loading saved content:', error)
         if (error.response?.status === 403) {
-        } else {
-          // Retry once after a short delay
-          setTimeout(() => {
-            loadSectionData('content')
-          }, 1000)
         }
         setSavedContent([])
       } finally {
@@ -501,11 +530,6 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
       } catch (error: any) {
         console.error('Error loading content history:', error)
         if (error.response?.status === 403) {
-        } else {
-          // Retry once after a short delay
-          setTimeout(() => {
-            loadSectionData('history')
-          }, 1000)
         }
         setContentHistory([])
       } finally {
@@ -683,7 +707,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
         setViewingContent(prev => prev ? { ...prev, is_favorite: !newFavoriteState } : null)
       }
 
-      toast.error('ERROR_FAVORITE_SYNC_FAILURE')
+      toast.error('Could not save favorite. Please try again.')
     }
   }
 
@@ -721,11 +745,11 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
         toast.success('Subscription cancelled')
         setShowCancelModal(false)
       } else {
-        toast.error(response.data.message || 'ERROR_SESSION_TERMINATION_FAILURE')
+        toast.error(response.data.message || 'Could not cancel. Please try again.')
       }
     } catch (error) {
       console.error('Error cancelling subscription:', error)
-      toast.error('ERROR_SESSION_TERMINATION_FAILURE')
+      toast.error('Could not cancel. Please try again.')
     } finally {
       setCancelLoading(false)
     }
@@ -733,7 +757,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
 
   const handleUpdateProfile = async () => {
     if (!editedUsername.trim()) {
-      toast.error('ERROR_IDENTITY_REQUIRED')
+      toast.error('Username is required')
       return
     }
 
@@ -759,9 +783,9 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
     } catch (error: any) {
       console.error('Error updating profile:', error)
       if (error.response?.status === 400) {
-        toast.error(error.response.data.detail || 'ERROR_IDENTITY_CONFLICT')
+        toast.error(error.response.data.detail || 'Username already taken')
       } else {
-        toast.error('ERROR_IDENTITY_SYNC_FAILURE')
+        toast.error('Could not update profile. Please try again.')
       }
     } finally {
       setIsSavingProfile(false)
@@ -778,7 +802,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
   // Export functions
   const handleExportContent = (content: any, format: 'txt' | 'json' | 'csv') => {
     if (!user?.is_premium) {
-      toast.error('ERROR_PRO_LICENSE_REQUIRED')
+      toast.error('Pro plan required for this feature.')
       return
     }
 
@@ -875,21 +899,21 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
 
-      toast.success(`EXPORT_SUCCESS_${format.toUpperCase()}`)
+      toast.success(`Exported as ${format.toUpperCase()} successfully!`)
     } catch (error) {
       console.error('Export error:', error)
-      toast.error('ERROR_EXPORT_FAILURE')
+      toast.error('Export failed. Please try again.')
     }
   }
 
   const handleBulkExport = (format: 'txt' | 'json' | 'csv') => {
     if (!user?.is_premium) {
-      toast.error('ERROR_PRO_LICENSE_REQUIRED')
+      toast.error('Pro plan required to export.')
       return
     }
 
     if (savedContent.length === 0) {
-      toast.error('ERROR_EXPORT_EMPTY')
+      toast.error('Nothing to export yet.')
       return
     }
 
@@ -973,10 +997,10 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
 
-      toast.success(`BULK_EXPORT_SUCCESS_${format.toUpperCase()}`)
+      toast.success(`All items exported as ${format.toUpperCase()}!`)
     } catch (error) {
       console.error('Bulk export error:', error)
-      toast.error('ERROR_EXPORT_FAILURE')
+      toast.error('Export failed. Please try again.')
     }
   }
 
@@ -1022,13 +1046,11 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
 
     if (isOpen) {
       document.addEventListener('keydown', handleEscape)
-      // Prevent body scroll when modal is open - less aggressive approach
-      document.body.style.overflow = 'hidden'
+      // scroll lock handled by useScrollLock above
     }
 
     return () => {
       document.removeEventListener('keydown', handleEscape)
-      document.body.style.overflow = ''
     }
   }, [isOpen, onClose]);
 
@@ -1056,7 +1078,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
       }
     >
       {/* Modal Content */}
-      < div
+      <div
         className="bg-zinc-50 dark:bg-slate-950 border border-zinc-200 dark:border-slate-800 rounded-xl sm:rounded-[2.5rem] flex flex-col sm:flex-row overflow-hidden shadow-2xl hide-scrollbar"
         onClick={(e) => e.stopPropagation()}
         style={{
@@ -1071,7 +1093,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
         }}
       >
         {/* Mobile Header with Tab Navigation */}
-        < div className="sm:hidden bg-zinc-100/50 dark:bg-slate-900/50 border-b border-zinc-200 dark:border-slate-800 p-3 flex-shrink-0 hide-scrollbar" >
+        <div className="sm:hidden bg-zinc-100/50 dark:bg-slate-900/50 border-b border-zinc-200 dark:border-slate-800 p-3 flex-shrink-0 hide-scrollbar" >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
@@ -1155,7 +1177,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
           </div>
 
           {/* Mobile Tab Navigation */}
-          <div className="grid grid-cols-5 gap-1">
+            <div className="grid grid-cols-5 gap-1">
             <button
               onClick={() => setActiveSection('overview')}
               className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 ${activeSection === 'overview'
@@ -1188,26 +1210,49 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
               <span className="text-[9px] leading-tight">Saved</span>
             </button>
 
-            <button
-              onClick={() => {
-                setActiveSection('history')
-                loadSectionData('history')
-              }}
-              className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 relative ${activeSection === 'history'
-                ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-sm'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-slate-700/50'
-                }`}
-            >
-              <div className="relative">
-                <History className="w-4 h-4" />
-                {contentHistory.length > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full px-1 min-w-[1rem] h-4 flex items-center justify-center text-[10px]">
-                    {contentHistory.length}
-                  </span>
-                )}
-              </div>
-              <span className="text-[9px] leading-tight">History</span>
-            </button>
+            {canViewApplications ? (
+              <button
+                onClick={() => {
+                  setActiveSection('applications')
+                  loadAppliedJobs()
+                }}
+                className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 relative ${activeSection === 'applications'
+                  ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-slate-700/50'
+                  }`}
+              >
+                <div className="relative">
+                  <Briefcase className="w-4 h-4" />
+                  {appliedJobs.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full px-1 min-w-[1rem] h-4 flex items-center justify-center text-[10px]">
+                      {appliedJobs.length}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[9px] leading-tight">Applied</span>
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  setActiveSection('history')
+                  loadSectionData('history')
+                }}
+                className={`flex flex-col items-center gap-1 px-2 py-2.5 rounded-lg text-xs font-medium transition-all duration-200 relative ${activeSection === 'history'
+                  ? 'bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-sm'
+                  : 'text-gray-600 dark:text-gray-300 hover:bg-gray-200/50 dark:hover:bg-slate-700/50'
+                  }`}
+              >
+                <div className="relative">
+                  <History className="w-4 h-4" />
+                  {contentHistory.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-blue-500 text-white text-xs rounded-full px-1 min-w-[1rem] h-4 flex items-center justify-center text-[10px]">
+                      {contentHistory.length}
+                    </span>
+                  )}
+                </div>
+                <span className="text-[9px] leading-tight">History</span>
+              </button>
+            )}
 
             <button
               onClick={() => setActiveSection('templates')}
@@ -1237,153 +1282,120 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
         </div>
 
         {/* Desktop Sidebar */}
-        < div className="hidden sm:flex w-80 bg-zinc-100/50 dark:bg-slate-900/50 border-r border-zinc-200 dark:border-slate-800 p-8 flex-col min-h-0 flex-shrink-0" >
+        <div className="hidden sm:flex w-80 bg-black border-r border-white/10 p-8 flex-col min-h-0 flex-shrink-0 relative overflow-hidden">
+          <div className="absolute inset-0 bg-cyber-grid opacity-10 pointer-events-none" />
+
           {/* User Profile Section */}
-          < div className="flex items-center gap-3 mb-8 p-3 bg-zinc-200/40 dark:bg-slate-800/30 rounded-xl border border-zinc-200 dark:border-slate-800/30" >
-            <div className="w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg flex-shrink-0">
+          <div className="flex items-center gap-3 mb-10 p-4 bg-white/[0.03] rounded-2xl border border-white/10 relative z-10 group hover:border-cyan-500/40 transition-all duration-500">
+            <div className="w-14 h-14 rounded-xl overflow-hidden bg-black border border-white/10 flex items-center justify-center shadow-2xl flex-shrink-0 group-hover:glow-cyan transition-all">
               {user?.profile_picture && isValidImageUrl(user.profile_picture) ? (
-                <>
-                  <img
-                    src={user.profile_picture}
-                    alt={user.username}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      // Hide the image and show initials
-                      const imgElement = e.currentTarget as HTMLImageElement
-                      const container = imgElement.parentElement
-                      if (container) {
-                        imgElement.style.display = 'none'
-                        const fallbackDiv = container.querySelector('.sidebar-user-initials') as HTMLElement
-                        if (fallbackDiv) {
-                          fallbackDiv.style.display = 'flex'
-                        }
-                      }
-                    }}
-                    onLoad={(e) => {
-                      // Hide initials when image loads
-                      const imgElement = e.currentTarget as HTMLImageElement
-                      const container = imgElement.parentElement
-                      if (container) {
-                        const fallbackDiv = container.querySelector('.sidebar-user-initials') as HTMLElement
-                        if (fallbackDiv) {
-                          fallbackDiv.style.display = 'none'
-                        }
-                      }
-                    }}
-                  />
-                  <div
-                    className="sidebar-user-initials w-full h-full flex items-center justify-center text-white font-bold text-lg"
-                    style={{ display: 'none' }}
-                  >
-                    {user?.username?.charAt(0).toUpperCase() || 'U'}
-                  </div>
-                </>
+                <img src={user.profile_picture} alt={user.username} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all" />
               ) : (
-                <div
-                  className="sidebar-user-initials w-full h-full flex items-center justify-center text-white font-bold text-lg"
-                >
+                <div className="w-full h-full flex items-center justify-center text-white font-black text-xl italic uppercase font-mono">
                   {user?.username?.charAt(0).toUpperCase() || 'U'}
                 </div>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h2 className="text-lg font-bold text-zinc-900 dark:text-white truncate">{user?.username}</h2>
-              {user?.is_premium ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-yellow-500/20 to-orange-500/20 text-yellow-600 dark:text-yellow-400 text-xs rounded-full border border-yellow-500/30">
-                  <Crown className="w-3 h-3" />
-                  Pro
-                </span>
-              ) : (
-                <span className="inline-flex items-center px-2 py-0.5 bg-gray-200/80 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300 text-xs rounded-full border border-gray-300 dark:border-gray-600">
-                  Free
-                </span>
-              )}
-            </div>
-            <div className="flex-shrink-0">
-              <svg className="w-4 h-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
+              <h2 className="text-lg font-black text-white truncate uppercase italic tracking-tighter">{user?.username}</h2>
+              <div className="flex items-center gap-2 mt-1">
+                {user?.is_premium ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-0.5 bg-cyan-500/10 text-cyan-500 text-[9px] font-black rounded-full border border-cyan-500/20 uppercase tracking-widest glow-cyan">
+                    <ShieldCheck className="w-3 h-3" />
+                    PRO MEMBER
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-3 py-0.5 bg-white/5 text-slate-500 text-[9px] font-black rounded-full border border-white/5 uppercase tracking-widest">
+                    FREE MEMBER
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Navigation Menu */}
-          < nav className="flex-1 px-2 py-4" >
-            <div className="space-y-1.5">
+          <nav className="flex-1 px-2 py-4 relative z-10">
+            <div className="space-y-2">
               {[
-                { id: 'overview', name: 'Overview', icon: BarChart3, color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
-                { id: 'content', name: 'Saved Content', icon: Save, count: savedContent.length, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                { id: 'history', name: 'History', icon: History, count: contentHistory.length, color: 'text-purple-500', bg: 'bg-purple-500/10' },
-                { id: 'templates', name: 'Templates', icon: FileText, pro: true, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-                { id: 'settings', name: 'Settings', icon: Settings, color: 'text-slate-500', bg: 'bg-slate-500/10' },
+                { id: 'overview', name: 'Overview', icon: BarChart3, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+                ...(canViewApplications ? [{ id: 'applications', name: 'Applied Jobs', icon: Briefcase, count: appliedJobs.length, color: 'text-cyan-500', bg: 'bg-cyan-500/10' }] : []),
+                { id: 'content', name: 'Saved', icon: Save, count: savedContent.length, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+                { id: 'history', name: 'History', icon: History, count: contentHistory.length, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+                { id: 'settings', name: 'Settings', icon: Settings, color: 'text-slate-500', bg: 'bg-white/5' },
               ].map((item) => (
                 <button
                   key={item.id}
                   onClick={() => {
                     setActiveSection(item.id)
                     if (item.id === 'content' || item.id === 'history') loadSectionData(item.id)
+                    if (item.id === 'applications') loadAppliedJobs()
                   }}
-                  className={`w-full group flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 relative overflow-hidden ${activeSection === item.id
-                    ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-white dark:bg-slate-800 shadow-sm border border-zinc-200 dark:border-slate-700'
-                    : 'text-zinc-600 dark:text-slate-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-slate-800/50'
+                  className={`w-full group flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-500 relative overflow-hidden ${activeSection === item.id
+                    ? 'text-white font-black bg-white/[0.05] shadow-2xl border border-white/10 italic'
+                    : 'text-slate-500 hover:text-cyan-400 hover:bg-white/[0.03]'
                     }`}
                 >
                   {/* Active Indicator */}
                   {activeSection === item.id && (
                     <motion.div
                       layoutId="activeTab"
-                      className="absolute left-0 top-2 bottom-2 w-1.5 bg-indigo-500 rounded-r-full"
+                      className="absolute left-0 top-3 bottom-3 w-1.5 bg-cyan-500 rounded-r-full shadow-[0_0_10px_rgba(6,182,212,1)]"
                     />
                   )}
 
-                  <div className={`p-2 rounded-lg transition-colors ${activeSection === item.id ? item.bg : 'group-hover:bg-slate-200 dark:group-hover:bg-slate-700/50'}`}>
-                    <item.icon className={`w-5 h-5 ${activeSection === item.id ? item.color : 'text-slate-400 dark:text-slate-500'}`} />
+                  <div className={`p-2.5 rounded-xl transition-all duration-500 ${activeSection === item.id ? item.bg : 'group-hover:bg-white/5'}`}>
+                    <item.icon className={`w-5 h-5 ${activeSection === item.id ? item.color + ' glow-cyan' : 'text-slate-600'}`} />
                   </div>
 
-                  <span className="flex-1 text-left text-sm">{item.name}</span>
+                  <span className="flex-1 text-left text-[11px] tracking-[0.05em] font-black">{item.name}</span>
 
                   {item.count !== undefined && item.count > 0 && (
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${activeSection === item.id
-                      ? 'bg-indigo-500 text-white'
-                      : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}`}>
+                    <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black font-mono ${activeSection === item.id
+                      ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.5)]'
+                      : 'bg-white/5 text-slate-500'}`}>
                       {item.count}
                     </span>
                   )}
 
                   {item.pro && !user?.is_premium && (
-                    <Crown className="w-3 h-3 text-amber-500" />
+                    <Zap className="w-3.5 h-3.5 text-cyan-500/40" />
                   )}
                 </button>
               ))}
             </div>
-          </nav >
+          </nav>
 
-          {/* Sidebar Footer - Usage Ring */}
-          {
-            !user?.is_premium && (
-              <div className="mx-2 mb-4 p-4 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/20">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Daily Limit</span>
-                  <span className="text-[10px] font-bold text-slate-500">{usageStats?.remaining_requests || 0}/{usageStats?.rate_limit || 2}</span>
+          {/* Sidebar Footer - Rank Component (candidates only) */}
+          {user?.role !== 'recruiter' && (
+            <div className="mx-2 mb-6 p-6 rounded-[2rem] bg-white/[0.03] border border-white/10 relative z-10 group overflow-hidden">
+              <div className="absolute inset-0 bg-cyber-grid opacity-10 pointer-events-none" />
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[10px] font-black uppercase tracking-[0.4em] text-cyan-500">YOUR RANK</span>
+                  <Trophy className="w-4 h-4 text-cyan-500 glow-cyan" />
                 </div>
-                <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="text-3xl font-black text-white italic tracking-tighter mb-6 uppercase">
+                  {usageStats?.leaderboard_rank || '#---'}
+                </div>
+                <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${((usageStats?.remaining_requests || 0) / (usageStats?.rate_limit || 1)) * 100}%` }}
-                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500"
+                    animate={{ width: usageStats?.leaderboard_rank ? '85%' : '5%' }}
+                    className="h-full bg-cyan-500 glow-cyan"
                   />
                 </div>
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => router.push('/pricing')}
-                  className="mt-3 w-full py-2.5 text-[10px] font-black uppercase tracking-widest text-center bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 transition-all flex items-center justify-center gap-2"
-                >
-                  <Zap className="w-3.5 h-3.5 fill-current" />
-                  Get Unlimited
-                </motion.button>
+                {!user?.is_premium && (
+                  <button
+                    onClick={() => router.push('/pricing')}
+                    className="mt-6 w-full py-4 text-[10px] font-black uppercase tracking-[0.3em] text-center bg-white text-black rounded-xl hover:bg-cyan-500 transition-all flex items-center justify-center gap-3 hover:glow-cyan italic shadow-2xl"
+                  >
+                    <Zap className="w-4 h-4" />
+                    GO PRO
+                  </button>
+                )}
               </div>
-            )
-          }
+            </div>
+          )}
 
           {/* Logout Button */}
           <button
@@ -1391,54 +1403,59 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
               logout()
               onClose()
             }}
-            className="flex items-center gap-3 px-4 py-3 text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all duration-200 mt-4 border border-transparent hover:border-red-200 dark:hover:border-red-500/20 shadow-sm hover:shadow-md"
+            className="flex items-center gap-4 px-6 py-4 text-slate-600 hover:text-white hover:bg-red-500/10 rounded-2xl transition-all duration-500 border border-transparent hover:border-red-500/20 relative z-10 group italic"
           >
-            <LogOut className="w-5 h-5" />
-            Sign Out
+            <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform" />
+            <span className="text-[11px] font-black uppercase tracking-[0.2em] italic">LOG OUT</span>
           </button>
         </div>
 
         {/* Main Content Area - Responsive Layout */}
-        < div className="flex-1 flex flex-col min-h-0 hide-scrollbar" >
-          {/* Header - Hidden on mobile since we have tab navigation */}
-          < div className="hidden sm:flex items-center justify-between p-8 border-b border-zinc-200 dark:border-slate-800" >
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-white">
-              {activeSection === 'overview' && 'Dashboard Overview'}
+        <div className="flex-1 flex flex-col min-h-0 hide-scrollbar bg-black/40 backdrop-blur-3xl relative z-20">
+          {/* Header */}
+          <div className="hidden sm:flex items-center justify-between p-12 border-b border-white/10">
+            <h1 className="text-3xl font-black text-white uppercase italic tracking-tighter">
+              {activeSection === 'overview' && 'STATS'}
+              {activeSection === 'applications' && 'APPLIED JOBS'}
               {activeSection === 'content' && (
-                <span className="flex items-center gap-2">
-                  Saved Content
+                <span className="flex items-center gap-4">
+                  SAVED
                   {savedContent.length > 0 && (
-                    <span className="px-2 py-1 bg-blue-500/20 text-blue-600 dark:text-blue-400 text-sm rounded-full">
-                      {getFilteredContent().length} {getFilteredContent().length !== savedContent.length && `of ${savedContent.length}`}
+                    <span className="px-3 py-1 bg-cyan-500/10 text-cyan-500 text-xs rounded-lg border border-cyan-500/20 glow-cyan">
+                      {getFilteredContent().length} {getFilteredContent().length !== savedContent.length && `/ ${savedContent.length}`}
                     </span>
                   )}
                 </span>
               )}
               {activeSection === 'history' && (
-                <span className="flex items-center gap-2">
-                  Content History
+                <span className="flex items-center gap-4">
+                  HISTORY
                   {contentHistory.length > 0 && (
-                    <span className="px-2 py-1 bg-purple-500/20 text-purple-600 dark:text-purple-400 text-sm rounded-full">
+                    <span className="px-3 py-1 bg-cyan-500/10 text-cyan-500 text-xs rounded-lg border border-cyan-500/20">
                       {contentHistory.length}
                     </span>
                   )}
                 </span>
               )}
-              {activeSection === 'templates' && 'Custom Templates'}
-              {activeSection === 'settings' && 'Account Settings'}
+              {activeSection === 'templates' && 'TEMPLATES'}
+              {activeSection === 'settings' && 'SETTINGS'}
             </h1>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               {/* Refresh Stats/Data Button */}
-              {(activeSection === 'overview' || activeSection === 'content' || activeSection === 'history') && (
+              {(activeSection === 'overview' || activeSection === 'applications' || activeSection === 'content' || activeSection === 'history') && (
                 <button
                   onClick={() => {
                     if (activeSection === 'overview') {
                       loadInitialDataFast()
+                    } else if (activeSection === 'applications') {
+                      if (user?.id) requestCache.invalidate(`dashboard-applied-jobs-${user.id}`)
+                      loadAppliedJobs()
                     } else {
                       // Invalidate cache and reload
                       const cacheKeys: { [key: string]: string } = {
                         'content': `dashboard-saved-content-${user?.id}`,
-                        'history': `dashboard-content-history-${user?.id}`
+                        'history': `dashboard-content-history-${user?.id}`,
+                        'applications': `dashboard-applied-jobs-${user?.id}`
                       }
 
                       const key = cacheKeys[activeSection]
@@ -1453,19 +1470,23 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                           setContentHistory([])
                           setIsLoadingHistory(true)
                         }
+                        if (activeSection === 'applications') {
+                          setAppliedJobs([])
+                          setIsLoadingApplications(true)
+                        }
                         loadSectionData(activeSection)
                       }
                     }
                   }}
-                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-all duration-200"
+                  className="w-12 h-12 glass-panel rounded-xl flex items-center justify-center text-slate-500 hover:text-white transition-all hover:glow-cyan border border-white/5"
                   title="Refresh data"
                 >
-                  <RefreshCw className="w-5 h-5" />
+                  <RefreshCw className="w-6 h-6" />
                 </button>
               )}
               <button
                 onClick={onClose}
-                className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-slate-700/50 rounded-lg transition-all duration-200"
+                className="w-12 h-12 glass-panel rounded-xl flex items-center justify-center text-slate-500 hover:text-white transition-all hover:glow-cyan border border-white/5"
               >
                 <X className="w-6 h-6" />
               </button>
@@ -1473,8 +1494,9 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
           </div>
 
           {/* Content */}
-          < div
-            className="flex-1 overflow-y-auto p-4 sm:p-8 min-h-0 hide-scrollbar"
+          <div
+            className="flex-1 overflow-y-auto p-4 sm:p-12 min-h-0 hide-scrollbar"
+            data-lenis-prevent
             style={{
               WebkitOverflowScrolling: 'touch',
               scrollBehavior: 'smooth'
@@ -1484,126 +1506,106 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-8"
+                className="space-y-12"
               >
                 {/* Welcome Header */}
-                <div className="relative group perspective-1000">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-3xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-                  <div className="relative bg-zinc-100/50 dark:bg-slate-900 rounded-2xl p-5 sm:p-10 border border-zinc-200 dark:border-slate-800 overflow-hidden">
-                    <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl"></div>
+                <div className="relative group overflow-hidden rounded-[2.5rem] border border-white/5 bg-white/[0.02] p-10 md:p-16">
+                  <div className="absolute inset-0 bg-cyber-grid opacity-10" />
+                  <div className="absolute top-0 right-0 p-10 opacity-5 scale-150 rotate-12">
+                    <Cpu className="w-48 h-48 text-cyan-500" />
+                  </div>
 
-                    <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                      <div className="space-y-3">
-                        <div className="inline-flex items-center px-3 py-1 bg-indigo-500/10 text-indigo-500 rounded-full text-[10px] font-black uppercase tracking-widest border border-indigo-500/20">
-                          Creator Dashboard
-                        </div>
-                        <h2 className="text-2xl sm:text-4xl font-display font-black text-slate-900 dark:text-white">
-                          {(() => {
-                            const hour = new Date().getHours();
-                            if (hour < 12) return 'Good Morning';
-                            if (hour < 17) return 'Good Afternoon';
-                            return 'Good Evening';
-                          })()}, <span className="text-gradient-purple">{user?.username || 'Creator'}</span>! 👋
-                        </h2>
-                        <p className="text-slate-500 dark:text-slate-400 max-w-lg leading-relaxed">
-                          {user?.is_premium
-                            ? 'Your Pro arsenal is ready. Let\'s turn your reflections into high-impact X content today.'
-                            : 'Ready to build in public? Transform your day into engaging X threads in seconds.'
-                          }
-                        </p>
+                  <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
+                    <div className="space-y-4">
+                      <div className="inline-flex items-center px-4 py-1.5 bg-cyan-500/10 text-cyan-500 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] border border-cyan-500/20">
+                        {user.username}
                       </div>
-                      <div className="flex-shrink-0">
-                        {user?.is_premium ? (
-                          <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-2xl backdrop-blur-sm">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-500/20">
-                                <Crown className="w-6 h-6 text-white" />
-                              </div>
-                              <div>
-                                <p className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest">Active Plan</p>
-                                <p className="text-lg font-black text-slate-900 dark:text-white">PRO MEMBER</p>
-                              </div>
+                      <h2 className="text-5xl md:text-7xl font-black text-white uppercase italic tracking-tighter leading-none">
+                        Dashboard
+                      </h2>
+                      <p className="text-slate-500 max-w-lg leading-relaxed text-sm">
+                        {user?.is_premium
+                          ? 'Pro plan active.'
+                          : 'Free plan active. Upgrade for premium features.'
+                        }
+                      </p>
+                    </div>
+
+                    <div className="flex-shrink-0">
+                      {user?.is_premium ? (
+                        <div className="p-8 bg-cyan-500/5 border border-cyan-500/20 rounded-[2rem] backdrop-blur-sm glow-cyan">
+                          <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 bg-cyan-500 rounded-2xl flex items-center justify-center shadow-[0_0_30px_rgba(6,182,212,0.5)]">
+                              <Crown className="w-8 h-8 text-black" />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-black text-cyan-500 uppercase tracking-[0.3em]">Status</p>
+                              <p className="text-2xl font-black text-white italic tracking-tighter uppercase">PRO MEMBER</p>
                             </div>
                           </div>
-                        ) : (
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => router.push('/pricing')}
-                            className="group relative px-6 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl shadow-xl transition-all overflow-hidden"
-                          >
-                            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500"></div>
-                            <div className="flex items-center gap-3">
-                              <Sparkles className="w-5 h-5 animate-pulse" />
-                              <span>UNLOCK PRO</span>
-                              <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                            </div>
-                          </motion.button>
-                        )}
-                      </div>
+                        </div>
+                      ) : (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => router.push('/pricing')}
+                          className="group relative px-10 py-6 bg-white text-black font-black rounded-2xl shadow-4xl transition-all overflow-hidden italic tracking-tighter"
+                        >
+                          <div className="absolute inset-0 bg-cyan-500 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
+                          <div className="relative z-10 flex items-center gap-4 group-hover:text-white transition-colors">
+                            <Zap className="w-5 h-5" />
+                            <span className="text-lg uppercase">Upgrade</span>
+                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </motion.button>
+                      )}
                     </div>
                   </div>
                 </div>
 
                 {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                  {/* Main Usage Card */}
-                  <div className="md:col-span-8 bg-zinc-100/50 dark:bg-slate-900/50 backdrop-blur-xl border border-zinc-200 dark:border-slate-800 rounded-3xl p-5 sm:p-8 shadow-2xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-bl-full border-l border-b border-indigo-500/10"></div>
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+                  {/* Main Standing Card */}
+                  <div className="md:col-span-8 glass-panel rounded-[2.5rem] p-10 relative overflow-hidden group border border-white/5 bg-white/[0.02]">
+                    <div className="absolute inset-0 bg-cyber-grid opacity-10" />
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-500/5 rounded-bl-full border-l border-b border-cyan-500/10" />
 
-                    <div className="flex flex-col sm:flex-row items-center gap-10 relative z-10">
-                      {/* Custom Animated Gauge */}
+                    <div className="flex flex-col sm:flex-row items-center gap-12 relative z-10">
+                      {/* Rank Indicator */}
                       <div className="relative">
-                        <svg className="w-40 h-40 transform -rotate-90" viewBox="0 0 100 100">
-                          {/* Track */}
-                          <circle cx="50" cy="50" r="44" fill="none" stroke="currentColor" strokeWidth="6" className="text-slate-100 dark:text-slate-800" />
-                          {/* Progress Gradient */}
-                          <motion.circle
-                            cx="50" cy="50" r="44"
-                            fill="none"
-                            stroke="url(#usageGradientDashboard)"
-                            strokeWidth="10"
-                            strokeLinecap="round"
-                            initial={{ strokeDasharray: "0 276" }}
-                            animate={{ strokeDasharray: `${((usageStats?.remaining_requests || 0) / (usageStats?.rate_limit || 1)) * 276} 276` }}
-                            transition={{ duration: 1.5, ease: "easeOut" }}
-                          />
-                          <defs>
-                            <linearGradient id="usageGradientDashboard" x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="#6366f1" />
-                              <stop offset="100%" stopColor="#d946ef" />
-                            </linearGradient>
-                          </defs>
-                        </svg>
-                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <div className="w-48 h-48 rounded-full bg-black border-[6px] border-white/5 flex flex-col items-center justify-center shadow-[0_0_50px_rgba(0,0,0,0.5)] group-hover:border-cyan-500/20 transition-all duration-700">
+                          <Trophy className="w-10 h-10 text-cyan-500 mb-2 opacity-50 glow-cyan" />
                           <motion.span
                             initial={{ opacity: 0, scale: 0.5 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            className="text-4xl font-display font-black text-slate-900 dark:text-white"
+                            className="text-5xl font-black text-white italic tracking-tighter"
                           >
-                            {usageStats?.remaining_requests || 0}
+                            {usageStats?.leaderboard_rank || '#---'}
                           </motion.span>
-                          <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Left Today</span>
+                          <span className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-500/50 mt-2">Rank</span>
                         </div>
                       </div>
 
-                      <div className="flex-1 space-y-6">
+                      <div className="flex-1 space-y-8">
                         <div>
-                          <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-1">Current Usage</h3>
-                          <p className="text-lg font-bold text-slate-800 dark:text-slate-200">
-                            You've used <span className="text-indigo-500">{(usageStats?.rate_limit || 0) - (usageStats?.remaining_requests || 0)}</span> of <span className="text-slate-900 dark:text-white">{usageStats?.rate_limit || 0}</span> daily generations.
+                          <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-3">Summary</h3>
+                          <p className="text-2xl font-black text-white italic tracking-tighter leading-tight uppercase">
+                            {user?.role === 'recruiter'
+                              ? "Current plan: "
+                              : "Current rank: "
+                            }
+                            <span className="text-cyan-500 glow-cyan">{usageStats?.leaderboard_rank || '#---'}</span>
                           </p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="p-4 bg-zinc-200/50 dark:bg-slate-800/50 rounded-2xl border border-zinc-200 dark:border-slate-800">
-                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Created</p>
-                            <p className="text-2xl font-black text-slate-900 dark:text-white">{usageStats?.total_generations || 0}</p>
+                        <div className="grid grid-cols-2 gap-6">
+                          <div className="p-6 bg-white/[0.03] rounded-2xl border border-white/5">
+                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2 font-mono">POSTS</p>
+                            <p className="text-3xl font-black text-white italic tracking-tighter uppercase">{usageStats?.total_generations || 0}</p>
                           </div>
-                          <div className="p-4 bg-zinc-200/50 dark:bg-slate-800/50 rounded-2xl border border-zinc-200 dark:border-slate-800">
-                            <p className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">Saved Posts</p>
-                            <p className="text-2xl font-black text-slate-900 dark:text-white">{savedContent.length}</p>
+                          <div className="p-6 bg-white/[0.03] rounded-2xl border border-white/5">
+                            <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2 font-mono">SAVED</p>
+                            <p className="text-3xl font-black text-white italic tracking-tighter uppercase">{savedContent.length}</p>
                           </div>
                         </div>
                       </div>
@@ -1611,89 +1613,157 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                   </div>
 
                   {/* Quick Start Card */}
-                  <div className="md:col-span-4 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-8 shadow-2xl flex flex-col justify-between relative overflow-hidden group hover:scale-[1.02] transition-transform duration-300 cursor-pointer" onClick={() => onClose()}>
-                    <div className="absolute top-0 right-0 p-4 opacity-20 transform translate-x-4 -translate-y-4 group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform">
-                      <Twitter className="w-24 h-24 text-white" />
+                  <div className="md:col-span-4 bg-white text-black rounded-[2.5rem] p-10 shadow-4xl flex flex-col justify-between relative overflow-hidden group hover:bg-cyan-500 transition-all duration-700 cursor-pointer italic" onClick={() => onClose()}>
+                    <div className="absolute top-0 right-0 p-6 opacity-10 transform translate-x-4 -translate-y-4 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-700">
+                      <Target className="w-32 h-32" />
                     </div>
                     <div className="relative z-10">
-                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md mb-6 shadow-lg">
-                        <Plus className="w-6 h-6 text-white" />
+                      <div className="w-14 h-14 bg-black/10 rounded-2xl flex items-center justify-center mb-8">
+                        <Plus className="w-6 h-6" />
                       </div>
-                      <h3 className="text-2xl font-black text-white mb-2 leading-tight">Create Your <br />Next Thread</h3>
-                      <p className="text-white/70 text-sm">Transform your day into viral content in seconds.</p>
+                      <h3 className="text-3xl font-black text-black mb-3 leading-tight uppercase tracking-tighter italic">Go To<br />Recruiter</h3>
+                      <p className="text-black/60 text-xs uppercase tracking-widest group-hover:text-black transition-colors">Open talent search.</p>
                     </div>
-                    <div className="relative z-10 mt-8 flex items-center gap-2 text-white font-bold text-sm">
-                      <span>Go to Tool</span>
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    <div className="relative z-10 mt-10 flex items-center gap-3 font-black text-xs uppercase tracking-[0.3em]">
+                      <span>Open</span>
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform" />
                     </div>
                   </div>
                 </div>
 
                 {/* Secondary Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Activity Feed */}
-                  <div className="bg-zinc-100/50 dark:bg-slate-900 rounded-3xl border border-zinc-200 dark:border-slate-800 overflow-hidden shadow-xl">
-                    <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-                      <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Recent Activity</h3>
+                  {/* Applied Jobs */}
+                  <div className="glass-panel rounded-[2.5rem] border border-white/5 bg-white/[0.02] overflow-hidden">
+                    <div className="p-8 border-b border-white/5 flex items-center justify-between">
+                      <h3 className="text-[11px] font-black text-white uppercase tracking-[0.25em]">APPLIED JOBS</h3>
                       <button
-                        onClick={() => { setActiveSection('history'); loadSectionData('history'); }}
-                        className="text-xs font-bold text-indigo-500 hover:text-indigo-600 transition-colors"
+                        onClick={() => { setActiveSection('applications'); loadAppliedJobs(); }}
+                        className="text-[10px] font-black text-cyan-500 hover:text-white transition-colors uppercase tracking-widest"
                       >
-                        View All
+                        VIEW ALL
                       </button>
                     </div>
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {contentHistory.length > 0 ? (
-                        contentHistory.slice(0, 4).map((item) => (
-                          <div key={item.id} className="p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group cursor-pointer" onClick={() => setViewingContent(item as any)}>
-                            <div className="flex items-start gap-4">
-                              <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center flex-shrink-0 text-indigo-500 group-hover:bg-indigo-500 group-hover:text-white transition-all duration-300">
-                                <Twitter className="w-5 h-5" />
+                    <div className="divide-y divide-white/5">
+                      {isLoadingApplications ? (
+                        <div className="p-10 text-center">
+                          <LoadingSpinner />
+                        </div>
+                      ) : appliedJobs.length > 0 ? (
+                        appliedJobs.slice(0, 4).map((item) => (
+                          <div key={item.application_id} className="p-6 hover:bg-cyan-500/5 transition-all duration-500 group">
+                            <div className="flex items-start gap-6">
+                              <div className="w-12 h-12 glass-panel rounded-xl flex items-center justify-center flex-shrink-0 text-slate-500 group-hover:glow-cyan group-hover:text-cyan-500 transition-all duration-500 bg-white/[0.03]">
+                                <Briefcase className="w-5 h-5" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate mb-1">
-                                  {item.original_content.substring(0, 60)}...
+                                <p className="text-sm font-black text-white truncate mb-2 uppercase italic tracking-tighter">
+                                  {item.job?.title}
                                 </p>
-                                <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-widest text-slate-400 font-mono">
-                                  <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {new Date(item.created_at).toLocaleDateString()}</span>
-                                  <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-white/5">{item.processing_time || 0}s</span>
+                                <div className="flex flex-wrap items-center gap-3 text-[10px] text-slate-400">
+                                  <span>{item.job?.company_name}</span>
+                                  <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />{item.job?.location || 'Remote'}</span>
+                                  <span className="flex items-center gap-1.5"><Clock className="w-3 h-3" /> {new Date(item.created_at).toLocaleDateString()}</span>
+                                  <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase ${
+                                    item.status === 'hired' ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' :
+                                    item.status === 'rejected' ? 'border-red-500/40 text-red-400 bg-red-500/10' :
+                                    item.status === 'interview' ? 'border-blue-500/40 text-blue-400 bg-blue-500/10' :
+                                    item.status === 'shortlisted' ? 'border-amber-500/40 text-amber-400 bg-amber-500/10' :
+                                    'border-slate-500/30 text-slate-300 bg-white/5'
+                                  }`}>
+                                    {item.status}
+                                  </span>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        ))
+                        )
+                        )
                       ) : (
-                        <div className="p-10 text-center">
-                          <p className="text-sm text-slate-500 italic">No activity yet. Start creating!</p>
+                        <div className="p-16 text-center">
+                          <p className="text-[10px] font-mono text-slate-500 uppercase tracking-[0.4em]">NO HISTORY YET</p>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Features/Promotion */}
-                  <div className="bg-slate-900 rounded-3xl p-8 relative overflow-hidden shadow-2xl">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl"></div>
-                    <div className="relative z-10 h-full flex flex-col items-center justify-center text-center space-y-6">
-                      <div className="w-16 h-16 bg-white/10 rounded-3xl flex items-center justify-center backdrop-blur-xl border border-white/10 shadow-2xl">
-                        <Crown className="w-8 h-8 text-amber-400" />
+                  {/* Elite Dashboard Banner */}
+                  <div className="relative overflow-hidden rounded-[2.5rem] bg-black border border-white/5 group">
+                    <div className="absolute inset-0 bg-cyber-grid opacity-10" />
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-4xl -translate-y-1/2 translate-x-1/2" />
+
+                    <div className="relative z-10 p-12 h-full flex flex-col items-center justify-center text-center space-y-8">
+                      <div className="w-20 h-20 glass-panel rounded-[2rem] flex items-center justify-center bg-white/[0.03] group-hover:glow-cyan transition-all duration-700">
+                        <Crown className="w-10 h-10 text-cyan-500" />
                       </div>
-                      <div className="space-y-2">
-                        <h3 className="text-2xl font-black text-white">Dominate X Threads</h3>
-                        <p className="text-slate-400 text-sm max-w-xs">Upgrade to Pro for unlimited content, custom templates, and priority processing.</p>
+                      <div className="space-y-4">
+                        <h3 className="text-4xl font-black text-white italic tracking-tighter uppercase">SCALE UP_</h3>
+                        <p className="text-slate-500 text-[10px] font-mono uppercase tracking-[0.2em] max-w-xs leading-relaxed">
+                          Upgrade to Pro for higher limits and premium features.
+                        </p>
                       </div>
                       <motion.button
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                         onClick={() => router.push('/pricing')}
-                        className="px-8 py-4 bg-white text-slate-900 font-black rounded-2xl transition-all shadow-xl flex items-center gap-2 group"
+                        className="px-10 py-5 bg-white text-black font-black rounded-2xl transition-all shadow-4xl flex items-center gap-4 group italic tracking-tighter uppercase"
                       >
-                        <Zap className="w-4 h-4 text-indigo-500 fill-current group-hover:animate-pulse" />
-                        SEE PRO FEATURES
+                        <Zap className="w-5 h-5 group-hover:text-cyan-500 transition-colors" />
+                        Upgrade
                       </motion.button>
                     </div>
                   </div>
                 </div>
               </motion.div>
+            )}
+
+            {activeSection === 'applications' && (
+              <div className="space-y-6">
+                {isLoadingApplications ? (
+                  <div className="text-center py-20">
+                    <LoadingSpinner />
+                    <p className="text-slate-500 text-sm mt-4">Loading your applications...</p>
+                  </div>
+                ) : appliedJobs.length === 0 ? (
+                  <div className="text-center py-20 border border-white/10 rounded-3xl bg-white/[0.02]">
+                    <Briefcase className="w-10 h-10 mx-auto text-slate-500 mb-4" />
+                    <h3 className="text-2xl font-black text-white mb-2">No job applications yet</h3>
+                    <p className="text-slate-400 mb-6">Apply to jobs to track your status here.</p>
+                    <button
+                      onClick={() => {
+                        onClose()
+                        router.push('/jobs')
+                      }}
+                      className="px-6 py-3 rounded-xl bg-cyan-500 text-black font-black text-xs uppercase tracking-widest"
+                    >
+                      Browse Jobs
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {appliedJobs.map((item) => (
+                      <div key={item.application_id} className="p-6 rounded-2xl border border-white/10 bg-white/[0.02]">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                          <div>
+                            <p className="text-xl font-black text-white">{item.job?.title}</p>
+                            <p className="text-slate-400 text-sm">{item.job?.company_name} - {item.job?.location || 'Remote'}</p>
+                            <p className="text-slate-500 text-xs mt-2">Applied on {new Date(item.created_at).toLocaleDateString()}</p>
+                          </div>
+                          <span className={`px-3 py-1 rounded-lg border text-xs font-black uppercase tracking-widest self-start ${
+                            item.status === 'hired' ? 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' :
+                            item.status === 'rejected' ? 'border-red-500/40 text-red-400 bg-red-500/10' :
+                            item.status === 'interview' ? 'border-blue-500/40 text-blue-400 bg-blue-500/10' :
+                            item.status === 'shortlisted' ? 'border-amber-500/40 text-amber-400 bg-amber-500/10' :
+                            'border-slate-500/30 text-slate-300 bg-white/5'
+                          }`}>
+                            {item.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
 
             {
@@ -1709,7 +1779,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                       <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-4 font-mono truncate px-2">PRO FEATURE</h4>
                       <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tighter">Premium Vault Access</h3>
                       <p className="text-slate-500 dark:text-slate-400 max-w-xs mx-auto font-mono text-xs uppercase tracking-wider leading-relaxed mb-8 px-2">
-                        Persistent archiving and database synchronization require an active Pro License.
+                        Saving posts and syncing history require a Pro plan.
                       </p>
                       <motion.button
                         whileHover={{ scale: 1.05 }}
@@ -1776,7 +1846,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                               <div>
                                 <h4 className="text-white font-black uppercase tracking-[0.3em] text-[10px] mb-2 font-mono flex items-center gap-2">
                                   <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                                  SYSTEM_EXPORT_ALL
+                                  EXPORT ALL
                                 </h4>
                                 <p className="text-indigo-100/70 text-sm font-bold">Compressing {savedContent.length} X threads for external migration</p>
                               </div>
@@ -1822,7 +1892,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                                         const type = item.content_type || 'text';
                                         return <Twitter className="w-3.5 h-3.5" />;
                                       })()}
-                                      {item.content_type === 'auto-generated' ? 'AUTO_SAVE' : (item.content_type || 'CORE_SCHEMATIC').toUpperCase()}
+                                      {item.content_type === 'auto-generated' ? 'Auto Saved' : (item.content_type || 'Content').toUpperCase()}
                                     </div>
                                     <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest font-mono">
                                       <Clock className="w-3.5 h-3.5 opacity-50" />
@@ -1974,10 +2044,10 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                                   {item.processing_time && (
                                     <div className="px-4 py-1.5 bg-indigo-500/5 dark:bg-indigo-500/10 text-indigo-500 rounded-lg text-[10px] font-black uppercase tracking-widest border border-indigo-500/20 flex items-center gap-2">
                                       <Zap className="w-3 h-3 fill-current" />
-                                      {item.processing_time}s LATENCY
+                                      {item.processing_time}s
                                     </div>
                                   )}
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">READY_SUCCESS</span>
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">DONE</span>
                                 </div>
                               </div>
 
@@ -1989,7 +2059,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
 
                                   <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 font-mono flex items-center gap-2">
                                     <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-                                    Reflect_Input_Stream.log
+                                    Original Input
                                   </p>
 
                                   <div className="space-y-4">
@@ -2012,7 +2082,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                                           {morning && (
                                             <div className="space-y-2">
                                               <div className="flex items-center gap-2 text-[10px] font-black text-amber-500/80 uppercase tracking-widest font-mono">
-                                                <Sun className="w-3 h-3" /> Morning_Phase
+                                                <Sun className="w-3 h-3" /> Morning
                                               </div>
                                               <div className="space-y-1.5 pl-5 border-l border-amber-500/20">
                                                 {morning.split('\n').map((line, i) => {
@@ -2045,7 +2115,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                                           {evening && (
                                             <div className="space-y-2 pt-2">
                                               <div className="flex items-center gap-2 text-[10px] font-black text-indigo-400/80 uppercase tracking-widest font-mono">
-                                                <Moon className="w-3 h-3" /> Evening_Phase
+                                                <Moon className="w-3 h-3" /> Evening
                                               </div>
                                               <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-bold pl-5 border-l border-indigo-500/20">
                                                 {evening}
@@ -2065,7 +2135,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                                     </div>
                                     <p className="text-[11px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-4 font-mono flex items-center gap-2">
                                       <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
-                                      Synthesis_Matrix.X_Thread
+                                      X Thread
                                     </p>
 
                                     <div className="space-y-3">
@@ -2116,7 +2186,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                                   }}
                                   className="text-[11px] font-black text-slate-400 hover:text-indigo-500 uppercase tracking-[0.2em] transition-colors flex items-center gap-2"
                                 >
-                                  <Eye className="w-4 h-4" /> Expand_Schematic
+                                  <Eye className="w-4 h-4" /> Expand
                                 </button>
                                 <button
                                   onClick={(e) => {
@@ -2140,14 +2210,14 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
 
                                     if (finalPayload) {
                                       navigator.clipboard.writeText(finalPayload);
-                                      toast.success('System matrix cloned!');
+                                      toast.success('Generated text copied!');
                                     } else {
-                                      toast.error('No synthesis data to clone');
+                                      toast.error('No generated text to copy');
                                     }
                                   }}
                                   className="text-[11px] font-black text-slate-400 hover:text-emerald-500 uppercase tracking-[0.2em] transition-colors flex items-center gap-2"
                                 >
-                                  <Copy className="w-4 h-4" /> Quick_Clone
+                                  <Copy className="w-4 h-4" /> Copy
                                 </button>
                               </div>
                               <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-2 transition-all duration-500" />
@@ -2182,7 +2252,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                         <div className="absolute inset-0 bg-amber-500/20 blur-2xl rounded-full animate-pulse" />
                         <Crown className="w-10 h-10 sm:w-12 sm:h-12 text-amber-500 relative z-10" />
                       </div>
-                      <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-3 font-mono truncate px-2">RESTRICTED_PROTOCOL</h4>
+                      <h4 className="text-[10px] font-black text-amber-500 uppercase tracking-widest mb-3 font-mono truncate px-2">PRO REQUIRED</h4>
                       <h3 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tighter">Enterprise Templates</h3>
                       <p className="text-slate-500 dark:text-slate-400 max-w-xs mx-auto font-mono text-xs uppercase tracking-wider leading-relaxed mb-8 px-2">
                         Custom blueprint generation and template architecture require an active Pro License.
@@ -2213,7 +2283,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
 
                     <div className="flex flex-wrap items-start gap-4 justify-between mb-8 sm:mb-10 relative z-10">
                       <div className="min-w-0">
-                        <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2 font-mono truncate">ACCOUNT_IDENTITY</h4>
+                        <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-2 font-mono truncate">YOUR PROFILE</h4>
                         <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">Profile Configuration</h3>
                       </div>
                       {!isEditingProfile ? (
@@ -2222,7 +2292,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                           className="flex items-center gap-2 px-5 py-2.5 bg-zinc-100 dark:bg-white/5 hover:bg-zinc-200 dark:hover:bg-white/10 text-slate-900 dark:text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border border-zinc-200 dark:border-white/5 shadow-sm active:scale-95 flex-shrink-0"
                         >
                           <Edit2 className="w-3 h-3" />
-                          Modify Entry
+                          Edit Profile
                         </button>
                       ) : (
                         <div className="flex items-center gap-2 flex-wrap">
@@ -2232,7 +2302,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                             className="flex items-center gap-2 px-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20 active:scale-95 flex-shrink-0"
                           >
                             <Check className="w-3 h-3" />
-                            {isSavingProfile ? 'SYNCING...' : 'SAVE'}
+                            {isSavingProfile ? 'SAVING...' : 'SAVE'}
                           </button>
                           <button
                             onClick={handleCancelEdit}
@@ -2240,7 +2310,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                             className="flex items-center gap-2 px-5 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all border border-red-500/20 active:scale-95 flex-shrink-0"
                           >
                             <X className="w-3 h-3" />
-                            ABORT
+                            CANCEL
                           </button>
                         </div>
                       )}
@@ -2298,11 +2368,11 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                           <div className="mt-4 flex flex-wrap gap-2 justify-center sm:justify-start">
                             {user?.is_premium ? (
                               <div className="px-3 py-1 bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest font-mono">
-                                PRO_LICENSE_ACTIVE
+                                PRO ACTIVE
                               </div>
                             ) : (
                               <div className="px-3 py-1 bg-zinc-500/10 text-zinc-500 border border-zinc-500/20 rounded-lg text-[10px] font-black uppercase tracking-widest font-mono">
-                                FREE_TIER_USER
+                                FREE PLAN
                               </div>
                             )}
                           </div>
@@ -2312,7 +2382,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                       {/* Form Fields */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-8">
                         <div className="space-y-3">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono ml-1">FIELD.USERNAME_STRING</label>
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono ml-1">USERNAME</label>
                           {isEditingProfile ? (
                             <input
                               type="text"
@@ -2328,7 +2398,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                           )}
                         </div>
                         <div className="space-y-3">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono ml-1">FIELD.DISPLAY_NAME</label>
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono ml-1">DISPLAY NAME</label>
                           {isEditingProfile ? (
                             <input
                               type="text"
@@ -2339,12 +2409,12 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                             />
                           ) : (
                             <div className="px-4 sm:px-6 py-3 sm:py-4 bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200/50 dark:border-white/5 rounded-xl sm:rounded-2xl text-slate-600 dark:text-slate-300 font-mono text-sm italic">
-                              {user?.full_name || 'UNDEFINED'}
+                              {user?.full_name || 'Not set'}
                             </div>
                           )}
                         </div>
                         <div className="md:col-span-2 space-y-3">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono ml-1">FIELD.SYSTEM_EMAIL_AUTH</label>
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono ml-1">EMAIL ADDRESS</label>
                           <div className="px-4 sm:px-6 py-3 sm:py-4 bg-zinc-100/50 dark:bg-white/[0.01] border border-zinc-200 dark:border-white/5 rounded-xl sm:rounded-2xl text-slate-400 font-mono text-xs sm:text-sm flex items-center justify-between gap-2 overflow-hidden">
                             {user?.email}
                             <div className="flex items-center gap-2 text-[9px] font-black opacity-40">
@@ -2358,22 +2428,22 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
 
                   {/* Preferences */}
                   <div className="bg-white/50 dark:bg-slate-900/50 border border-zinc-200 dark:border-white/5 rounded-[2rem] sm:rounded-[2.5rem] p-5 sm:p-10 backdrop-blur-sm relative overflow-hidden group">
-                    <h3 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.4em] mb-6 font-mono">SYSTEM_PREFERENCES.CFG</h3>
+                    <h3 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.4em] mb-6 font-mono">APP SETTINGS</h3>
                     <div className="space-y-8">
                       <div className="flex items-center gap-3 justify-between p-4 sm:p-6 bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 rounded-[1.5rem]">
                         <div className="min-w-0 flex-1">
-                          <label className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight block truncate">AUTO_SAVE_PROTOCOL</label>
+                          <label className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight block truncate">AUTO SAVE</label>
                           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono uppercase tracking-wider truncate">
                             {user?.is_premium
-                              ? 'PERSIST_HISTORY_IN_VAULT'
-                              : 'PRO_LICENSE_REQUIRED'
+                              ? 'SAVE HISTORY'
+                              : 'PRO REQUIRED'
                             }
                           </p>
                         </div>
                         <button
                           onClick={() => {
                             if (!user?.is_premium) {
-                              toast.error('PRO_LICENSE_REQUIRED')
+                              toast.error('This feature requires a Pro plan.')
                               return
                             }
                             setAutoSaveEnabled(!autoSaveEnabled)
@@ -2392,8 +2462,8 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                       </div>
                       <div className="flex items-center gap-3 justify-between p-4 sm:p-6 bg-zinc-50 dark:bg-white/[0.02] border border-zinc-200 dark:border-white/5 rounded-[1.5rem]">
                         <div className="min-w-0 flex-1">
-                          <label className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight block truncate">NOTIFICATION_UPLINK</label>
-                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono uppercase tracking-wider truncate">UPDATES_VIA_EMAIL</p>
+                          <label className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight block truncate">EMAIL UPDATES</label>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-mono uppercase tracking-wider truncate">Updates sent by email</p>
                         </div>
                         <button
                           onClick={() => setEmailNotificationsEnabled(!emailNotificationsEnabled)}
@@ -2411,611 +2481,310 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats }: 
                 </div>
               )
             }
-
-            {/* View Content Modal */}
-            <AnimatePresence>
-              {
-                viewingContent && (
-                  <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      onClick={() => setViewingContent(null)}
-                      className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                      className="relative bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] flex flex-col group/modal"
-                    >
-                      {/* Modal Header */}
-                      <div className="p-8 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 relative overflow-hidden">
-                        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-30" />
-
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-2xl font-black text-slate-900 dark:text-white truncate pr-6 tracking-tight">
-                            {(viewingContent as any).title || "System_Generation.log"}
-                          </h3>
-                          <div className="flex items-center gap-4 mt-3">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 text-indigo-500 rounded-lg text-[11px] font-black uppercase tracking-[0.2em] border border-indigo-500/20 font-mono">
-                              {(() => {
-                                const type = (viewingContent as any).content_type || 'history';
-                                return <Twitter className="w-3.5 h-3.5" />;
-                              })()}
-                              {(() => {
-                                const type = (viewingContent as any).content_type || 'history';
-                                if (type === 'auto-generated') return 'Auto-saved';
-                                if (type === 'history') return 'System_Synthesis.log';
-                                return `${type.toUpperCase()}_Thread.Schematic`;
-                              })()}
-                            </div>
-                            <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest font-mono">
-                              {new Date(viewingContent.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {(viewingContent as any).id && (
-                            <button
-                              onClick={() => handleToggleFavorite((viewingContent as any).id)}
-                              className={`p-3 rounded-2xl transition-all duration-300 ${(viewingContent as any).is_favorite
-                                ? 'text-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/10'
-                                : 'text-slate-400 hover:text-amber-500 hover:bg-amber-500/10'
-                                }`}
-                            >
-                              <Star className={`w-6 h-6 ${(viewingContent as any).is_favorite ? 'fill-current' : ''}`} />
-                            </button>
-                          )}
-                          <button
-                            onClick={() => setViewingContent(null)}
-                            className="p-3 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-300"
-                          >
-                            <X className="w-6 h-6" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Modal Content - Refined for History & Saved Content */}
-                      <div className="p-10 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/30 dark:bg-slate-900/50">
-                        <div className="space-y-10">
-                          {(viewingContent as any).original_content && (
-                            <div className="space-y-6">
-                              <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono flex items-center gap-3">
-                                <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
-                                CORE_REFLECT_INPUT_RECONSTRUCTION
-                              </h4>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {(() => {
-                                  let content = (viewingContent as any).original_content || "";
-                                  if (!content && (viewingContent as any).content_type === 'auto-generated') {
-                                    try {
-                                      const parsed = JSON.parse((viewingContent as any).content);
-                                      if (parsed.original) content = parsed.original;
-                                    } catch (e) { }
-                                  }
-                                  const morningMatch = content.match(/MORNING PLAN:([\s\S]*?)(?=EVENING REFLECTION:|$)/);
-                                  const eveningMatch = content.match(/EVENING REFLECTION:([\s\S]*)/);
-                                  const morning = morningMatch ? morningMatch[1].trim() : "";
-                                  const evening = eveningMatch ? eveningMatch[1].trim() : "";
-                                  if (!morning && !evening) return (
-                                    <div className="col-span-2 p-8 bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-white/5 shadow-sm italic text-slate-600 dark:text-slate-400 leading-relaxed">
-                                      "{content}"
-                                    </div>
-                                  );
-                                  return (
-                                    <>
-                                      {morning && (
-                                        <div className="p-8 bg-gradient-to-br from-amber-500/[0.03] to-amber-600/[0.05] dark:from-amber-500/[0.05] dark:to-transparent border border-amber-500/20 rounded-[2.5rem] relative overflow-hidden group/m">
-                                          <div className="absolute top-0 right-0 p-6 opacity-10 group-hover/m:scale-110 transition-transform duration-700">
-                                            <Sun className="w-16 h-16 text-amber-500" />
-                                          </div>
-                                          <p className="text-[11px] font-black text-amber-600/60 dark:text-amber-500/40 uppercase tracking-[0.3em] mb-6 font-mono flex items-center gap-2">
-                                            <Sun className="w-3.5 h-3.5" /> PHASE.MORNING_PLAN
-                                          </p>
-                                          <p className="text-base font-bold text-slate-800 dark:text-slate-200 leading-relaxed italic">
-                                            "{morning}"
-                                          </p>
-                                        </div>
-                                      )}
-                                      {evening && (
-                                        <div className="p-8 bg-gradient-to-br from-indigo-500/[0.03] to-indigo-600/[0.05] dark:from-indigo-500/[0.05] dark:to-transparent border border-indigo-500/20 rounded-[2.5rem] relative overflow-hidden group/e">
-                                          <div className="absolute top-0 right-0 p-6 opacity-10 group-hover/e:scale-110 transition-transform duration-700">
-                                            <Moon className="w-16 h-16 text-indigo-500" />
-                                          </div>
-                                          <p className="text-[11px] font-black text-indigo-600/60 dark:text-indigo-500/40 uppercase tracking-[0.3em] mb-6 font-mono flex items-center gap-2">
-                                            <Moon className="w-3.5 h-3.5" /> PHASE.EVENING_REFLECT
-                                          </p>
-                                          <p className="text-base font-bold text-slate-800 dark:text-slate-200 leading-relaxed italic">
-                                            "{evening}"
-                                          </p>
-                                        </div>
-                                      )}
-                                    </>
-                                  );
-                                })()}
-                              </div>
-                            </div>
-                          )}
-
-                          <div className="space-y-4">
-                            <h4 className="text-[11px] font-black text-indigo-500 uppercase tracking-[0.3em] font-mono flex items-center gap-3">
-                              <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)] animate-pulse" />
-                              SYNTHESIZED_MATRIX_OUTPUT
-                            </h4>
-
-                            <div className="space-y-12">
-                              {(() => {
-                                const v = viewingContent as any;
-                                const platforms = [];
-
-                                // 1. Check for standard 'content' (SavedContent style)
-                                if (v.content_type === 'auto-generated') {
-                                  try {
-                                    const parsed = JSON.parse(v.content);
-                                    if (parsed.twitter) platforms.push({ id: 'twitter_auto', title: 'X_Thread.Matrix', data: parsed.twitter, type: 'twitter' });
-                                  } catch (e) {
-                                    platforms.push({ id: 'legacy', title: 'Auto-saved Content', data: v.content, type: 'text' });
-                                  }
-                                } else if (v.content) {
-                                  platforms.push({ id: 'legacy', title: 'Content', data: v.content, type: v.content_type || 'text' });
-                                }
-
-                                // 2. Check for history-specific platforms
-                                if (v.twitter_thread) platforms.push({ id: 'twitter', title: 'X_Thread.Matrix', data: v.twitter_thread, type: 'twitter' });
-
-                                // Deduplicate if content matches twitter_thread
-                                const uniquePlatforms = platforms.filter((p, index, self) =>
-                                  index === self.findIndex((t) => (
-                                    t.data === p.data
-                                  ))
-                                );
-
-                                if (uniquePlatforms.length === 0) return (
-                                  <div className="p-8 bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-white/5 text-center text-slate-400 italic font-mono text-xs">
-                                    NO_SYNTHESIS_DATA_LOCATED
-                                  </div>
-                                );
-
-                                return uniquePlatforms.map((platform) => {
-                                  let parts = [];
-                                  const rawData = platform.data;
-                                  try {
-                                    if (Array.isArray(rawData)) {
-                                      parts = rawData;
-                                    } else if (typeof rawData === 'string' && rawData.trim()) {
-                                      const trimmed = rawData.trim();
-                                      if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-                                        parts = JSON.parse(trimmed);
-                                      } else {
-                                        parts = trimmed.split('\n\n').filter((p: string) => p.trim());
-                                      }
-                                    }
-                                  } catch (e) {
-                                    parts = rawData ? [String(rawData)] : [];
-                                  }
-
-                                  return (
-                                    <div key={platform.id} className="space-y-6">
-                                      <div className="flex items-center gap-3 mb-2">
-                                        {platform.type === 'twitter' && <Twitter className="w-4 h-4 text-indigo-500" />}
-                                        <span className="text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest font-mono">
-                                          {platform.title}
-                                        </span>
-                                      </div>
-                                      <div className="space-y-6">
-                                        {parts.map((part: string, idx: number) => (
-                                          <div key={idx} className="group/part relative">
-                                            <div className="absolute -left-4 top-0 bottom-0 w-[2px] bg-indigo-500/20 group-hover/part:bg-indigo-500 transition-colors" />
-                                            <div className="p-8 bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-white/5 shadow-md hover:shadow-xl transition-all duration-500 relative">
-                                              <div className="absolute top-4 right-4 text-[10px] font-bold text-slate-300 font-mono">#{idx + 1}</div>
-                                              <p className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-relaxed whitespace-pre-wrap">
-                                                {part}
-                                              </p>
-                                              <button
-                                                onClick={() => {
-                                                  navigator.clipboard.writeText(part);
-                                                  toast.success(`Matrix chunk #${idx + 1} cloned!`);
-                                                }}
-                                                className="mt-6 flex items-center gap-2 text-[10px] font-black text-indigo-500 uppercase tracking-widest hover:text-indigo-600 transition-colors opacity-0 group-hover/part:opacity-100 transition-opacity"
-                                              >
-                                                <Copy className="w-3.5 h-3.5" /> Copy_Partial
-                                              </button>
-                                            </div>
-                                            {idx < parts.length - 1 && (
-                                              <div className="h-6 w-[2px] bg-indigo-500/20 ml-[-2px] absolute left-0" />
-                                            )}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  );
-                                });
-                              })()}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Modal Footer */}
-                      <div className="p-8 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                        <div className="flex flex-wrap items-center justify-between gap-6">
-                          <button
-                            onClick={() => {
-                              const v = viewingContent as any;
-                              const outputs = [];
-
-                              // Check all possible sources
-                              if (v.content_type === 'auto-generated') {
-                                try {
-                                  const parsed = JSON.parse(v.content);
-                                  if (parsed.twitter) outputs.push(parsed.twitter);
-                                  if (parsed.linkedin) outputs.push(parsed.linkedin);
-                                  if (parsed.instagram) outputs.push(parsed.instagram);
-                                } catch (e) {
-                                  outputs.push(v.content);
-                                }
-                              } else {
-                                if (v.content) outputs.push(v.content);
-                              }
-
-                              if (v.twitter_thread) outputs.push(v.twitter_thread);
-
-                              // Deduplicate and flatten
-                              const uniqueOutputs = Array.from(new Set(outputs));
-                              let finalPayload = "";
-
-                              uniqueOutputs.forEach((out, idx) => {
-                                let text = out;
-                                try {
-                                  if (Array.isArray(out)) {
-                                    text = out.join('\n\n');
-                                  } else if (typeof out === 'string' && out.startsWith('[')) {
-                                    const parsed = JSON.parse(out);
-                                    if (Array.isArray(parsed)) text = parsed.join('\n\n');
-                                  }
-                                } catch (e) { }
-
-                                finalPayload += (idx > 0 ? '\n\n---\n\n' : '') + text;
-                              });
-
-                              if (finalPayload) {
-                                navigator.clipboard.writeText(finalPayload);
-                                toast.success('Full matrix cloned to clipboard!');
-                              } else {
-                                toast.error('No clonable synthesis data found');
-                              }
-                            }}
-                            className="px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-3 shadow-2xl active:scale-95"
-                          >
-                            <Copy className="w-5 h-5" />
-                            Clone_Full_Matrix
-                          </button>
-
-                          {(viewingContent as any).id && user?.is_premium && (
-                            <div className="flex items-center gap-3">
-                              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mr-2">EXPORT_PROTOCOL</p>
-                              {[
-                                { format: 'txt', icon: FileText, label: 'TXT' },
-                                { format: 'json', icon: Download, label: 'JSON' },
-                                { format: 'csv', icon: Filter, label: 'CSV' }
-                              ].map((btn) => (
-                                <button
-                                  key={btn.format}
-                                  onClick={() => handleExportContent(viewingContent as any, btn.format as any)}
-                                  className="p-3.5 text-slate-500 hover:text-indigo-500 hover:bg-indigo-500/10 rounded-2xl transition-all border border-slate-100 dark:border-white/5 shadow-sm hover:scale-110 active:scale-90"
-                                  title={`Export as ${btn.label}`}
-                                >
-                                  <btn.icon className="w-5 h-5" />
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </motion.div>
-                  </div>
-                )
-              }
-            </AnimatePresence >
-
-            {
-              deletingContent && (
-                <div
-                  className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[1100]"
-                  style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 1100,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-white/10 rounded-[2rem] p-8 max-w-md w-full shadow-2xl relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-bl-full -mr-10 -mt-10 blur-2xl pointer-events-none"></div>
-
-                    <div className="relative z-10">
-                      <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 ring-4 ring-red-500/5">
-                        <Trash2 className="w-7 h-7 text-red-500" />
-                      </div>
-
-                      <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">
-                        CONFIRM_DELETION
-                      </h3>
-
-                      <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-8">
-                        Permanently remove <span className="text-slate-900 dark:text-white font-bold">"{deletingContent.title}"</span>? This action cannot be reversed.
-                      </p>
-
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => setDeletingContent(null)}
-                          className="flex-1 px-4 py-3.5 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          onClick={() => handleDeleteContent(deletingContent.id)}
-                          className="flex-1 px-4 py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-red-500/20 flex items-center justify-center gap-2"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          Delete_Asset
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-              )
-            }
-
-            {
-              showProfilePictureModal && !showImageEditor && (
-                <div
-                  className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[1100]"
-                  style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 1100,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-white/10 rounded-[2rem] p-8 max-w-md w-full shadow-2xl relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-bl-full -mr-10 -mt-10 blur-2xl pointer-events-none"></div>
-
-                    <div className="relative z-10">
-                      <div className="flex items-center justify-between mb-8">
-                        <div>
-                          <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-1 font-mono">IDENTITY_ASSET_MANAGER</h4>
-                          <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                            Update_Avatar
-                          </h3>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setShowProfilePictureModal(false)
-                            setSelectedFile(null)
-                            setPreviewUrl('')
-                          }}
-                          className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-
-                      <div className="space-y-6">
-                        {/* File Upload Area */}
-                        <div>
-                          <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono ml-1 mb-2">SOURCE_FILE</label>
-                          <div className="relative">
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFileSelect}
-                              className="hidden"
-                              id="profile-picture-upload"
-                            />
-                            <label
-                              htmlFor="profile-picture-upload"
-                              className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all hover:border-indigo-500/50 group/upload"
-                            >
-                              <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <div className="w-10 h-10 bg-indigo-500/10 rounded-xl flex items-center justify-center mb-3 group-hover/upload:scale-110 transition-transform">
-                                  <RefreshCw className="w-5 h-5 text-indigo-500" />
-                                </div>
-                                <p className="mb-1 text-xs font-bold text-slate-700 dark:text-slate-300">
-                                  Click to upload or drag & drop
-                                </p>
-                                <p className="text-[10px] font-mono text-slate-400">PNG, JPG, GIF (MAX 5MB)</p>
-                              </div>
-                            </label>
-                          </div>
-                          {selectedFile && (
-                            <div className="mt-2 p-3 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800/50 rounded-xl flex items-center gap-3">
-                              <div className="w-8 h-8 bg-indigo-100 dark:bg-indigo-800 rounded-lg flex items-center justify-center text-indigo-600 dark:text-indigo-300">
-                                <Check className="w-4 h-4" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-xs font-bold text-indigo-900 dark:text-indigo-200 truncate">
-                                  {selectedFile.name}
-                                </p>
-                                <p className="text-[10px] text-indigo-700 dark:text-indigo-300/70 font-mono">
-                                  READY_TO_PROCESS
-                                </p>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Current Preview */}
-                        <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-white/5 rounded-2xl">
-                          <div className="w-16 h-16 rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg ring-2 ring-white dark:ring-slate-700">
-                            {editedProfilePicture && isValidImageUrl(editedProfilePicture) ? (
-                              <>
-                                <img
-                                  src={editedProfilePicture}
-                                  alt="Current"
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    const imgElement = e.currentTarget as HTMLImageElement
-                                    const container = imgElement.parentElement
-                                    if (container) {
-                                      imgElement.style.display = 'none'
-                                      const fallbackDiv = container.querySelector('.current-initials') as HTMLElement
-                                      if (fallbackDiv) {
-                                        fallbackDiv.style.display = 'flex'
-                                      }
-                                    }
-                                  }}
-                                  onLoad={(e) => {
-                                    const imgElement = e.currentTarget as HTMLImageElement
-                                    const container = imgElement.parentElement
-                                    if (container) {
-                                      const fallbackDiv = container.querySelector('.current-initials') as HTMLElement
-                                      if (fallbackDiv) {
-                                        fallbackDiv.style.display = 'none'
-                                      }
-                                    }
-                                  }}
-                                />
-                                <div
-                                  className="current-initials w-full h-full flex items-center justify-center text-white font-bold text-lg"
-                                  style={{ display: 'none' }}
-                                >
-                                  {user?.username?.charAt(0).toUpperCase() || 'U'}
-                                </div>
-                              </>
-                            ) : (
-                              <div
-                                className="current-initials w-full h-full flex items-center justify-center text-white font-bold text-lg"
-                              >
-                                {user?.username?.charAt(0).toUpperCase() || 'U'}
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Current Asset</p>
-                            <p className="text-[10px] font-mono text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-                              {editedProfilePicture && isValidImageUrl(editedProfilePicture) ? 'CUSTOM_UPLOAD_ACTIVE' : 'DEFAULT_SYSTEM_GENERATED'}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex gap-3 pt-2">
-                          <button
-                            onClick={() => {
-                              setEditedProfilePicture('')
-                              setSelectedFile(null)
-                              setPreviewUrl('')
-                              setShowProfilePictureModal(false)
-                              // Save the removal
-                              handleImageUpload('')
-                            }}
-                            className="flex-1 px-4 py-3.5 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all"
-                          >
-                            Remove
-                          </button>
-                          <button
-                            onClick={() => setShowProfilePictureModal(false)}
-                            className="flex-1 px-4 py-3.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-indigo-500/20"
-                          >
-                            Done
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-              )
-            }
-
-            {/* Image Editor Modal */}
-            <ImageEditor
-              imageUrl={previewUrl}
-              isOpen={showImageEditor}
-              onSave={handleImageCrop}
-              onCancel={() => {
-                setShowImageEditor(false)
-                setSelectedFile(null)
-                setPreviewUrl('')
-              }}
-            />
-
-            {
-              showCancelModal && (
-                <div
-                  className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[1100]"
-                  style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    zIndex: 1100,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-white/10 rounded-[2rem] p-8 max-w-md w-full shadow-2xl relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-bl-full -mr-10 -mt-10 blur-2xl pointer-events-none"></div>
-
-                    <div className="relative z-10">
-                      <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6 ring-4 ring-red-500/5">
-                        <LogOut className="w-7 h-7 text-red-500" />
-                      </div>
-
-                      <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">
-                        ABORT_SUBSCRIPTION
-                      </h3>
-
-                      <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-8">
-                        Are you sure you want to cancel your <span className="text-slate-900 dark:text-white font-bold">Pro License</span>? You will lose access to premium features immediately.
-                      </p>
-
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => setShowCancelModal(false)}
-                          disabled={cancelLoading}
-                          className="flex-1 px-4 py-3.5 bg-zinc-100 dark:bg-slate-800 hover:bg-zinc-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all"
-                        >
-                          Keep_Access
-                        </button>
-                        <button
-                          onClick={handleCancelSubscription}
-                          disabled={cancelLoading}
-                          className="flex-1 px-4 py-3.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                          {cancelLoading ? 'PROCESSING...' : 'CONFIRM_ABORT'}
-                        </button>
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-              )
-            }
           </div>
+
+          <AnimatePresence>
+            {viewingContent && (
+              <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setViewingContent(null)}
+                  className="absolute inset-0 bg-slate-900/60 backdrop-blur-md"
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  className="relative bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-200 dark:border-slate-800 max-w-2xl w-full max-h-[90vh] overflow-hidden shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] flex flex-col group/modal"
+                >
+                  {/* Modal Header */}
+                  <div className="p-8 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900 relative overflow-hidden">
+                    <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-30" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-2xl font-black text-slate-900 dark:text-white truncate pr-6 tracking-tight">
+                        {(viewingContent as any).title || "Log"}
+                      </h3>
+                      <div className="flex items-center gap-4 mt-3">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 text-indigo-500 rounded-lg text-[11px] font-black uppercase tracking-[0.2em] border border-indigo-500/20 font-mono">
+                          <Twitter className="w-3.5 h-3.5" />
+                          {(() => {
+                            const type = (viewingContent as any).content_type || 'history';
+                            if (type === 'auto-generated') return 'Auto-saved';
+                            if (type === 'history') return 'Log';
+                            return `${type.toUpperCase()}_Thread`;
+                          })()}
+                        </div>
+                        <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest font-mono">
+                          {new Date(viewingContent.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {(viewingContent as any).id && (
+                        <button
+                          onClick={() => handleToggleFavorite((viewingContent as any).id)}
+                          className={`p-3 rounded-2xl transition-all duration-300 ${(viewingContent as any).is_favorite
+                            ? 'text-amber-500 bg-amber-500/10 shadow-lg shadow-amber-500/10'
+                            : 'text-slate-400 hover:text-amber-500 hover:bg-amber-500/10'
+                            }`}
+                        >
+                          <Star className={`w-6 h-6 ${(viewingContent as any).is_favorite ? 'fill-current' : ''}`} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setViewingContent(null)}
+                        className="p-3 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all duration-300"
+                      >
+                        <X className="w-6 h-6" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Modal Content */}
+                  <div className="p-10 overflow-y-auto custom-scrollbar flex-1 bg-slate-50/30 dark:bg-slate-900/50">
+                    <div className="space-y-10">
+                      {(viewingContent as any).original_content && (
+                        <div className="space-y-6">
+                          <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em] font-mono flex items-center gap-3">
+                            <div className="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                            INPUT DATA
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {(() => {
+                              let content = (viewingContent as any).original_content || "";
+                              const morningMatch = content.match(/MORNING PLAN:([\s\S]*?)(?=EVENING REFLECTION:|$)/);
+                              const eveningMatch = content.match(/EVENING REFLECTION:([\s\S]*)/);
+                              const morning = morningMatch ? morningMatch[1].trim() : "";
+                              const evening = eveningMatch ? eveningMatch[1].trim() : "";
+                              if (!morning && !evening) return (
+                                <div className="col-span-2 p-8 bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-white/5 shadow-sm italic text-slate-600 dark:text-slate-400 leading-relaxed">
+                                  "{content}"
+                                </div>
+                              );
+                              return (
+                                <>
+                                  {morning && (
+                                    <div className="p-8 bg-gradient-to-br from-amber-500/[0.03] to-amber-600/[0.05] dark:from-amber-500/[0.05] dark:to-transparent border border-amber-500/20 rounded-[2.5rem] relative overflow-hidden">
+                                      <p className="text-[11px] font-black text-amber-600/60 uppercase tracking-[0.3em] mb-6 font-mono flex items-center gap-2">
+                                        <Sun className="w-3.5 h-3.5" /> MORNING GOALS
+                                      </p>
+                                      <p className="text-base font-bold text-slate-800 dark:text-slate-200 italic">"{morning}"</p>
+                                    </div>
+                                  )}
+                                  {evening && (
+                                    <div className="p-8 bg-gradient-to-br from-indigo-500/[0.03] to-indigo-600/[0.05] dark:from-indigo-500/[0.05] dark:to-transparent border border-indigo-500/20 rounded-[2.5rem] relative overflow-hidden">
+                                      <p className="text-[11px] font-black text-indigo-600/60 uppercase tracking-[0.3em] mb-6 font-mono flex items-center gap-2">
+                                        <Moon className="w-3.5 h-3.5" /> EVENING REFLECTION
+                                      </p>
+                                      <p className="text-base font-bold text-slate-800 dark:text-slate-200 italic">"{evening}"</p>
+                                    </div>
+                                  )}
+                                </>
+                              );
+                            })()}
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        <h4 className="text-[11px] font-black text-indigo-500 uppercase tracking-[0.3em] font-mono flex items-center gap-3">
+                          <div className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)] animate-pulse" />
+                          GENERATED POSTS
+                        </h4>
+                        <div className="space-y-12">
+                          {(() => {
+                            const v = viewingContent as any;
+                            const platforms = [];
+                            if (v.content_type === 'auto-generated') {
+                              try {
+                                const parsed = JSON.parse(v.content);
+                                if (parsed.twitter) platforms.push({ id: 'twitter_auto', title: 'X Thread', data: parsed.twitter, type: 'twitter' });
+                              } catch (e) {
+                                platforms.push({ id: 'legacy', title: 'Auto-saved Content', data: v.content, type: 'text' });
+                              }
+                            } else if (v.content) {
+                              platforms.push({ id: 'legacy', title: 'Content', data: v.content, type: v.content_type || 'text' });
+                            }
+                            if (v.twitter_thread) platforms.push({ id: 'twitter', title: 'X Thread', data: v.twitter_thread, type: 'twitter' });
+                            const uniquePlatforms = platforms.filter((p, index, self) => index === self.findIndex((t) => t.data === p.data));
+                            if (uniquePlatforms.length === 0) return <div className="p-8 text-center text-slate-400 font-mono text-xs">NO DATA FOUND</div>;
+                            return uniquePlatforms.map((platform) => {
+                              let parts = [];
+                              try {
+                                if (Array.isArray(platform.data)) parts = platform.data;
+                                else if (typeof platform.data === 'string' && platform.data.trim()) {
+                                  const trimmed = platform.data.trim();
+                                  parts = (trimmed.startsWith('[') && trimmed.endsWith(']')) ? JSON.parse(trimmed) : trimmed.split('\n\n').filter((p: string) => p.trim());
+                                }
+                              } catch (e) { parts = platform.data ? [String(platform.data)] : []; }
+                              return (
+                                <div key={platform.id} className="space-y-6">
+                                  <div className="flex items-center gap-3">
+                                    {platform.type === 'twitter' && <Twitter className="w-4 h-4 text-indigo-500" />}
+                                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest font-mono">{platform.title}</span>
+                                  </div>
+                                  <div className="space-y-6">
+                                    {parts.map((part: string, idx: number) => (
+                                      <div key={idx} className="group/part relative">
+                                        <div className="absolute -left-4 top-0 bottom-0 w-[2px] bg-indigo-500/20 group-hover/part:bg-indigo-500 transition-colors" />
+                                        <div className="p-8 bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-200 dark:border-white/5 shadow-md hover:shadow-xl transition-all relative">
+                                          <div className="absolute top-4 right-4 text-[10px] font-bold text-slate-300 font-mono">#{idx + 1}</div>
+                                          <p className="text-lg font-bold text-slate-800 dark:text-slate-100 whitespace-pre-wrap">{part}</p>
+                                          <button
+                                            onClick={() => { navigator.clipboard.writeText(part); toast.success(`Copied part #${idx + 1}!`); }}
+                                            className="mt-6 flex items-center gap-2 text-[10px] font-black text-indigo-500 uppercase tracking-widest opacity-0 group-hover/part:opacity-100 transition-opacity"
+                                          >
+                                            <Copy className="w-3.5 h-3.5" /> COPY PART
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modal Footer */}
+                  <div className="p-8 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                    <div className="flex flex-wrap items-center justify-between gap-6">
+                      <button
+                        onClick={() => {
+                          const v = viewingContent as any;
+                          const outputs = [];
+                          if (v.content_type === 'auto-generated') {
+                            try {
+                              const parsed = JSON.parse(v.content);
+                              if (parsed.twitter) outputs.push(parsed.twitter);
+                              if (parsed.linkedin) outputs.push(parsed.linkedin);
+                            } catch (e) { outputs.push(v.content); }
+                          } else if (v.content) outputs.push(v.content);
+                          if (v.twitter_thread) outputs.push(v.twitter_thread);
+                          const uniqueOutputs = Array.from(new Set(outputs));
+                          let finalPayload = "";
+                          uniqueOutputs.forEach((out, idx) => {
+                            let text = out;
+                            try { if (Array.isArray(out)) text = out.join('\n\n'); } catch (e) { }
+                            finalPayload += (idx > 0 ? '\n\n---\n\n' : '') + text;
+                          });
+                          if (finalPayload) { navigator.clipboard.writeText(finalPayload); toast.success('Everything copied!'); }
+                          else toast.error('Nothing to copy');
+                        }}
+                        className="px-8 py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all flex items-center gap-3 shadow-2xl"
+                      >
+                        <Copy className="w-5 h-5" /> COPY ALL
+                      </button>
+
+                      {(viewingContent as any).id && user?.is_premium && (
+                        <div className="flex items-center gap-3">
+                          {[
+                            { format: 'txt', icon: FileText, label: 'TXT' },
+                            { format: 'json', icon: Download, label: 'JSON' }
+                          ].map((btn) => (
+                            <button
+                              key={btn.format}
+                              onClick={() => handleExportContent(viewingContent as any, btn.format as any)}
+                              className="p-3.5 text-slate-500 hover:text-indigo-500 hover:bg-indigo-500/10 rounded-2xl transition-all border border-slate-100 dark:border-white/5"
+                              title={`Export as ${btn.label}`}
+                            >
+                              <btn.icon className="w-5 h-5" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+          </AnimatePresence>
+
+          {deletingContent && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[1100]">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-white/10 rounded-[2rem] p-8 max-w-md w-full shadow-2xl relative overflow-hidden"
+              >
+                <div className="relative z-10">
+                  <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6">
+                    <Trash2 className="w-7 h-7 text-red-500" />
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">ARE YOU SURE?</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-8">Permanently remove <span className="font-bold">"{deletingContent.title}"</span>?</p>
+                  <div className="flex gap-3">
+                    <button onClick={() => setDeletingContent(null)} className="flex-1 px-4 py-3.5 bg-zinc-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-[10px] uppercase">Cancel</button>
+                    <button onClick={() => handleDeleteContent(deletingContent.id)} className="flex-1 px-4 py-3.5 bg-red-500 text-white rounded-xl font-bold text-[10px] uppercase shadow-lg">DELETE</button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+
+          {showProfilePictureModal && !showImageEditor && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[1100]">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-white/10 rounded-[2rem] p-8 max-w-md w-full shadow-2xl relative overflow-hidden"
+              >
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-1 font-mono">AVATAR EDITOR</h4>
+                      <h3 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">UPDATE PICTURE</h3>
+                    </div>
+                    <button onClick={() => setShowProfilePictureModal(false)} className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl"><X className="w-5 h-5" /></button>
+                  </div>
+                  <div className="space-y-6">
+                    <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" id="profile-picture-upload" />
+                    <label htmlFor="profile-picture-upload" className="flex flex-col items-center justify-center w-full h-32 border border-dashed border-slate-300 dark:border-slate-700 rounded-2xl cursor-pointer bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 transition-all hover:border-indigo-500/50">
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300 text-center">Click to upload or drag & drop<br /><span className="text-[10px] font-mono text-slate-400">PNG, JPG, GIF (MAX 5MB)</span></p>
+                    </label>
+                    <div className="flex gap-3 pt-2">
+                      <button onClick={() => { setEditedProfilePicture(''); setShowProfilePictureModal(false); handleImageUpload(''); }} className="flex-1 px-4 py-3.5 bg-zinc-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-[10px] uppercase">Remove</button>
+                      <button onClick={() => setShowProfilePictureModal(false)} className="flex-1 px-4 py-3.5 bg-indigo-500 text-white rounded-xl font-black text-[10px] uppercase shadow-lg">Done</button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+
+          <ImageEditor
+            imageUrl={previewUrl}
+            isOpen={showImageEditor}
+            onSave={handleImageCrop}
+            onCancel={() => { setShowImageEditor(false); setSelectedFile(null); setPreviewUrl(''); }}
+          />
+
+          {showCancelModal && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-[1100]">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="bg-white dark:bg-slate-900 border border-zinc-200 dark:border-white/10 rounded-[2rem] p-8 max-w-md w-full shadow-2xl relative overflow-hidden"
+              >
+                <div className="relative z-10">
+                  <div className="w-14 h-14 bg-red-500/10 rounded-2xl flex items-center justify-center mb-6">
+                    <LogOut className="w-7 h-7 text-red-500" />
+                  </div>
+                  <h3 className="text-xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tight">CANCEL PRO</h3>
+                  <p className="text-slate-500 dark:text-slate-400 text-sm leading-relaxed mb-8">Are you sure you want to cancel your <span className="font-bold">Pro License</span>?</p>
+                  <div className="flex gap-3">
+                    <button onClick={() => setShowCancelModal(false)} disabled={cancelLoading} className="flex-1 px-4 py-3.5 bg-zinc-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl font-bold text-[10px] uppercase">GO BACK</button>
+                    <button onClick={handleCancelSubscription} disabled={cancelLoading} className="flex-1 px-4 py-3.5 bg-red-500 text-white rounded-xl font-bold text-[10px] uppercase shadow-lg disabled:opacity-50">{cancelLoading ? 'SAVING...' : 'CONFIRM CANCEL'}</button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
         </div>
       </div>
     </div>

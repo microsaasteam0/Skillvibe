@@ -1,16 +1,20 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { FileText, ArrowLeft, Scale, CheckCircle, AlertTriangle, ChevronRight } from 'lucide-react'
 import Navbar from '../../components/Navbar'
-import AuthenticatedNavbar from '../../components/AuthenticatedNavbar'
 import { useAuth } from '../../contexts/AuthContext'
 import Footer from '../../components/Footer'
+import AuthModal from '../../components/AuthModal'
+import DashboardModal from '../../components/DashboardModal'
 
 export default function TermsOfService() {
     const { isAuthenticated, isLoading } = useAuth()
-    const lastUpdated = 'February 14, 2026'
+    const [showAuthModal, setShowAuthModal] = useState(false)
+    const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login')
+    const [showDashboard, setShowDashboard] = useState(false)
+    const lastUpdated = 'February 27, 2026'
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 selection:bg-indigo-500/30 font-sans overflow-x-hidden">
@@ -26,11 +30,21 @@ export default function TermsOfService() {
             </div>
 
             {/* Navigation Schematic */}
-            {isAuthenticated ? (
-                <AuthenticatedNavbar isLoading={isLoading} />
-            ) : (
-                <Navbar isAuthenticated={false} onSignIn={() => { }} onSignUp={() => { }} />
-            )}
+            <Navbar
+                onSignIn={() => { setShowAuthModal(true); setAuthModalMode('login') }}
+                onSignUp={() => { setShowAuthModal(true); setAuthModalMode('register') }}
+                onUserDashboard={() => setShowDashboard(true)}
+            />
+
+            <AuthModal
+                isOpen={showAuthModal}
+                onClose={() => setShowAuthModal(false)}
+                initialMode={authModalMode}
+            />
+            <DashboardModal
+                isOpen={showDashboard}
+                onClose={() => setShowDashboard(false)}
+            />
 
             {/* Header - Service Protocol Identity */}
             <main className="relative z-10 pt-40 pb-24 px-6">
@@ -68,7 +82,7 @@ export default function TermsOfService() {
                                     </div>
                                     <div className="text-slate-600 dark:text-slate-400 leading-relaxed font-bold text-[15px] space-y-6 max-w-3xl">
                                         <p>
-                                            Accessing BuildInPublic (buildinpublic.entrext.com) establishes a high-fidelity sync with these Terms of Service. Discrepancies in agreement result in terminal decommissioning of system access.
+                                            Accessing SkillVibe (skillvibe.ai) establishes a high-fidelity sync with these Terms of Service. Discrepancies in agreement result in terminal decommissioning of system access.
                                         </p>
                                         <p>
                                             Operational assets within this schematic are protected under global copyright and trademark architecture.
@@ -110,7 +124,7 @@ export default function TermsOfService() {
                                         <div>
                                             <h3 className="text-lg font-black text-white mb-2 uppercase tracking-tighter">INTEL_PROPERTY_SAFEGUARD</h3>
                                             <p className="text-slate-400 text-sm font-bold leading-relaxed max-w-xl">
-                                                You retain <span className="text-white underline decoration-indigo-500/50">TOTAL_SOVEREIGNTY</span> over assets uploaded and generated. BuildInPublic claims zero equity in your intellectual social capital.
+                                                You retain <span className="text-white underline decoration-indigo-500/50">TOTAL_SOVEREIGNTY</span> over assets uploaded and generated. SkillVibe claims zero equity in your intellectual social capital.
                                             </p>
                                         </div>
                                     </div>

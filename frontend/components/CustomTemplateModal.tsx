@@ -139,7 +139,7 @@ const CustomTemplateModal: React.FC<CustomTemplateModalProps> = ({
       onClose()
     } catch (error: any) {
       console.error('Error saving template:', error)
-      const errorMessage = error.response?.data?.detail || 'ERROR_TEMPLATE_SYNC_FAILURE'
+      const errorMessage = error.response?.data?.detail || 'Failed to save template. Please try again.'
       toast.error(errorMessage)
     } finally {
       setIsLoading(false)
@@ -358,7 +358,7 @@ Wrap up your content`
                 />
               </div>
               <p className="px-4 text-[9px] text-slate-400 font-mono uppercase tracking-widest opacity-60">
-                PRO_TIP: Use double curly-braces for variables like {'{{'}variable_name{'}}'} if required.
+                TIP: Use double curly-braces for variables like {'{{'}variable_name{'}}'} if needed.
               </p>
             </div>
 

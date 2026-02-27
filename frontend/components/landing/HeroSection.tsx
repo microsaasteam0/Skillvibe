@@ -1,153 +1,146 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Sparkles, Shield, Zap, TrendingUp, CheckCircle, LogIn, ArrowRight, Activity, Cpu, Box, Terminal } from 'lucide-react'
+import { Sparkles, Shield, Zap, ArrowRight, Cpu, Users, Target, Globe, Terminal } from 'lucide-react'
 
 interface HeroSectionProps {
     isAuthenticated: boolean
+    user?: any
     onStartCreating: () => void
     onSignIn: () => void
     onSignUp: () => void
 }
 
-export default function HeroSection({ isAuthenticated, onStartCreating, onSignIn, onSignUp }: HeroSectionProps) {
+export default function HeroSection({ isAuthenticated, user, onStartCreating, onSignIn, onSignUp }: HeroSectionProps) {
+    const isRecruiter = user?.role === 'recruiter'
     const [binaryData, setBinaryData] = useState('')
 
     useEffect(() => {
-        // Generate binary noise only on client to prevent hydration mismatch
         setBinaryData(Array(2000).fill(0).map(() => Math.random() > 0.5 ? '1' : '0').join(''))
     }, [])
 
     return (
-        <div className="relative overflow-hidden pt-24 pb-16 sm:pt-28 sm:pb-20 lg:pt-32 lg:pb-32 selection:bg-indigo-500/30">
+        <div className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-20 pb-16 selection:bg-cyan-500/30">
 
-            {/* Innovative 'Builder' Background Matrix */}
-            <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
-                <div className="absolute inset-0 bg-grid-blueprint opacity-[0.4] dark:opacity-[0.2]" />
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-zinc-50/50 dark:to-black/50" />
+            {/* Cinematic Background Layer */}
+            <div className="absolute inset-0 z-0">
+                <div className="absolute inset-0 bg-cyber-grid opacity-20 dark:opacity-30" />
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
 
-                {/* Moving Scanline */}
-                <div className="absolute inset-0 overflow-hidden opacity-20">
-                    <div className="w-full h-[2px] bg-indigo-500 animate-scanline shadow-[0_0_15px_rgba(99,102,241,0.8)]" />
-                </div>
+                {/* Pulsing Orbs */}
+                <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-cyan-500/10 rounded-full blur-[120px] bg-pulse-cyan" />
+                <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-indigo-500/10 rounded-full blur-[120px] bg-pulse-cyan" style={{ animationDelay: '2s' }} />
 
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[140%] h-[600px] sm:h-[800px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-indigo-500/10 via-transparent to-transparent opacity-40 blur-[80px] sm:blur-[120px]" />
-                <div className="absolute top-[20%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 rounded-full blur-[80px] sm:blur-[120px] animate-pulse-slow font-mono text-[8px] text-indigo-500/10 select-none pointer-events-none break-all p-6 sm:p-10">
+                {/* Binary Stream (Client side only) */}
+                <div className="absolute top-[15%] right-[5%] w-[30%] h-[50%] opacity-5 select-none font-mono text-[8px] text-cyan-500 break-all pointer-events-none transition-opacity duration-1000">
                     {binaryData}
                 </div>
             </div>
 
-            <div className="container relative z-10 px-4 sm:px-6 mx-auto text-center">
+            <div className="container relative z-10 px-4 mx-auto text-center">
 
-                {/* Animated Badge - Built with Kinetic Glow */}
+                {/* Elite Badge */}
                 <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.8, ease: "easeOut" }}
-                    className="inline-flex items-center justify-center px-3 sm:px-4 py-1.5 mb-6 sm:mb-10 border border-indigo-500/30 rounded-full bg-indigo-500/5 backdrop-blur-xl shadow-2xl relative group animate-kinetic-glow cursor-pointer overflow-hidden"
+                    className="inline-flex items-center gap-2 px-6 py-2 mb-10 glass-panel rounded-full border border-cyan-500/30 glow-cyan backdrop-blur-xl group cursor-help transition-all hover:border-cyan-500/50"
                 >
-                    <div className="absolute inset-0 bg-indigo-500/10 rounded-full blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <Terminal className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-indigo-500 mr-1.5 sm:mr-2" />
-                    <span className="text-[9px] sm:text-[10px] font-black text-indigo-600 dark:text-indigo-400 tracking-[0.1em] relative">
-                        Build in public
+                    <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_10px_rgba(6,182,212,1)]" />
+                    <span className="text-[10px] sm:text-[11px] font-black text-cyan-500 tracking-[0.3em] uppercase">
+                        Smart Trust System v2.0.4
                     </span>
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-2 sm:ml-3 animate-ping" />
+                    <Terminal className="w-3.5 h-3.5 text-cyan-500 opacity-50 group-hover:opacity-100 transition-opacity" />
                 </motion.div>
 
-                {/* Main Headline with Letter Staggering */}
-                <motion.h1
-                    initial={{ opacity: 0, y: 30 }}
+                {/* Massive Headline */}
+                <motion.div
+                    initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.1, ease: "easeOut" }}
-                    className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-display font-black tracking-tighter mb-6 sm:mb-8 leading-[0.95] text-slate-900 dark:text-white px-2"
+                    transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+                    className="mb-8"
                 >
-                    The <span className="text-gradient animate-pulse">Public Engine</span> <br className="hidden sm:block" />
-                    For <span className="text-indigo-500 relative inline-block">
-                        Founders
-                        <div className="absolute -bottom-1 sm:-bottom-2 left-0 w-full h-0.5 sm:h-1 bg-indigo-500/20 rounded-full overflow-hidden">
-                            <motion.div
-                                initial={{ x: '-100%' }}
-                                animate={{ x: '100%' }}
-                                transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                                className="w-1/2 h-full bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,1)]"
-                            />
-                        </div>
-                    </span>
-                </motion.h1>
+                    <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black leading-[0.85] tracking-tighter text-slate-900 dark:text-white drop-shadow-2xl">
+                        {isRecruiter ? 'FIND THE' : 'YOUR NEW'} <br />
+                        <span className="text-gradient-cyan drop-shadow-[0_0_30px_rgba(6,182,212,0.3)]">TRUST</span> <br />
+                        <span className="italic outline-text dark:text-transparent dark:[-webkit-text-stroke:2px_rgba(255,255,255,0.1)]">SCORE</span>
+                    </h1>
+                </motion.div>
 
-                {/* Sub-headline with Shimmer Effect */}
+                {/* Narrative */}
                 <motion.p
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ duration: 1.5, delay: 0.4 }}
-                    className="text-base sm:text-lg md:text-xl lg:text-2xl text-zinc-600 dark:text-slate-400 mb-8 sm:mb-12 max-w-3xl mx-auto leading-relaxed font-medium px-4"
+                    transition={{ duration: 1.5, delay: 0.5 }}
+                    className="text-lg sm:text-xl md:text-2xl text-slate-600 dark:text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed font-bold tracking-tight px-4"
                 >
-                    Turn your work logs into social posts. Share your progress in seconds.
+                    {isRecruiter
+                        ? 'Stop guessing. Find the best people based on their real skills and proven work history.'
+                        : 'Show off your work and get a vibe score. It is the easiest way to prove you are great at what you do.'
+                    }
                 </motion.p>
 
-                {/* CTAs with Builder Glow */}
+                {/* Actions */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
-                    className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mb-16 sm:mb-24 px-4"
+                    transition={{ duration: 0.8, delay: 0.7 }}
+                    className="flex flex-col sm:flex-row items-center justify-center gap-6 mb-24"
                 >
                     {isAuthenticated ? (
                         <button
-                            onClick={onStartCreating}
-                            className="group relative w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-indigo-600 text-white font-black rounded-2xl shadow-2xl shadow-indigo-500/40 transition-all hover:scale-105 hover:bg-indigo-700 active:scale-95 overflow-hidden"
+                            onClick={() => isRecruiter ? window.location.href = '/recruiter' : onStartCreating()}
+                            className="group relative px-10 py-5 bg-cyan-500 text-slate-950 font-black rounded-2xl shadow-[0_0_40px_-5px_rgba(6,182,212,0.5)] transition-all hover:scale-105 active:scale-95 overflow-hidden"
                         >
-                            <div className="absolute inset-0 shimmer-text opacity-20" />
-                            <div className="flex items-center justify-center gap-2 sm:gap-3 relative z-10">
-                                <Box className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-12 transition-transform" />
-                                <span className="tracking-tight text-xs sm:text-sm">Go to dashboard</span>
-                                <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                            <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20" />
+                            <div className="flex items-center gap-3 relative z-10 uppercase tracking-widest text-xs">
+                                <Target className="w-5 h-5" />
+                                <span>{isRecruiter ? 'Find Best Talent' : 'Improve My Vibe'}</span>
+                                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                             </div>
                         </button>
                     ) : (
                         <>
                             <button
                                 onClick={onSignUp}
-                                className="group relative w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-indigo-600 text-white font-black rounded-2xl shadow-2xl shadow-indigo-500/40 transition-all hover:scale-105 hover:bg-indigo-700 active:scale-95 overflow-hidden"
+                                className="group relative px-10 py-5 bg-cyan-500 text-slate-950 font-black rounded-2xl shadow-[0_0_40px_-5px_rgba(6,182,212,0.5)] transition-all hover:scale-105 active:scale-95 overflow-hidden"
                             >
-                                <div className="absolute inset-0 shimmer-text opacity-20" />
-                                <div className="flex items-center justify-center gap-2 sm:gap-3 relative z-10">
-                                    <span className="tracking-tight text-xs sm:text-sm">Start for free</span>
-                                    <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover:translate-x-1 transition-transform" />
+                                <div className="absolute inset-x-0 bottom-0 h-1 bg-white/20" />
+                                <div className="flex items-center gap-3 relative z-10 uppercase tracking-widest text-xs">
+                                    <Sparkles className="w-5 h-5" />
+                                    <span>Make My Page</span>
+                                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                                 </div>
                             </button>
 
                             <button
                                 onClick={onSignIn}
-                                className="group w-full sm:w-auto px-8 sm:px-10 py-4 sm:py-5 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-800 font-black rounded-2xl shadow-xl transition-all hover:scale-105 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95"
+                                className="group px-10 py-5 glass-card dark:text-white font-black rounded-2xl border border-white/10 transition-all hover:scale-105 hover:bg-white/10 active:scale-95 uppercase tracking-widest text-xs flex items-center gap-3"
                             >
-                                <div className="flex items-center justify-center gap-2 sm:gap-3">
-                                    <Terminal className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />
-                                    <span className="tracking-tight text-xs sm:text-sm">Sign in</span>
-                                </div>
+                                <Users className="w-5 h-5 text-cyan-500" />
+                                <span>I am a Boss</span>
                             </button>
                         </>
                     )}
                 </motion.div>
 
-                {/* Trust Matrix - Interactive Grid */}
+                {/* Features */}
                 <motion.div
-                    initial={{ opacity: 0, y: 40 }}
+                    initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 1, delay: 0.5, ease: "easeOut" }}
-                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-5xl mx-auto px-4"
+                    transition={{ duration: 1.2, delay: 0.8, ease: "easeOut" }}
+                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-6xl mx-auto px-4"
                 >
                     {[
-                        { icon: Zap, title: "Fast", desc: "Posts ready in seconds", color: "indigo" },
-                        { icon: Cpu, title: "Smart", desc: "AI learns your style", color: "purple" },
-                        { icon: Shield, title: "Private", desc: "Your data stays yours", color: "emerald" }
-                    ].map((card, i) => (
-                        <div key={i} className="glass-card p-6 sm:p-8 lg:p-10 rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200/50 dark:border-slate-800/50 group hover:border-indigo-500/30 transition-all text-left relative overflow-hidden">
-                            <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
-                            <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-${card.color}-500/10 rounded-2xl flex items-center justify-center mb-4 sm:mb-6 text-${card.color}-500 group-hover:scale-110 group-hover:rotate-6 transition-all duration-500`}>
-                                <card.icon className="w-6 h-6 sm:w-7 sm:h-7" />
+                        { icon: Globe, label: "EVERYWHERE", desc: "Show off your skills to people all over the world." },
+                        { icon: Shield, label: "REAL PROOF", desc: "No more fake resumes. We check everything for you." },
+                        { icon: Cpu, label: "SMART SCORE", desc: "Get an easy score that shows how good you are." }
+                    ].map((item, idx) => (
+                        <div key={idx} className="glass-card p-10 rounded-card text-left transition-all hover:glow-cyan-strong hover:bg-white/5 border border-white/5 group">
+                            <div className="w-16 h-16 bg-cyan-500/10 rounded-2xl flex items-center justify-center mb-6 text-cyan-500 group-hover:scale-110 transition-transform">
+                                <item.icon className="w-8 h-8" />
                             </div>
-                            <h3 className="font-black text-lg sm:text-xl mb-2 text-zinc-900 dark:text-white tracking-tight">{card.title}</h3>
-                            <p className="text-xs sm:text-sm text-zinc-500 dark:text-slate-500 font-medium leading-relaxed">{card.desc}</p>
+                            <h3 className="text-xl font-black mb-3 tracking-tighter text-slate-800 dark:text-white uppercase">{item.label}</h3>
+                            <p className="text-sm font-bold text-slate-500 dark:text-slate-500 leading-relaxed">{item.desc}</p>
                         </div>
                     ))}
                 </motion.div>

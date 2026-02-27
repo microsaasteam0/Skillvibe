@@ -9,9 +9,9 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import DashboardModal from '@/components/DashboardModal';
 
 import { useAuth } from '@/contexts/AuthContext';
-import AuthenticatedNavbar from '@/components/AuthenticatedNavbar';
 import AuthModal from '@/components/AuthModal';
 import { motion, useScroll, useSpring } from 'framer-motion';
 import { ChevronLeft, Share2, MessageSquare, Twitter, Linkedin, Copy, Check, Clock, ChevronRight } from 'lucide-react';
@@ -22,6 +22,7 @@ export default function BlogPostPage() {
     const router = useRouter();
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('register');
+    const [showDashboard, setShowDashboard] = useState(false);
     const [copied, setCopied] = useState(false);
 
     const { scrollYProgress } = useScroll();
@@ -85,21 +86,22 @@ export default function BlogPostPage() {
                 style={{ scaleX }}
             />
 
-            {isAuthenticated ? (
-                <AuthenticatedNavbar activeTab="blog" />
-            ) : (
-                <Navbar
-                    showAuthButtons={true}
-                    onSignIn={() => {
-                        setAuthModalMode('login');
-                        setShowAuthModal(true);
-                    }}
-                    onSignUp={() => {
-                        setAuthModalMode('register');
-                        setShowAuthModal(true);
-                    }}
-                />
-            )}
+            <Navbar
+                onSignIn={() => {
+                    setAuthModalMode('login');
+                    setShowAuthModal(true);
+                }}
+                onSignUp={() => {
+                    setAuthModalMode('register');
+                    setShowAuthModal(true);
+                }}
+                onUserDashboard={() => setShowDashboard(true)}
+            />
+
+            <DashboardModal
+                isOpen={showDashboard}
+                onClose={() => setShowDashboard(false)}
+            />
 
             <AuthModal
                 isOpen={showAuthModal}
