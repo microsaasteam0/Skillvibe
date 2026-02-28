@@ -1,14 +1,20 @@
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-    title: 'Blog - High-Authority Distribution Insights | BuildInPublic',
-    description: 'Master the art of building in public with BuildInPublic. Insights on transforming raw build logs and daily work into high-authority social content using neural synthesis.',
-    keywords: 'build in public strategies, founder marketing, social media growth, content transformation, X thread guides, LinkedIn for founders',
+    title: 'SkillVibe Blog - The Future of Verified Reputation',
+    description: 'Insights on the AI Reputation Economy, Vibe Protocol, and technical talent verification. Stay ahead with SkillVibe’s deep-signal matching and verification guides.',
+    keywords: 'SkillVibe, Vibe Protocol, Reputation Economy, AI Verification, Talent Matching, Senior Engineering Hiring, Technical Vetting, SaaS Recruitment',
     openGraph: {
-        title: 'BuildInPublic Blog - Distribution Strategy & Founder Insights',
-        description: 'Expert advice on multiplying your distribution reach using intelligent neural synthesis automation.',
+        title: 'SkillVibe Blog - Insights on Verified Professional Reputation',
+        description: 'Discover how the Vibe Protocol is redefining talent verification and the global reputation economy.',
         type: 'website',
+        url: 'https://skillvibe.entrext.com/blog',
     },
+    twitter: {
+        card: 'summary_large_image',
+        title: 'SkillVibe Blog - Future of Talent Verification',
+        description: 'Master the reputation economy with SkillVibe’s expert insights.',
+    }
 }
 
 export default function BlogLayout({ children }: { children: React.ReactNode }) {

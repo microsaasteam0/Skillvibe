@@ -5,9 +5,8 @@ import { Sparkles, Users, Crown, LogOut, LayoutDashboard, Settings, User as User
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import ThemeSwitcher from './ThemeSwitcher'
 import MobileMenu from './MobileMenu'
-import DashboardModal from './DashboardModal'
+import DashboardModal from './DashboardModal.jsx'
 import { useAuth } from '../contexts/AuthContext'
 import { useSubscription } from '../contexts/SubscriptionContext'
 import { usePaymentProcessing } from '../contexts/PaymentProcessingContext'
@@ -159,17 +158,11 @@ export default function AuthenticatedNavbar({ activeTab, isLoading = false }: Au
 
             {/* Logo */}
             <Link href="/" className="flex items-center group">
-              <div className="relative mr-3">
-                <Image
-                  src="/logo.png"
-                  alt="BuildInPublic Logo"
-                  width={64}
-                  height={64}
-                  className="w-16 h-16 object-contain rounded-lg"
-                />
+              <div className="relative mr-3 w-14 h-14 bg-white/[0.03] rounded-2xl border border-white/10 flex items-center justify-center transition-all duration-500 group-hover:border-cyan-500/50 group-hover:glow-cyan group-hover:scale-110 overflow-hidden">
+                <Image src="/logo.png" alt="Logo" width={56} height={56} className="w-full h-full object-contain" />
               </div>
               <span className="text-3xl font-display font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300">
-                BuildInPublic
+                SkillVibe
               </span>
             </Link>
 
@@ -216,8 +209,6 @@ export default function AuthenticatedNavbar({ activeTab, isLoading = false }: Au
                   </span>
                 </button>
               )}
-
-              <ThemeSwitcher />
 
               <button
                 onClick={logout}

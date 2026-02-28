@@ -883,7 +883,9 @@ async def get_usage_stats(
             "trust_score": trust_score,
             "elite_rating": elite_rating,
             "ranking_score": ranking_score,
-            "verification_stage": verification_stage
+            "verification_stage": verification_stage,
+            "resume_upload_count": current_user.resume_upload_count,
+            "resume_upload_limit": 999 if current_user.is_premium else 2
         }
     except Exception as e:
         print(f"❌ Error in get_usage_stats: {str(e)}")

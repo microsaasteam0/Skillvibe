@@ -11,7 +11,7 @@ import { API_URL } from '@/lib/api-config'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
 import AuthModal from '../../components/AuthModal'
-import DashboardModal from '../../components/DashboardModal'
+import DashboardModal from '../../components/DashboardModal.jsx'
 
 export default function RecruiterDashboard() {
     const [candidates, setCandidates] = useState<any[]>([])

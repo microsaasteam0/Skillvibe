@@ -7,7 +7,7 @@ import Navbar from '../../components/Navbar'
 import { useAuth } from '../../contexts/AuthContext'
 import Footer from '../../components/Footer'
 import AuthModal from '../../components/AuthModal'
-import DashboardModal from '../../components/DashboardModal'
+import DashboardModal from '../../components/DashboardModal.jsx'
 
 export default function TermsOfService() {
     const { isAuthenticated, isLoading } = useAuth()

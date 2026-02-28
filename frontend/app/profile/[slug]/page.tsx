@@ -148,8 +148,13 @@ export default function PortfolioPage() {
             }))
             setIsEditing(false)
             toast.success('Vibe updated!')
-        } catch (err) {
-            toast.error('Failed to save changes')
+        } catch (err: any) {
+            if (err.response?.status === 403) {
+                toast.error('Upgrade to Pillar Elite to customize your portfolio')
+                router.push('/pricing')
+            } else {
+                toast.error('Failed to save changes')
+            }
         } finally {
             setSaving(false)
         }
@@ -424,14 +429,29 @@ export default function PortfolioPage() {
                             <div className="w-px h-6 bg-white/10" />
 
                             <button
-                                onClick={() => setIsEditing(!isEditing)}
-                                className={`flex items-center gap-3 px-6 py-2 rounded-2xl transition-all font-black uppercase tracking-[0.2em] text-[10px] ${isEditing
+                                onClick={() => {
+                                    if (!user?.is_premium) {
+                                        toast.error('Upgrade to Pillar Elite to customize your portfolio')
+                                        router.push('/pricing')
+                                        return
+                                    }
+                                    setIsEditing(!isEditing)
+                                }}
+                                disabled={!user?.is_premium}
+                                className={`flex items-center gap-3 px-6 py-2 rounded-2xl transition-all font-black uppercase tracking-[0.2em] text-[10px] ${!user?.is_premium
+                                    ? 'bg-white/5 text-zinc-500 border border-white/5 cursor-not-allowed opacity-60'
+                                    : isEditing
                                     ? 'bg-cyan-500 text-white shadow-[0_0_20px_rgba(6,182,212,0.3)]'
                                     : 'bg-white/5 text-zinc-400 hover:text-white border border-white/5 hover:border-white/10'
                                     }`}
+                                title={!user?.is_premium ? 'Upgrade to Pillar Elite to customize your portfolio' : 'Toggle editing mode'}
                             >
-                                <Sparkles className={`w-3.5 h-3.5 ${isEditing ? 'animate-spin' : ''}`} />
-                                {isEditing ? 'Editing Mode' : 'Customize'}
+                                {!user?.is_premium ? (
+                                    <Lock className="w-3.5 h-3.5" />
+                                ) : (
+                                    <Sparkles className={`w-3.5 h-3.5 ${isEditing ? 'animate-spin' : ''}`} />
+                                )}
+                                {!user?.is_premium ? 'PRO FEATURE' : isEditing ? 'Editing Mode' : 'Customize'}
                             </button>
                         </>
                     ) : (

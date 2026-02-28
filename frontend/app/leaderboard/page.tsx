@@ -9,29 +9,29 @@ import axios from 'axios'
 import { API_URL } from '@/lib/api-config'
 import Link from 'next/link'
 import AuthModal from '../../components/AuthModal'
-import DashboardModal from '../../components/DashboardModal'
+import DashboardModal from '../../components/DashboardModal.jsx'
 
 export default function LeaderboardPage() {
     const [leaderboard, setLeaderboard] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
     const [filterBy, setFilterBy] = useState('rating')
+    const [tier, setTier] = useState('free') // 'free' or 'pro'
     const [searchTerm, setSearchTerm] = useState('')
-    const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
+    const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})  
     const [showAuthModal, setShowAuthModal] = useState(false)
     const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login')
     const [showDashboard, setShowDashboard] = useState(false)
 
     useEffect(() => {
         fetchLeaderboard()
-    }, [filterBy])
-
+    }, [filterBy, tier])
     const fetchLeaderboard = async () => {
         setLoading(true)
         try {
             const response = await axios.get(`${API_URL}/api/v1/skillvibe/leaderboard`, {
-                params: { by: filterBy }
+                params: { by: filterBy, tier: tier }
             })
-            setLeaderboard(response.data)
+            setLeaderboard(response.data.leaderboard || response.data)
         } catch (error) {
             console.error("Failed to fetch leaderboard")
         } finally {
@@ -80,9 +80,31 @@ export default function LeaderboardPage() {
                         </h1>
 
                         <p className="text-xl text-slate-500 font-bold max-w-2xl mx-auto leading-relaxed uppercase tracking-tight opacity-80">
-                            Real professionals ranked by skills, <br />
-                            achievements, and verified work experience.
+                            Compete within your tier.<br />
+                            Free & Pro rankings separated for fair competition.
                         </p>
+                    </div>
+
+                    {/* Tier Selection - NEW */}
+                    <div className="flex flex-col lg:flex-row gap-8 mb-8 items-center justify-between">
+                        <div className="flex gap-4 glass-panel p-2 rounded-2xl border border-white/10 backdrop-blur-3xl w-full lg:w-auto">
+                            {[
+                                { id: 'free', label: '🎓 FREE TIER', icon: Trophy },
+                                { id: 'pro', label: '👑 PRO TIER', icon: Crown }
+                            ].map((t) => (
+                                <button
+                                    key={t.id}
+                                    onClick={() => setTier(t.id)}
+                                    className={`px-8 py-4 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all duration-500 flex items-center gap-3 whitespace-nowrap ${tier === t.id
+                                        ? t.id === 'pro' ? 'bg-amber-500 text-black shadow-xl shadow-amber-500/30'
+                                            : 'bg-cyan-500 text-black shadow-xl shadow-cyan-500/30 glow-cyan'
+                                        : 'text-slate-500 hover:text-white hover:bg-white/5'
+                                        }`}
+                                >
+                                    {t.label}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {/* Controls */}
@@ -170,6 +192,7 @@ export default function LeaderboardPage() {
                                                 <h3 className="text-3xl md:text-4xl font-black text-white tracking-tighter flex flex-col md:flex-row items-center gap-3 uppercase italic">
                                                     {user.full_name}
                                                     <span className="text-[10px] font-black text-cyan-500/40 uppercase tracking-[0.3em] font-mono not-italic">[@{user.username}]</span>
+                                                    {user.tier === 'Pro' && <Crown className="w-5 h-5 text-amber-500 glow-amber" />}
                                                 </h3>
                                             </div>
 

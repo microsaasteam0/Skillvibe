@@ -7,7 +7,7 @@ import { ThemeProvider } from '../../contexts/ThemeContext'
 import { UserPreferencesProvider } from '../../contexts/UserPreferencesContext'
 import Navbar from '../../components/Navbar'
 import AuthModal from '../../components/AuthModal'
-import DashboardModal from '../../components/DashboardModal'
+import DashboardModal from '../../components/DashboardModal.jsx'
 import Footer from '../../components/Footer'
 import { motion } from 'framer-motion'
 

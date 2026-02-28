@@ -5,7 +5,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import ThemeSwitcher from './ThemeSwitcher'
 import MobileMenu from './MobileMenu'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
@@ -37,7 +36,7 @@ export default function Navbar({
   onUserDashboard,
   onTabChange
 }: NavbarProps) {
-  const { logout, user: authUser, isAuthenticated: authIsAuthenticated } = useAuth()
+  const { logout, user: authUser, isAuthenticated: authIsAuthenticated, token } = useAuth()
 
   const user = propUser !== undefined ? propUser : authUser
   const isAuthenticated = propIsAuthenticated !== undefined ? propIsAuthenticated : authIsAuthenticated
@@ -49,6 +48,10 @@ export default function Navbar({
   const displayUsageStats = usageStats || internalUsageStats
 
   useEffect(() => {
+    console.log("📈 Display Usage Stats Updated:", displayUsageStats)
+  }, [displayUsageStats])
+
+  useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20)
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
@@ -56,26 +59,34 @@ export default function Navbar({
 
   useEffect(() => {
     const fetchStats = async () => {
-      if (isAuthenticated && !usageStats && user?.id) {
+      if (isAuthenticated && !usageStats && user?.id && token) {
         try {
+          console.log("📊 Fetching navbar usage stats for user:", user.id, "Token available:", !!token)
           const stats = await requestCache.get(
             `usage-stats-${user.id}`,
             async () => {
               const res = await axios.get(`${API_URL}/api/v1/auth/usage-stats`, {
-                timeout: 15000
+                timeout: 15000,
+                withCredentials: true,
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
               })
+              console.log("✅ Stats fetched successfully:", res.data)
               return res.data
             },
             60 * 1000
           )
           setInternalUsageStats(stats)
         } catch (err) {
-          console.error("Error fetching navbar stats:", err)
+          console.error("❌ Error fetching navbar stats:", err)
         }
+      } else {
+        console.log("⏭️ Skipping stats fetch - Auth:", isAuthenticated, "UsageStats:", usageStats, "UserId:", user?.id, "Token:", !!token)
       }
     }
     fetchStats()
-  }, [isAuthenticated, usageStats, user?.id])
+  }, [isAuthenticated, usageStats, user?.id, token])
 
   const isRecruiter = user?.role === 'recruiter'
 
@@ -146,13 +157,13 @@ export default function Navbar({
 
           {/* Logo */}
           <Link href="/" className="flex items-center group gap-3 flex-shrink-0">
-            <div className="relative w-10 h-10 bg-black rounded-xl border border-white/10 flex items-center justify-center p-2 group-hover:glow-cyan group-hover:scale-110 transition-all duration-500">
+            <div className="relative mr-3 w-12 h-12 bg-white/[0.03] rounded-xl border border-white/10 flex items-center justify-center transition-all duration-500 group-hover:border-cyan-500/40 group-hover:scale-105 overflow-hidden">
               <Image
                 src="/logo.png"
                 alt="SkillVibe Logo"
-                width={40}
-                height={40}
-                className="w-full h-full object-contain filter invert dark:invert-0"
+                width={48}
+                height={48}
+                className="w-full h-full object-contain"
               />
             </div>
             <span className="text-xl sm:text-2xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic">
@@ -181,10 +192,6 @@ export default function Navbar({
 
           {/* Right Actions */}
           <div className="flex items-center gap-3">
-            <div className="hidden sm:block">
-              <ThemeSwitcher />
-            </div>
-
             {isAuthenticated ? (
               <div className="flex items-center gap-4">
                 {displayUsageStats?.leaderboard_rank && user?.role !== 'recruiter' && (
@@ -196,6 +203,18 @@ export default function Navbar({
                     <Trophy className="w-4 h-4 mr-2 text-cyan-500" />
                     <span className="text-[10px] font-black text-cyan-500 tracking-[0.2em] font-mono uppercase">
                       {displayUsageStats.leaderboard_rank.startsWith('#') ? 'RANK : ' : ''}{displayUsageStats.leaderboard_rank}
+                    </span>
+                  </motion.div>
+                )}
+
+                {displayUsageStats?.resume_upload_count !== undefined && user?.role !== 'recruiter' && (
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="hidden lg:flex items-center px-4 py-2 glass-panel rounded-xl border border-amber-500/30"
+                  >
+                    <span className="text-[10px] font-black text-amber-400 tracking-[0.2em] font-mono uppercase">
+                      📄 {displayUsageStats.resume_upload_count} / {displayUsageStats.resume_upload_limit}
                     </span>
                   </motion.div>
                 )}

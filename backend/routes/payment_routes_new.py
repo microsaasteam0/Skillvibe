@@ -130,6 +130,7 @@ class PaymentResponse(BaseModel):
     checkout_url: Optional[str] = None
     is_premium: Optional[bool] = None
     plan: Optional[str] = None
+    status: Optional[str] = None
 
 # Product mapping - loaded from environment variables
 PRODUCTS = {
@@ -193,8 +194,8 @@ async def create_checkout(
             last_name = ' '.join(name_parts[1:]) if len(name_parts) > 1 else ''
             
             # Prepare params with multiple variants to ensure compatibility
-            frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000')
-            redirect_url = f"{frontend_url}/?payment=success&user_id={current_user.id}&payment_id={payment_id}"
+            frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:3000').rstrip('/')
+            redirect_url = f"{frontend_url}?payment=success&user_id={current_user.id}&payment_id={payment_id}"
             
             params = {
                 "email": user_email,
@@ -317,27 +318,57 @@ async def check_payment_status(
                     print(f"[INFO] Syncing via sub_id: {sub_id_to_check} using token {token_to_use[:8]}...")
                     try:
                         remote_sub = dodo_client.subscriptions.retrieve(sub_id_to_check)
-                        if remote_sub and remote_sub.status == 'active':
+                        print(f"[DEBUG] Retrieved subscription object type: {type(remote_sub)}")
+                        print(f"[DEBUG] Subscription data: {serialize_webhook_data(remote_sub)}")
+                        
+                        sub_status = getattr(remote_sub, 'status', None)
+                        print(f"[DEBUG] Subscription status: {sub_status}")
+                        
+                        if remote_sub and sub_status == 'active':
                             print(f"[OK] Found active subscription: {sub_id_to_check}")
                             sub_data = serialize_webhook_data(remote_sub)
-                            await handle_subscription_active_webhook(sub_data, db)
+                            # Try webhook handler first
+                            try:
+                                await handle_subscription_active_webhook(sub_data, db)
+                                print(f"[OK] Webhook handler processed subscription")
+                            except Exception as webhook_err:
+                                print(f"[WARN] Webhook handler failed, falling back to direct upgrade: {webhook_err}")
+                                # Direct upgrade fallback - just set the user as premium
+                                current_user.is_premium = True
+                                db.commit()
+                            
                             db.refresh(current_user)
                             actual_premium_status = True
+                        else:
+                            print(f"[INFO] Subscription status is '{sub_status}', still processing. User remains free.")
                     except Exception as sdk_err:
-                        print(f"[WARN] SDK retrieval failed, trying raw request: {sdk_err}")
+                        print(f"[WARN] SDK retrieval failed: {sdk_err}")
                         import requests
                         r = requests.get(f"{api_base}/subscriptions/{sub_id_to_check}", headers=headers, timeout=10)
                         if r.status_code == 200:
                             sub_data = r.json()
-                            if sub_data.get("status") == "active":
-                                print(f"[OK] Raw request found active subscription!")
-                                await handle_subscription_active_webhook(sub_data, db)
+                            sub_status = sub_data.get("status")
+                            print(f"[DEBUG] Raw request subscription status: {sub_status}")
+                            print(f"[DEBUG] Raw request subscription data: {sub_data}")
+                            
+                            if sub_status == "active":
+                                print(f"[OK] Raw request found {sub_status} subscription!")
+                                # Try webhook handler first
+                                try:
+                                    await handle_subscription_active_webhook(sub_data, db)
+                                    print(f"[OK] Webhook handler processed subscription from raw request")
+                                except Exception as webhook_err:
+                                    print(f"[WARN] Webhook handler failed on raw request, falling back to direct upgrade: {webhook_err}")
+                                    # Direct upgrade fallback - just set the user as premium
+                                    current_user.is_premium = True
+                                    db.commit()
+                                
                                 db.refresh(current_user)
                                 actual_premium_status = True
+                            else:
+                                print(f"[WARN] Raw request subscription status is '{sub_status}', not active")
                         else:
-                            print(f"[ERROR] Raw request failed too: {r.status_code} {r.text[:100]}")
-                
-                # Priority 2: Try to find by payment_id if provided
+                            print(f"[ERROR] Raw request failed: {r.status_code} {r.text[:100]}")
                 elif request and request.payment_id:
                     print(f"[INFO] Syncing via payment_id: {request.payment_id}")
                     # We can't easily search payments by ID in SDK usually without a specific call
@@ -368,9 +399,18 @@ async def check_payment_status(
                         email = getattr(cust, 'email', None) if not isinstance(cust, dict) else cust.get('email')
                         
                         if email == current_user.email and sub.status == 'active':
-                            print(f"[OK] Found active subscription in list: {sub.subscription_id}")
+                            print(f"[OK] Found {sub.status} subscription in list: {sub.subscription_id}")
                             sub_data = serialize_webhook_data(sub)
-                            await handle_subscription_active_webhook(sub_data, db)
+                            # Try webhook handler first
+                            try:
+                                await handle_subscription_active_webhook(sub_data, db)
+                                print(f"[OK] Webhook handler processed subscription from list")
+                            except Exception as webhook_err:
+                                print(f"[WARN] Webhook handler failed on list, falling back to direct upgrade: {webhook_err}")
+                                # Direct upgrade fallback - just set the user as premium
+                                current_user.is_premium = True
+                                db.commit()
+                            
                             db.refresh(current_user)
                             actual_premium_status = True
                             break
@@ -411,9 +451,10 @@ async def check_payment_status(
         if recent_payment:
             return PaymentResponse(
                 success=False,
-                message="Payment record found. If you just paid, please wait a few seconds for activation. If it doesn't upgrade, contact support.",
+                message="Your payment is currently processing. Please wait a few moments for activation. If it takes longer than 5 minutes, please contact support.",
                 is_premium=False,
-                plan="free"
+                plan="free",
+                status="processing"
             )
         
         return PaymentResponse(
@@ -927,24 +968,47 @@ async def handle_subscription_active_webhook(event_data: dict, db: Session):
             db.add(subscription)
             db.flush()
         
-        # Create payment history record
-        payment_record = PaymentHistory(
-            user_id=user.id,
-            subscription_id=subscription.id,
-            payment_id=f"webhook_{uuid.uuid4().hex[:8]}",
-            dodo_subscription_id=subscription_id,
-            amount=normalized_amount,  # Now guaranteed to have a value
-            currency=currency,
-            status="completed",
-            plan_type="pro",
-            billing_cycle=billing_cycle,
-            payment_completed_at=datetime.now(timezone.utc),
-            verification_completed_at=datetime.now(timezone.utc),
-            notes="Activated via subscription.active webhook",
-            payment_metadata=json.dumps(serialize_webhook_data(event_data))
-        )
+        # Update or create payment history record
+        # First, try to find an existing pending payment for this user (most recent)
+        existing_payment = db.query(PaymentHistory).filter(
+            PaymentHistory.user_id == user.id,
+            PaymentHistory.status == "pending"
+        ).order_by(PaymentHistory.created_at.desc()).first()
         
-        db.add(payment_record)
+        if existing_payment:
+            # Update existing pending payment record to completed
+            existing_payment.status = "completed"
+            existing_payment.subscription_id = subscription.id
+            existing_payment.dodo_subscription_id = subscription_id
+            existing_payment.amount = normalized_amount
+            existing_payment.currency = currency
+            existing_payment.plan_type = "pro"
+            existing_payment.billing_cycle = billing_cycle
+            existing_payment.payment_completed_at = datetime.now(timezone.utc)
+            existing_payment.verification_completed_at = datetime.now(timezone.utc)
+            existing_payment.notes = "Activated via subscription.active webhook"
+            existing_payment.payment_metadata = json.dumps(serialize_webhook_data(event_data))
+            print(f"📝 Updated existing pending payment record for {user.email}")
+        else:
+            # Create new payment history record if no pending one exists
+            payment_record = PaymentHistory(
+                user_id=user.id,
+                subscription_id=subscription.id,
+                payment_id=f"webhook_{uuid.uuid4().hex[:8]}",
+                dodo_subscription_id=subscription_id,
+                amount=normalized_amount,
+                currency=currency,
+                status="completed",
+                plan_type="pro",
+                billing_cycle=billing_cycle,
+                payment_completed_at=datetime.now(timezone.utc),
+                verification_completed_at=datetime.now(timezone.utc),
+                notes="Activated via subscription.active webhook",
+                payment_metadata=json.dumps(serialize_webhook_data(event_data))
+            )
+            db.add(payment_record)
+            print(f"🆕 Created new payment record for {user.email}")
+        
         db.commit()
         db.refresh(user)
         

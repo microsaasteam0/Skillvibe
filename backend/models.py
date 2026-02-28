@@ -24,6 +24,9 @@ class User(Base):
     auto_save_enabled = Column(Boolean, default=True)
     email_notifications_enabled = Column(Boolean, default=True)
     
+    # Resume upload tracking
+    resume_upload_count = Column(Integer, default=0)
+    
     # Recruiter Info
     company_info = Column(Text, nullable=True)
     company_location = Column(String, nullable=True)

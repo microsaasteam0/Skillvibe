@@ -1,13 +1,9 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect } from 'react'
-
-type Theme = 'light' | 'dark' | 'system'
+import React, { createContext, useContext, useEffect } from 'react'
 
 interface ThemeContextType {
-  theme: Theme
-  setTheme: (theme: Theme) => void
-  resolvedTheme: 'light' | 'dark'
+  resolvedTheme: 'dark'
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
@@ -25,75 +21,24 @@ interface ThemeProviderProps {
 }
 
 export function ThemeProvider({ children }: ThemeProviderProps) {
-  const [theme, setThemeState] = useState<Theme>('system')
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light')
-  const [isInitialized, setIsInitialized] = useState(false)
-
-  // Initialize theme from localStorage
+  // Force dark theme on app load
   useEffect(() => {
-    const savedTheme = localStorage.getItem('snippetstream-theme') as Theme
-    if (savedTheme && ['light', 'dark', 'system'].includes(savedTheme)) {
-      setThemeState(savedTheme)
-    }
-    setIsInitialized(true)
-  }, [])
-
-  // Update resolved theme based on theme setting
-  useEffect(() => {
-    if (!isInitialized) return
-
-    const updateResolvedTheme = () => {
-      if (theme === 'system') {
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-        setResolvedTheme(systemPrefersDark ? 'dark' : 'light')
-      } else {
-        setResolvedTheme(theme as 'light' | 'dark')
-      }
-    }
-
-    updateResolvedTheme()
-
-    if (theme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      const handleChange = () => updateResolvedTheme()
-      mediaQuery.addEventListener('change', handleChange)
-      return () => mediaQuery.removeEventListener('change', handleChange)
-    }
-  }, [theme, isInitialized])
-
-  // Apply theme to document
-  useEffect(() => {
-    if (!isInitialized) return
-
     const root = document.documentElement
-    root.classList.remove('light', 'dark')
-    root.classList.add(resolvedTheme)
-
-    if (resolvedTheme === 'dark') {
-      root.style.setProperty('--bg-color', '#111827')
-      root.style.setProperty('--text-color', '#ffffff')
-      root.style.colorScheme = 'dark'
-    } else {
-      root.style.setProperty('--bg-color', '#f9fafb')
-      root.style.setProperty('--text-color', '#111827')
-      root.style.colorScheme = 'light'
-    }
-
+    root.classList.remove('light')
+    root.classList.add('dark')
+    root.style.setProperty('--bg-color', '#111827')
+    root.style.setProperty('--text-color', '#ffffff')
+    root.style.colorScheme = 'dark'
     root.classList.add('theme-loaded')
 
     const metaThemeColor = document.querySelector('meta[name="theme-color"]')
     if (metaThemeColor) {
-      metaThemeColor.setAttribute('content', resolvedTheme === 'dark' ? '#111827' : '#ffffff')
+      metaThemeColor.setAttribute('content', '#111827')
     }
-  }, [resolvedTheme, isInitialized])
-
-  const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme)
-    localStorage.setItem('snippetstream-theme', newTheme)
-  }
+  }, [])
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, resolvedTheme }}>
+    <ThemeContext.Provider value={{ resolvedTheme: 'dark' }}>
       {children}
     </ThemeContext.Provider>
   )

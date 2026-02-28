@@ -147,68 +147,63 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
   const plans = [
     {
       id: 'free',
-      name: 'FREE PLAN',
-      description: 'Core protocols for establishing baseline reputation.',
+      name: 'SEED STAGE',
+      description: 'Free verification for emerging professionals',
       price: { monthly: 0, yearly: 0 },
       badge: 'STARTER',
       features: [
-        'AI Profile Generation',
-        'Global Leaderboard Indexinging',
-        'Standard Impact Audit',
-        '24H Performance Refresh',
-        'Basic Brand Decipher'
+        'AI Elite Rating Analysis',
+        'Leaderboard Access',
+        'Vibe Notes Reception',
+        'Trust Score Calculation',
+        'Email Support'
       ],
-      limitations: [
-        'No Advanced Scout Analytics',
-        'No Premium Templates',
-        'Limited Profile Propagation',
-        'No Advanced Analytics'
-      ],
+      limitations: [],
       cta: 'GET STARTED',
       popular: false,
     },
     {
       id: 'pro',
-      name: 'PRO PLAN',
-      description: 'Maximum velocity for high-signal professionals.',
-      price: { monthly: 15, yearly: 144 },
+      name: 'PILLAR ELITE PASS',
+      description: 'Accelerated verification for ambitious professionals',
+      price: { monthly: 19, yearly: 180 },
       badge: 'PROFESSIONAL',
       features: [
-        'Unlimited Brand Architectures',
-        'Priority Leaderboard Position',
-        'Deep Profile Analysis',
-        'Real-time Interaction Analytics',
-        'Custom Kinetic Visual Fields',
-        'Priority Discovery for Recruiters',
-        'Early Access: New Design Assets',
-        'Direct Professional Roadmap'
+        'Unlimited Resume Uploads',
+        'AI Resume Analysis',
+        'Priority Recruiter Access',
+        'Featured on Leaderboard',
+        'Profile View Analytics',
+        'Vibe Notes Analytics',
+        'Premium Support',
+        'Advanced Profile Dashboard'
       ],
       limitations: [],
-      cta: 'UPGRADE TO PRO',
+      cta: 'UPGRADE TO PILLAR',
       popular: true,
     }
   ]
 
   const faqs = [
     {
-      question: 'How is the score calculated?',
-      answer: "Our neural engine scans your professional artifacts, factoring in skill complexity, brand prestige of previous associations, and velocity of career trajectory."
+      question: 'How is my Elite Rating calculated?',
+      answer: "Our AI analyzer evaluates your resume across 6 dimensions: Company Prestige, Achievement Complexity, Proof of Impact, Career Trajectory, Integrity Signals, and Skill Rarity."
     },
     {
-      question: 'Who can see my digital profile?',
-      answer: "By default, your profile is indexed in the global leaderboard. Pro members can control their visibility and see who has viewed their profile."
+      question: "What's included with Pillar Elite Pass?",
+      answer: "Unlimited resume uploads, AI resume analysis, priority recruiter discovery, featured leaderboard position, profile analytics, and priority support."
     },
     {
-      question: 'Can I integrate external data sources?',
-      answer: "Yes. You can ingest LinkedIn data, GitHub commits, and professional whitepapers to feed the ranking engine."
+      question: 'How can I improve my Elite Rating?',
+      answer: "Build experience at prestigious firms, demonstrate complex technical achievements, collect Vibe Notes from recruiters, and maintain a clear professional narrative."
     },
     {
-      question: 'What is a "Premium Template"?',
-      answer: "It's a high-end architectural framework for your digital presence. Each template is engineered for maximum conversion and trust signals."
+      question: 'Can I cancel anytime?',
+      answer: "Yes. You can cancel your Pillar Elite Pass anytime. Your profile remains on the leaderboard, but premium features are removed immediately."
     },
     {
-      question: 'How do I reach the #1 Rank?',
-      answer: "Rank is determined by a combination of your objective skill data and the social interactions (Upvotes, Views, Shares) your profile generates."
+      question: 'Is there a refund policy?',
+      answer: "You get a 7-day money-back guarantee. If not satisfied within 7 days of purchase, contact support for a full refund."
     }
   ]
 
@@ -370,68 +365,59 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
         <div className="grid grid-cols-3 mb-4 sticky top-20 z-20">
           <div className="col-span-1" />
           <div className="col-span-1 text-center py-4 px-6">
-            <div className="text-xs font-black text-slate-400 uppercase tracking-widest">Free</div>
+            <div className="text-xs font-black text-slate-400 uppercase tracking-widest">SEED STAGE</div>
             <div className="text-2xl font-black text-white mt-1">$0<span className="text-sm font-medium text-slate-500">/mo</span></div>
           </div>
           <div className="col-span-1 text-center py-4 px-6 bg-cyan-500/5 rounded-2xl border border-cyan-500/20 relative">
             <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-black text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-widest whitespace-nowrap">Most Popular</div>
-            <div className="text-xs font-black text-cyan-500 uppercase tracking-widest">Pro</div>
-            <div className="text-2xl font-black text-white mt-1">$12<span className="text-sm font-medium text-slate-500">/mo</span></div>
+            <div className="text-xs font-black text-cyan-500 uppercase tracking-widest">PILLAR ELITE</div>
+            <div className="text-2xl font-black text-white mt-1">$19<span className="text-sm font-medium text-slate-500">/mo</span></div>
           </div>
         </div>
 
         {/* Feature Categories */}
         {[
           {
-            category: '🗂️  Vibe',
+            category: '🎯 VIBE PROTOCOL CORE',
             features: [
-              { name: 'AI-generated vibe', free: true, pro: true, type: 'bool' },
-              { name: 'Profile templates', free: '3 Basic', pro: 'Unlimited', type: 'value' },
-              { name: 'Custom domain', free: false, pro: true, type: 'bool' },
-              { name: 'Profile views analytics', free: false, pro: true, type: 'bool' },
-              { name: 'Who viewed my profile', free: false, pro: true, type: 'bool' },
-              { name: 'Profile badge (Verified)', free: false, pro: true, type: 'bool' },
+              { name: 'AI Elite Rating Analysis', free: true, pro: true, type: 'bool' },
+              { name: 'Trust Score Calculation', free: true, pro: true, type: 'bool' },
+              { name: 'Vibe Notes Reception', free: true, pro: true, type: 'bool' },
+              { name: 'Leaderboard Access', free: true, pro: true, type: 'bool' },
+              { name: 'Stage Classification (Seed/Pillar/Titan)', free: true, pro: true, type: 'bool' },
             ]
           },
           {
-            category: '🤖  AI & Generation',
+            category: '📝 PROFILE & RESUME',
             features: [
-              { name: 'Resume uploads per day', free: '2', pro: 'Unlimited', type: 'value' },
-              { name: 'AI vibe generation', free: true, pro: true, type: 'bool' },
-              { name: 'AI rewrite & optimization', free: false, pro: true, type: 'bool' },
-              { name: 'Smart skill detection', free: 'Basic', pro: 'Advanced', type: 'value' },
-              { name: 'Vibe score / Ranking', free: true, pro: true, type: 'bool' },
-              { name: 'Leaderboard position', free: 'Visible', pro: 'Pinned + Boost', type: 'value' },
+              { name: 'Monthly Resume Uploads', free: 'Limited', pro: 'Unlimited', type: 'value' },
+              { name: 'AI Resume Analysis', free: false, pro: true, type: 'bool' },
+              { name: 'Profile Dashboard Access', free: true, pro: true, type: 'bool' },
+              { name: 'View Your Rankings', free: true, pro: true, type: 'bool' },
             ]
           },
           {
-            category: '🔍  Discovery',
+            category: '👥 RECRUITER DISCOVERY',
             features: [
-              { name: 'Listed on public leaderboard', free: true, pro: true, type: 'bool' },
-              { name: 'Recruiter visibility', free: 'Standard', pro: 'Priority', type: 'value' },
-              { name: 'Appear in recruiter search', free: false, pro: true, type: 'bool' },
-              { name: 'Featured on homepage', free: false, pro: true, type: 'bool' },
-              { name: 'Social share cards', free: false, pro: true, type: 'bool' },
+              { name: 'Listed on Public Leaderboard', free: true, pro: true, type: 'bool' },
+              { name: 'Priority Recruiter Access', free: false, pro: true, type: 'bool' },
+              { name: 'Featured Leaderboard Position', free: false, pro: true, type: 'bool' },
+              { name: 'Premium Profile Badge', free: false, pro: true, type: 'bool' },
             ]
           },
           {
-            category: '🎨  Customization',
+            category: '📊 ANALYTICS',
             features: [
-              { name: 'Custom template styles', free: false, pro: true, type: 'bool' },
-              { name: 'Profile color themes', free: '1', pro: 'Unlimited', type: 'value' },
-              { name: 'Custom sections', free: false, pro: true, type: 'bool' },
-              { name: 'PDF export of portfolio', free: false, pro: true, type: 'bool' },
-              { name: 'JSON / Markdown export', free: false, pro: true, type: 'bool' },
+              { name: 'View Your Profile Stats', free: false, pro: true, type: 'bool' },
+              { name: 'Vibe Note Analytics', free: false, pro: true, type: 'bool' },
+              { name: 'Ranking Progress Tracking', free: false, pro: true, type: 'bool' },
             ]
           },
           {
-            category: '🛡️  Support & Security',
+            category: '🛡️ SUPPORT',
             features: [
-              { name: 'Email support', free: true, pro: true, type: 'bool' },
-              { name: 'Priority support', free: false, pro: true, type: 'bool' },
-              { name: 'Early access to new features', free: false, pro: true, type: 'bool' },
-              { name: 'Profile history & versioning', free: '24 hours', pro: 'Unlimited', type: 'value' },
-              { name: 'Auto-save drafts', free: false, pro: true, type: 'bool' },
+              { name: 'Email Support', free: true, pro: true, type: 'bool' },
+              { name: 'Priority Support', free: false, pro: true, type: 'bool' },
             ]
           },
         ].map((section, si) => (

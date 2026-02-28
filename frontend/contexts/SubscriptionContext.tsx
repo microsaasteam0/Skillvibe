@@ -24,6 +24,7 @@ interface SubscriptionInfo {
 interface SubscriptionContextType {
   subscriptionInfo: SubscriptionInfo | null
   isLoading: boolean
+  isProcessing: boolean
   checkSubscriptionStatus: () => Promise<void>
   refreshSubscriptionInfo: () => Promise<void>
   isInGracePeriod: boolean
@@ -49,6 +50,12 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
   const { user, isAuthenticated, updateUser } = useAuth()
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('payment_is_processing') === 'true'
+    }
+    return false
+  })
   const [lastCheck, setLastCheck] = useState<number>(0)
 
   // Derived state
@@ -61,6 +68,8 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
   const checkSubscriptionStatus = useCallback(async () => {
     if (!isAuthenticated || !user) {
       setSubscriptionInfo(null)
+      setIsProcessing(false)
+      sessionStorage.removeItem('payment_is_processing')
       return
     }
 
@@ -68,8 +77,9 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     const now = Date.now()
     const storedLastCheck = parseInt(sessionStorage.getItem('last_payment_check') || '0', 10)
     const effectiveLastCheck = Math.max(lastCheck, storedLastCheck)
+    const checkInterval = isProcessing ? 15 * 60 * 1000 : 5 * 60 * 1000
 
-    if (now - effectiveLastCheck < 5 * 60 * 1000) {
+    if (now - effectiveLastCheck < checkInterval) {
       const storedData = sessionStorage.getItem('subscription_info')
       if (storedData) {
         setSubscriptionInfo(JSON.parse(storedData))
@@ -81,48 +91,46 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
 
     try {
       setIsLoading(true)
-      // console.log('🔍 Checking subscription status with real-time validation...')
-
       const response = await axios.post(`${API_URL}/api/v1/payment/check-status`)
 
       if (response.data) {
-        const { success, is_premium, plan, message } = response.data
+        const { success, is_premium, status, message } = response.data
 
-        // Update user premium status if it changed
+        if (status === 'processing') {
+          setIsProcessing(true)
+          sessionStorage.setItem('payment_is_processing', 'true')
+          toast.loading(message, { id: 'payment-processing-toast', duration: 10000 })
+          setSubscriptionInfo(null)
+          sessionStorage.removeItem('subscription_info')
+          setLastCheck(now)
+          return
+        } else {
+          setIsProcessing(false)
+          sessionStorage.removeItem('payment_is_processing')
+        }
+
         if (user.is_premium !== is_premium) {
-          // console.log(`🔄 Premium status changed: ${user.is_premium} → ${is_premium}`)
           updateUser({ is_premium })
-
           if (!is_premium && user.is_premium) {
-            // Check if this is a manual cancellation (don't show error for manual cancellations)
             const isManualCancellation = sessionStorage.getItem('manual_cancellation')
-
             if (isManualCancellation) {
-              // console.log('🔄 Manual cancellation detected, skipping error notification')
               sessionStorage.removeItem('manual_cancellation')
             } else {
-              // User was downgraded due to expiration
               toast.error('SUBSCRIPTION_EXPIRED_DOWNGRADE')
             }
-
-            // Dispatch event for other components to react
             window.dispatchEvent(new CustomEvent('subscription-expired', {
               detail: { previousStatus: 'premium', currentStatus: 'free' }
             }))
           }
         }
 
-        // Parse subscription info from the message if available
         let subscriptionData: SubscriptionInfo | null = null
-
         if (is_premium && success) {
-          // Try to get detailed subscription info
           try {
             const detailResponse = await axios.get(`${API_URL}/api/v1/payment/history`)
             const activePayment = detailResponse.data?.payments?.find((p: any) =>
               p.status === 'completed' && p.plan_type !== 'free'
             )
-
             if (activePayment) {
               subscriptionData = {
                 id: activePayment.id,
@@ -135,20 +143,16 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
                 in_grace_period: false
               }
             }
-          } catch (detailError) {
-            // console.warn('Could not fetch detailed subscription info:', detailError)
+          } catch (error) {
+            // Error fetching history
           }
         }
 
-        // Parse expiry info from message if available
         if (message && message.includes('expires in')) {
           const match = message.match(/expires in (\d+) days/)
-          if (match) {
-            const days = parseInt(match[1])
-            if (subscriptionData) {
-              subscriptionData.days_until_expiry = days
-              subscriptionData.expiry_info = `expires in ${days} days`
-            }
+          if (match && subscriptionData) {
+            subscriptionData.days_until_expiry = parseInt(match[1])
+            subscriptionData.expiry_info = `expires in ${match[1]} days`
           }
         } else if (message && message.includes('grace period')) {
           if (subscriptionData) {
@@ -164,16 +168,10 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
           sessionStorage.removeItem('subscription_info')
         }
         setLastCheck(now)
-
-        // console.log('✅ Subscription status updated:', subscriptionData)
       }
     } catch (error: any) {
-      setLastCheck(now) // Update lastCheck to prevent infinite loops on error
-      // console.error('❌ Error checking subscription status:', error)
-
-      // If we get a 401, the user might have been downgraded
+      setLastCheck(now)
       if (error.response?.status === 401 && user?.is_premium) {
-        // console.log('🔄 Got 401 while checking subscription, user might be downgraded')
         updateUser({ is_premium: false })
         setSubscriptionInfo(null)
         toast.error('SESSION_EXPIRED_RE_AUTH_REQUIRED')
@@ -181,14 +179,13 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     } finally {
       setIsLoading(false)
     }
-  }, [isAuthenticated, user, lastCheck, updateUser])
+  }, [isAuthenticated, user, lastCheck, updateUser, isProcessing])
 
   const refreshSubscriptionInfo = useCallback(async () => {
-    setLastCheck(0) // Force refresh
+    setLastCheck(0)
     await checkSubscriptionStatus()
   }, [checkSubscriptionStatus])
 
-  // Check subscription status when user changes or on mount
   useEffect(() => {
     if (isAuthenticated && user) {
       checkSubscriptionStatus()
@@ -197,44 +194,33 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     }
   }, [isAuthenticated, user?.id, checkSubscriptionStatus])
 
-  // Periodic check for subscription status (every 30 minutes)
   useEffect(() => {
     if (!isAuthenticated || !user?.is_premium) return
-
     const interval = setInterval(() => {
-      // console.log('🔄 Periodic subscription status check...')
       checkSubscriptionStatus()
-    }, 30 * 60 * 1000) // 30 minutes
-
+    }, 30 * 60 * 1000)
     return () => clearInterval(interval)
   }, [isAuthenticated, user?.is_premium, checkSubscriptionStatus])
 
-  // Listen for subscription-related events
   useEffect(() => {
-    const handleSubscriptionUpdate = () => {
-      // console.log('🔄 Subscription update event received, refreshing...')
-      refreshSubscriptionInfo()
-    }
+    const handleUpdate = () => refreshSubscriptionInfo()
+    const handleSuccess = () => setTimeout(() => refreshSubscriptionInfo(), 2000)
 
-    const handlePaymentSuccess = () => {
-      // console.log('🎉 Payment success event received, refreshing subscription...')
-      setTimeout(() => refreshSubscriptionInfo(), 2000) // Small delay for webhook processing
-    }
-
-    window.addEventListener('subscription-updated', handleSubscriptionUpdate)
-    window.addEventListener('payment-success', handlePaymentSuccess)
-    window.addEventListener('subscription-cancelled', handleSubscriptionUpdate)
+    window.addEventListener('subscription-updated', handleUpdate)
+    window.addEventListener('payment-success', handleSuccess)
+    window.addEventListener('subscription-cancelled', handleUpdate)
 
     return () => {
-      window.removeEventListener('subscription-updated', handleSubscriptionUpdate)
-      window.removeEventListener('payment-success', handlePaymentSuccess)
-      window.removeEventListener('subscription-cancelled', handleSubscriptionUpdate)
+      window.removeEventListener('subscription-updated', handleUpdate)
+      window.removeEventListener('payment-success', handleSuccess)
+      window.removeEventListener('subscription-cancelled', handleUpdate)
     }
   }, [refreshSubscriptionInfo])
 
   const value: SubscriptionContextType = {
     subscriptionInfo,
     isLoading,
+    isProcessing,
     checkSubscriptionStatus,
     refreshSubscriptionInfo,
     isInGracePeriod,

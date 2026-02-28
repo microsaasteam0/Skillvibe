@@ -42,7 +42,6 @@ export default function Footer({ onSupportClick }: FooterProps) {
     {
       title: 'Product',
       links: [
-        { name: 'Features', href: '/features', external: false },
         { name: 'Pricing', href: '/pricing', external: false },
         ...(isAuthenticated
           ? [{ name: isRecruiter ? 'Find Talent' : 'My Profile', href: isRecruiter ? '/recruiter' : '/profile', external: false }]
@@ -104,11 +103,11 @@ export default function Footer({ onSupportClick }: FooterProps) {
           <div className="lg:col-span-5 flex flex-col justify-between">
             <div className="space-y-10">
               <Link href="/" className="flex items-center group gap-4 w-fit">
-                <div className="relative w-14 h-14 bg-black rounded-2xl border border-white/10 flex items-center justify-center p-2 group-hover:glow-cyan group-hover:scale-110 transition-all duration-500">
-                  <Image src="/logo.png" alt="Logo" width={40} height={40} className="w-full h-full object-contain filter dark:invert-0 invert" />
+                <div className="relative w-14 h-14 bg-white/[0.03] rounded-2xl border border-white/10 flex items-center justify-center transition-all duration-500 group-hover:border-cyan-500/50 group-hover:glow-cyan group-hover:scale-110 overflow-hidden">
+                  <Image src="/logo.png" alt="Logo" width={56} height={56} className="w-full h-full object-contain" />
                 </div>
                 <span className="text-3xl font-black tracking-tighter text-slate-900 dark:text-white uppercase italic">
-                  SKILL<span className="text-cyan-500">VIBE</span>
+                  SKILL<span className="text-cyan-500">VIBE</span> <span className="text-[10px] not-italic align-top ml-1 text-slate-400">AI PROTOCOL</span>
                 </span>
               </Link>
 

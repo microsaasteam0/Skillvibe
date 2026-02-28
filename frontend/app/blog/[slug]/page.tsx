@@ -9,7 +9,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
-import DashboardModal from '@/components/DashboardModal';
+import DashboardModal from '@/components/DashboardModal.jsx';
 
 import { useAuth } from '@/contexts/AuthContext';
 import AuthModal from '@/components/AuthModal';
@@ -338,7 +338,7 @@ export default function BlogPostPage() {
                                 Ready to scale your <br /> <span className="text-gradient">personal brand?</span>
                             </h2>
                             <p className="text-lg text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
-                                Join 5,000+ founders who use BUILDINPUBLIC to turn their daily work into high-performing content.
+                                Join 5,000+ talent architects who use SkillVibe to turn their daily work into verified trust signals.
                             </p>
 
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

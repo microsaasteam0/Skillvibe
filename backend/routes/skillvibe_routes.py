@@ -125,6 +125,15 @@ async def upload_resume(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Check resume upload limit for non-premium users
+    if not current_user.is_premium:
+        resume_limit = 2
+        if current_user.resume_upload_count >= resume_limit:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Resume upload limit reached ({resume_limit}). Upgrade to Pillar Elite for unlimited uploads."
+            )
+    
     # Extract text based on file type
     extracted_text = ""
     contents = await file.read()
@@ -396,6 +405,9 @@ async def upload_resume(
         profile.is_verified_trust = verified
         profile.verification_stage = stage
     
+    # Increment resume upload counter
+    current_user.resume_upload_count += 1
+    
     db.commit()
     db.refresh(profile)
     
@@ -416,6 +428,15 @@ async def generate_portfolio_with_template(
     current_user: User = Depends(get_current_user)
 ):
     """Generate the portfolio HTML using a specific template style"""
+    # Check resume upload limit for non-premium users
+    if not current_user.is_premium:
+        resume_limit = 2
+        if current_user.resume_upload_count >= resume_limit:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Resume upload limit reached ({resume_limit}). Upgrade to Pillar Elite for unlimited uploads."
+            )
+    
     profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Please upload a resume first.")
@@ -616,6 +637,12 @@ async def update_profile_settings(
     
     new_slug = settings.get("slug")
     if new_slug:
+        # Only premium users can customize their URL slug
+        if not current_user.is_premium:
+            raise HTTPException(
+                status_code=403,
+                detail="Custom URL is a Pillar Elite feature. Upgrade to customize your portfolio link."
+            )
         import re
         new_slug = re.sub(r'[^a-z0-9-]', '', new_slug.lower()).strip()
         if not new_slug:
@@ -642,6 +669,13 @@ async def update_portfolio(
     current_user: User = Depends(get_current_user)
 ):
     """Update profile structured data and metadata"""
+    # Premium-only feature: Portfolio customization
+    if not current_user.is_premium:
+        raise HTTPException(
+            status_code=403,
+            detail="Portfolio customization is available with Pillar Elite. Upgrade to unlock editing features."
+        )
+    
     profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
     if not profile:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -1078,11 +1112,13 @@ async def get_leaderboard(
     by: str = "rating", # 'rating', 'skill', 'location'
     skill_name: Optional[str] = None,
     location: Optional[str] = None,
+    tier: str = "free", # 'free' or 'pro' - separate leaderboards by user tier
     db: Session = Depends(get_db)
 ):
     query = db.query(Profile).join(User).filter(
         User.role == 'candidate',
-        Profile.is_public == True
+        Profile.is_public == True,
+        User.is_premium == (tier == "pro")  # Filter by tier
     )
     
     if by == "rating":
@@ -1105,10 +1141,11 @@ async def get_leaderboard(
             "full_name": p.user.full_name,
             "profile_picture": p.user.profile_picture,
             "ranking_score": p.ranking_score,
-            "slug": p.slug
+            "slug": p.slug,
+            "tier": "Pro" if p.user.is_premium else "Free"  # Include tier info
         })
     
-    return leaderboard
+    return {"tier": tier, "leaderboard": leaderboard}
 
 @skillvibe_router.get("/recruiter/candidates")
 async def get_candidates(
@@ -1434,6 +1471,13 @@ async def get_vibe_notes(slug: str, db: Session = Depends(get_db)):
 @skillvibe_router.get("/vibe-history/me")
 async def get_my_vibe_history(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Fetch interaction history with points breakdown for the current user"""
+    # Only premium users can access vibe history
+    if not current_user.is_premium:
+        raise HTTPException(
+            status_code=403,
+            detail="Vibe History is a Pillar Elite feature. Upgrade to track your interactions and points."
+        )
+    
     profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
     if not profile:
         return {"trust_score": 0.0, "elite_rating": 0.0, "history": []}

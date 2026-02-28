@@ -2,12 +2,12 @@ import { Metadata } from 'next'
 import AboutClient from './AboutClient'
 
 export const metadata: Metadata = {
-  title: 'About BuildInPublic - Mission & Team | AI Content Strategy',
-  description: 'Discover the mission behind BuildInPublic. We empower creators and marketers to multiply their reach through AI-powered content transformation and social media optimization.',
-  keywords: 'about BuildInPublic, content creator mission, AI content strategy, Entrext Labs, social media growth tools',
+  title: 'About SkillVibe | The Elite Reputation Protocol',
+  description: 'Learn about SkillVibe, the AI-powered reputation protocol for the top 1% of talent. We help professionals verify their prowess and get discovered by founders.',
+  keywords: 'about SkillVibe, talent protocol, AI talent verification, Entrext Labs, elite developer network',
   openGraph: {
-    title: 'BuildInPublic AI - Empowering Creators and Marketers',
-    description: 'Learn about our mission to revolutionize content repurposing with intelligent AI solutions.',
+    title: 'About SkillVibe - Elite Talent Network',
+    description: 'Learn about our mission to revolutionize professional verification with intelligent AI solutions.',
     type: 'website',
   },
 }

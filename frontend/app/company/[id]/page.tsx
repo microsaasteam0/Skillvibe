@@ -173,14 +173,24 @@ export default function CompanyProfilePage() {
                 <h1 className="text-4xl md:text-6xl font-black text-white uppercase italic tracking-tighter">
                   {data.company?.name}
                 </h1>
-                {isOwner && !isEditing && (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="px-4 py-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-black uppercase tracking-widest"
-                  >
-                    Edit Company Profile
-                  </button>
-                )}
+                <div className="flex flex-wrap gap-3">
+                  {isOwner && !isEditing && (
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="px-4 py-2 rounded-lg border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 text-xs font-black uppercase tracking-widest"
+                    >
+                      Edit Company Profile
+                    </button>
+                  )}
+                  {!isRecruiter && user && (
+                    <Link href="/jobs">
+                      <button className="px-4 py-2 rounded-lg border border-slate-500/30 bg-slate-500/10 text-slate-300 text-xs font-black uppercase tracking-widest hover:bg-slate-500/20 transition-all flex items-center gap-2">
+                        <ArrowLeft className="w-3 h-3" />
+                        Back to Jobs
+                      </button>
+                    </Link>
+                  )}
+                </div>
                 <div className="flex flex-wrap items-center gap-4 text-xs font-black uppercase tracking-widest text-slate-400">
                   <span className="inline-flex items-center gap-2"><MapPin className="w-4 h-4" />{data.company?.location || 'Remote'}</span>
                   <span className="inline-flex items-center gap-2"><Briefcase className="w-4 h-4" />{data.company?.open_jobs_count || 0} open jobs</span>

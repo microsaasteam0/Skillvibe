@@ -12,7 +12,7 @@ import { API_URL } from '@/lib/api-config'
 import { requestCache } from '@/lib/cache-util'
 import toast from 'react-hot-toast'
 import AuthModal from '../../components/AuthModal'
-import DashboardModal from '../../components/DashboardModal'
+import DashboardModal from '../../components/DashboardModal.jsx'
 
 export default function ProfileRedirectPage() {
     const { user, isAuthenticated, isLoading } = useAuth()
@@ -52,20 +52,23 @@ export default function ProfileRedirectPage() {
                     setIsPublic(response.is_public ?? true)
                     setStatus('ready')
 
-                    try {
-                        const historyRes = await axios.get(`${API_URL}/api/v1/skillvibe/vibe-history/me`, {
-                            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
-                        })
-                        if (historyRes.data) {
-                            setVibeHistory(historyRes.data.history || [])
-                            setVibeScores({
-                                trust_score: historyRes.data.trust_score || 0,
-                                elite_rating: historyRes.data.elite_rating || 0,
-                                verification_stage: historyRes.data.verification_stage || 1
+                    // Only fetch vibe history for premium users
+                    if (user?.is_premium) {
+                        try {
+                            const historyRes = await axios.get(`${API_URL}/api/v1/skillvibe/vibe-history/me`, {
+                                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
                             })
+                            if (historyRes.data) {
+                                setVibeHistory(historyRes.data.history || [])
+                                setVibeScores({
+                                    trust_score: historyRes.data.trust_score || 0,
+                                    elite_rating: historyRes.data.elite_rating || 0,
+                                    verification_stage: historyRes.data.verification_stage || 1
+                                })
+                            }
+                        } catch (err) {
+                            console.error("Could not load history", err)
                         }
-                    } catch (err) {
-                        console.error("Could not load history", err)
                     }
                 }
             } catch (error: any) {
@@ -290,13 +293,15 @@ export default function ProfileRedirectPage() {
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between px-2">
                                             <p className="font-black text-white uppercase tracking-widest text-[11px]">YOUR PROFILE URL</p>
-                                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600">CUSTOM LINK</span>
+                                            <span className={`text-[9px] font-black uppercase tracking-[0.3em] ${user?.is_premium ? 'text-emerald-500' : 'text-amber-500'}`}>
+                                                {user?.is_premium ? 'CUSTOM LINK' : 'PRO FEATURE'}
+                                            </span>
                                         </div>
                                         <div className="flex items-center gap-4 bg-white/[0.02] p-5 rounded-[1.5rem] border border-white/5 group/input focus-within:border-cyan-500/30 transition-all duration-700">
                                             <div className="text-slate-600 text-[10px] font-black uppercase tracking-widest pr-4 border-r border-white/5">
-                                                skillvibe.net/
+                                                skillvibe.entrext.com/profile/
                                             </div>
-                                            {isEditingSlug ? (
+                                            {isEditingSlug && user?.is_premium ? (
                                                 <input
                                                     value={newSlug}
                                                     onChange={(e) => setNewSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
@@ -309,18 +314,22 @@ export default function ProfileRedirectPage() {
                                                 <span className="text-xs font-black text-white flex-1 truncate uppercase tracking-widest">{slug}</span>
                                             )}
                                             <button
-                                                onClick={isEditingSlug ? saveSlug : () => setIsEditingSlug(true)}
-                                                disabled={isUpdating}
-                                                className={`p-3 rounded-xl transition-all duration-500 ${isEditingSlug ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-white/5 text-slate-500 border border-white/5 hover:text-cyan-500 hover:border-cyan-500/30'}`}
+                                                onClick={isEditingSlug ? saveSlug : () => user?.is_premium ? setIsEditingSlug(true) : toast.error('Upgrade to Pillar Elite to customize your portfolio URL')}
+                                                disabled={isUpdating || !user?.is_premium}
+                                                className={`p-3 rounded-xl transition-all duration-500 ${isEditingSlug ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : user?.is_premium ? 'bg-white/5 text-slate-500 border border-white/5 hover:text-cyan-500 hover:border-cyan-500/30' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20 cursor-not-allowed opacity-50'}`}
                                             >
                                                 {isEditingSlug ? (
                                                     <Check className="w-4 h-4" />
-                                                ) : (
+                                                ) : user?.is_premium ? (
                                                     <Edit2 className="w-4 h-4" />
+                                                ) : (
+                                                    <Lock className="w-4 h-4" />
                                                 )}
                                             </button>
                                         </div>
-                                        <p className="text-[9px] text-slate-700 font-bold uppercase tracking-tight pl-2 px-1">Only letters, numbers and hyphens allowed.</p>
+                                        <p className="text-[9px] text-slate-700 font-bold uppercase tracking-tight pl-2 px-1">
+                                            {user?.is_premium ? 'Only letters, numbers and hyphens allowed.' : '🔒 Custom URLs are available with Pillar Elite'}
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -328,6 +337,21 @@ export default function ProfileRedirectPage() {
                             {/* Vibe History Panel */}
                             <div className="glass-card rounded-[3rem] p-10 md:p-14 border border-white/10 relative overflow-hidden group text-left mt-8">
                                 <div className="absolute inset-0 bg-cyber-grid opacity-5 pointer-events-none" />
+
+                                {/* Lock Overlay for Non-Premium Users */}
+                                {!user?.is_premium && (
+                                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm z-50 rounded-[3rem] flex items-center justify-center">
+                                        <div className="text-center">
+                                            <Lock className="w-12 h-12 text-amber-500 mx-auto mb-4" />
+                                            <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-3">PREMIUM FEATURE</p>
+                                            <p className="text-xs text-slate-300 mb-6 max-w-xs">Unlock your Vibe tracking history with Pillar Elite</p>
+                                            <a href="/pricing" className="inline-block px-6 py-3 bg-amber-500 text-black font-black text-[10px] uppercase tracking-widest rounded-lg hover:bg-amber-400 transition-colors">
+                                                UPGRADE TO PRO
+                                            </a>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-12 relative z-10 w-full justify-between pr-4">
                                     <div className="flex items-center gap-4">
                                         <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
@@ -359,7 +383,11 @@ export default function ProfileRedirectPage() {
                                     className="relative z-10 space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-4 overscroll-contain"
                                     data-lenis-prevent="true"
                                 >
-                                    {vibeHistory.length === 0 ? (
+                                    {!user?.is_premium ? (
+                                        <div className="text-center py-10 opacity-50">
+                                            <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">Content locked for free users.</p>
+                                        </div>
+                                    ) : vibeHistory.length === 0 ? (
                                         <div className="text-center py-10 opacity-50">
                                             <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">No tracking history yet.</p>
                                         </div>

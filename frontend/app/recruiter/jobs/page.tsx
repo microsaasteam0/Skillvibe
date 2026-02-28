@@ -13,7 +13,7 @@ import { requestCache } from '@/lib/cache-util'
 import Navbar from '../../../components/Navbar'
 import Footer from '../../../components/Footer'
 import AuthModal from '../../../components/AuthModal'
-import DashboardModal from '../../../components/DashboardModal'
+import DashboardModal from '../../../components/DashboardModal.jsx'
 import { useAuth } from '../../../contexts/AuthContext'
 import LocationInput from '../../../components/LocationInput'
 import CustomSelect from '../../../components/CustomSelect'
@@ -89,7 +89,11 @@ export default function RecruiterJobsPage() {
     return fallback
   }
 
-  const authHeader = { Authorization: `Bearer ${localStorage.getItem('access_token')}` }
+  const getAuthHeader = () => {
+    if (typeof window === 'undefined') return {}
+    const token = localStorage.getItem('access_token')
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }
 
   const fetchMyJobs = async () => {
     setLoading(true)
@@ -97,7 +101,7 @@ export default function RecruiterJobsPage() {
       const data = await requestCache.get(
         `recruiter-jobs-${user?.id || 'unknown'}`,
         async () => {
-          const response = await axios.get(`${API_URL}/api/v1/jobs/recruiter/me`, { headers: authHeader })
+          const response = await axios.get(`${API_URL}/api/v1/jobs/recruiter/me`, { headers: getAuthHeader() })
           return response.data || []
         },
         5000
@@ -116,7 +120,7 @@ export default function RecruiterJobsPage() {
       const data = await requestCache.get(
         `job-applications-${jobId}`,
         async () => {
-          const response = await axios.get(`${API_URL}/api/v1/jobs/${jobId}/applications`, { headers: authHeader })
+          const response = await axios.get(`${API_URL}/api/v1/jobs/${jobId}/applications`, { headers: getAuthHeader() })
           return response.data || []
         },
         5000
@@ -130,7 +134,7 @@ export default function RecruiterJobsPage() {
   const findTopMatches = async (jobId: number) => {
     setMatchingJobId(jobId)
     try {
-      const response = await axios.get(`${API_URL}/api/v1/skillvibe/job-matches/${jobId}`, { headers: authHeader })
+      const response = await axios.get(`${API_URL}/api/v1/skillvibe/job-matches/${jobId}`, { headers: getAuthHeader() })
       setAiMatchesByJob(prev => ({ ...prev, [jobId]: response.data }))
     } catch (error: any) {
       toast.error(getErrorMessage(error, 'AI Engine currently recalibrating...'))
@@ -181,7 +185,7 @@ export default function RecruiterJobsPage() {
         requirements: form.requirements,
       }
 
-      await axios.post(`${API_URL}/api/v1/jobs`, payload, { headers: authHeader })
+      await axios.post(`${API_URL}/api/v1/jobs`, payload, { headers: getAuthHeader() })
       requestCache.invalidate(`recruiter-jobs-${user?.id || 'unknown'}`)
       toast.success('Job posted')
       setForm({
@@ -208,7 +212,7 @@ export default function RecruiterJobsPage() {
       await axios.patch(
         `${API_URL}/api/v1/jobs/${job.id}`,
         { is_active: !job.is_active },
-        { headers: authHeader }
+        { headers: getAuthHeader() }
       )
       requestCache.invalidate(`recruiter-jobs-${user?.id || 'unknown'}`)
       toast.success(job.is_active ? 'Job closed' : 'Job reopened')
@@ -223,7 +227,7 @@ export default function RecruiterJobsPage() {
       await axios.patch(
         `${API_URL}/api/v1/jobs/applications/${applicationId}/status`,
         { status },
-        { headers: authHeader }
+        { headers: getAuthHeader() }
       )
       requestCache.invalidate(`job-applications-${jobId}`)
       requestCache.invalidate(`recruiter-jobs-${user?.id || 'unknown'}`)

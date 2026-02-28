@@ -7,11 +7,12 @@ import { getAllPosts, BlogPost } from '@/lib/blog-data';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import AuthModal from '@/components/AuthModal';
-import DashboardModal from '@/components/DashboardModal';
+import DashboardModal from '@/components/DashboardModal.jsx';
 
 import { useAuth } from '@/contexts/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Calendar, User, Clock, ChevronRight, BookOpen, Tag } from 'lucide-react';
+import Script from 'next/script';
 
 const containerVariants = {
     hidden: { opacity: 0 },
@@ -50,8 +51,24 @@ export default function BlogPage() {
         ? allPosts
         : allPosts.filter(post => post.category === selectedCategory);
 
+    const jsonLd = {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        itemListElement: filteredPosts.map((post, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            url: `https://skillvibe.entrext.com/blog/${post.slug}`,
+            name: post.title,
+        })),
+    };
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-black font-sans selection:bg-primary/30 selection:text-primary-foreground overflow-x-hidden">
+            <Script
+                id="blog-list-jsonld"
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            />
             <Navbar
                 isAuthenticated={isAuthenticated}
                 user={user}
@@ -95,7 +112,7 @@ export default function BlogPage() {
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                             </span>
-                            Building In Public 2026
+                            Building SkillVibe 2026
                         </motion.div>
 
                         <h1 className="text-5xl md:text-7xl font-display font-bold mb-8 tracking-tight text-foreground">

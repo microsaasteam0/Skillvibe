@@ -20,7 +20,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import AuthModal from '@/components/AuthModal'
-import DashboardModal from '@/components/DashboardModal'
+import DashboardModal from '@/components/DashboardModal.jsx'
 import Footer from '@/components/Footer'
 import { useAuth } from '@/contexts/AuthContext'
 

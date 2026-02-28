@@ -1,8 +1,9 @@
 import { MetadataRoute } from 'next';
 import { blogPosts } from '../lib/blog-data';
+import { API_URL } from '../lib/api-config';
 
-export default function sitemap(): MetadataRoute.Sitemap {
-    const baseUrl = 'https://www.skillvibe.entrext.com';
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+    const baseUrl = 'https://skillvibe.entrext.com';
 
     const baseRoutes: MetadataRoute.Sitemap = [
         {
@@ -12,10 +13,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
             priority: 1.0,
         },
         {
-            url: `${baseUrl}/rankings`,
+            url: `${baseUrl}/leaderboard`,
+            lastModified: new Date(),
+            changeFrequency: 'daily',
+            priority: 0.9,
+        },
+        {
+            url: `${baseUrl}/vibe-trust`,
             lastModified: new Date(),
             changeFrequency: 'weekly',
-            priority: 0.8,
+            priority: 0.9,
         },
         {
             url: `${baseUrl}/pricing`,
@@ -30,6 +37,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
             priority: 0.8,
         },
         {
+            url: `${baseUrl}/jobs`,
+            lastModified: new Date(),
+            changeFrequency: 'daily',
+            priority: 0.8,
+        },
+        {
             url: `${baseUrl}/about`,
             lastModified: new Date(),
             changeFrequency: 'monthly',
@@ -39,31 +52,31 @@ export default function sitemap(): MetadataRoute.Sitemap {
             url: `${baseUrl}/updates`,
             lastModified: new Date(),
             changeFrequency: 'weekly',
-            priority: 0.6,
+            priority: 0.7,
         },
         {
-            url: `${baseUrl}/discover`,
+            url: `${baseUrl}/community`,
             lastModified: new Date(),
-            changeFrequency: 'weekly',
-            priority: 0.6,
+            changeFrequency: 'daily',
+            priority: 0.8,
         },
         {
             url: `${baseUrl}/privacy-policy`,
             lastModified: new Date(),
             changeFrequency: 'monthly',
-            priority: 0.3,
+            priority: 0.5,
         },
         {
             url: `${baseUrl}/terms-of-service`,
             lastModified: new Date(),
             changeFrequency: 'monthly',
-            priority: 0.3,
+            priority: 0.5,
         },
         {
             url: `${baseUrl}/cookie-policy`,
             lastModified: new Date(),
             changeFrequency: 'monthly',
-            priority: 0.3,
+            priority: 0.5,
         },
     ];
 
@@ -75,5 +88,25 @@ export default function sitemap(): MetadataRoute.Sitemap {
         priority: 0.7,
     }));
 
-    return [...baseRoutes, ...blogRoutes];
+    // Dynamic User Profilers
+    let profileRoutes: MetadataRoute.Sitemap = [];
+    try {
+        const res = await fetch(`${API_URL}/api/v1/public/profiles/sitemap`, {
+            next: { revalidate: 0 } // Cache bypassed so slug updates reflect instantly
+        });
+
+        if (res.ok) {
+            const profiles = await res.json();
+            profileRoutes = profiles.map((profile: any) => ({
+                url: `${baseUrl}/profile/${profile.slug}`,
+                lastModified: new Date(profile.updated_at),
+                changeFrequency: 'always',
+                priority: 0.8,
+            }));
+        }
+    } catch (error) {
+        console.error("Failed to fetch profiles for dynamic sitemap:", error);
+    }
+
+    return [...baseRoutes, ...blogRoutes, ...profileRoutes];
 }

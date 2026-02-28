@@ -124,3 +124,27 @@ async def debug_public_templates(db: Session = Depends(get_db)):
             "error": str(e),
             "traceback": traceback.format_exc()
         }
+
+@public_router.get("/profiles/sitemap")
+async def get_profiles_sitemap(db: Session = Depends(get_db)):
+    """Get all public profile slugs and their last updated times for sitemap.xml"""
+    try:
+        from models import Profile
+        
+        profiles = db.query(Profile).filter(Profile.is_public == True).all()
+        
+        sitemap_data = []
+        for profile in profiles:
+            sitemap_data.append({
+                "slug": profile.slug,
+                "updated_at": profile.updated_at.isoformat() if profile.updated_at else profile.created_at.isoformat()
+            })
+            
+        return sitemap_data
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch profiles for sitemap: {str(e)}"
+        )

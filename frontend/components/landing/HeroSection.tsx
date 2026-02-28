@@ -47,7 +47,7 @@ export default function HeroSection({ isAuthenticated, user, onStartCreating, on
                 >
                     <div className="w-2 h-2 rounded-full bg-cyan-500 animate-pulse shadow-[0_0_10px_rgba(6,182,212,1)]" />
                     <span className="text-[10px] sm:text-[11px] font-black text-cyan-500 tracking-[0.3em] uppercase">
-                        Smart Trust System v2.0.4
+                        Proof of Work, Verified by AI
                     </span>
                     <Terminal className="w-3.5 h-3.5 text-cyan-500 opacity-50 group-hover:opacity-100 transition-opacity" />
                 </motion.div>
@@ -59,11 +59,12 @@ export default function HeroSection({ isAuthenticated, user, onStartCreating, on
                     transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
                     className="mb-8"
                 >
-                    <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black leading-[0.85] tracking-tighter text-slate-900 dark:text-white drop-shadow-2xl">
+                    <h1 className="sr-only">SkillVibe AI Protocol - Elite Proof of Work Verification & Talent Reputation Layer</h1>
+                    <div className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black leading-[0.85] tracking-tighter text-slate-900 dark:text-white drop-shadow-2xl">
                         {isRecruiter ? 'FIND THE' : 'YOUR NEW'} <br />
                         <span className="text-gradient-cyan drop-shadow-[0_0_30px_rgba(6,182,212,0.3)]">TRUST</span> <br />
                         <span className="italic outline-text dark:text-transparent dark:[-webkit-text-stroke:2px_rgba(255,255,255,0.1)]">SCORE</span>
-                    </h1>
+                    </div>
                 </motion.div>
 
                 {/* Narrative */}
@@ -74,8 +75,8 @@ export default function HeroSection({ isAuthenticated, user, onStartCreating, on
                     className="text-lg sm:text-xl md:text-2xl text-slate-600 dark:text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed font-bold tracking-tight px-4"
                 >
                     {isRecruiter
-                        ? 'Stop guessing. Find the best people based on their real skills and proven work history.'
-                        : 'Show off your work and get a vibe score. It is the easiest way to prove you are great at what you do.'
+                        ? 'SkillVibe is the elite reputation layer for modern talent. Find the top 1% using real-world proof of work and intelligent trust scores.'
+                        : 'Elevate your visibility. Showcase your real-world proof of work, rank against the global best, and get discovered by top founders.'
                     }
                 </motion.p>
 

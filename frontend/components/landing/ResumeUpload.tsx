@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { createPortal } from 'react-dom'
 import { Upload, FileText, CheckCircle, Loader2, Rocket, Sparkles, ChevronRight, Zap, Palette, Cpu, X, ArrowRight, Eye, ArrowLeft, ShieldCheck, Target, Terminal } from 'lucide-react'
@@ -18,6 +19,7 @@ export default function ResumeUpload({
     isAuthenticated?: boolean,
     onRequireAuth?: () => void
 }) {
+    const router = useRouter()
     const [file, setFile] = useState<File | null>(null)
     const [previewUrl, setPreviewUrl] = useState<string | null>(null)
     const [showPreview, setShowPreview] = useState(false)
@@ -27,6 +29,35 @@ export default function ResumeUpload({
     const [step, setStep] = useState<'upload' | 'vibe'>('upload')
     const [extractedSlug, setExtractedSlug] = useState('')
     const [pendingUpload, setPendingUpload] = useState(false)
+    const [resumeCount, setResumeCount] = useState(0)
+    const [resumeLimit, setResumeLimit] = useState(2)
+    const [isLoadingStats, setIsLoadingStats] = useState(true)
+
+    // Fetch resume upload limit
+    useEffect(() => {
+        const fetchUsageStats = async () => {
+            setIsLoadingStats(true)
+            if (isAuthenticated) {
+                try {
+                    const token = localStorage.getItem('access_token')
+                    if (token) {
+                        const response = await axios.get(`${API_URL}/api/v1/auth/usage-stats`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        })
+                        setResumeCount(response.data.resume_upload_count || 0)
+                        setResumeLimit(response.data.resume_upload_limit || 2)
+                    }
+                } catch (error) {
+                    console.error('Error fetching usage stats:', error)
+                } finally {
+                    setIsLoadingStats(false)
+                }
+            } else {
+                setIsLoadingStats(false)
+            }
+        }
+        fetchUsageStats()
+    }, [isAuthenticated])
 
     // Automatically trigger upload if it was pending and user just logged in
     useEffect(() => {
@@ -97,6 +128,12 @@ export default function ResumeUpload({
         if (!isAuthenticated && onRequireAuth) {
             setPendingUpload(true)
             onRequireAuth()
+            return
+        }
+
+        // Check resume upload limit
+        if (resumeCount >= resumeLimit) {
+            toast.error(`Resume upload limit reached (${resumeLimit}). Upgrade to Pillar Elite for unlimited uploads.`)
             return
         }
 
@@ -374,12 +411,32 @@ export default function ResumeUpload({
                     </div>
                 )}
 
+                {isAuthenticated && resumeCount >= resumeLimit && (
+                    <div className="mt-12 p-6 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-center">
+                        <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-3">📄 RESUME LIMIT REACHED</p>
+                        <p className="text-sm text-amber-300/80 mb-4">You've uploaded {resumeCount} of {resumeLimit} resumes. Upgrade to Pillar Elite for unlimited uploads.</p>
+                        <button onClick={() => router.push('/pricing')} className="inline-block px-6 py-3 bg-amber-500 text-black font-black text-[10px] uppercase tracking-widest rounded-lg hover:bg-amber-400 transition-colors cursor-pointer">
+                            VIEW PRICING →
+                        </button>
+                    </div>
+                )}
+
                 <button
                     onClick={handleUpload}
-                    disabled={!file || isUploading}
+                    disabled={!file || isUploading || isLoadingStats || (resumeCount >= resumeLimit)}
                     className="w-full mt-20 py-8 bg-cyan-500 text-black font-black rounded-[2.5rem] shadow-[0_0_40px_rgba(6,182,212,0.3)] hover:scale-[1.02] active:scale-95 transition-all text-xs uppercase tracking-[0.4em] flex items-center justify-center gap-4 group disabled:opacity-50 disabled:grayscale"
                 >
-                    {isUploading ? (
+                    {isLoadingStats ? (
+                        <>
+                            <Loader2 className="w-6 h-6 animate-spin" />
+                            LOADING YOUR STATS...
+                        </>
+                    ) : resumeCount >= resumeLimit ? (
+                        <>
+                            <Loader2 className="w-6 h-6" />
+                            LIMIT REACHED - UPGRADE TO UPLOAD
+                        </>
+                    ) : isUploading ? (
                         <>
                             <Loader2 className="w-6 h-6 animate-spin" />
                             GETTING THINGS READY...
