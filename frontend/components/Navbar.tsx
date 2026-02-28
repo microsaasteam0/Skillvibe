@@ -79,12 +79,25 @@ export default function Navbar({
 
   const isRecruiter = user?.role === 'recruiter'
 
+  const getCompanySlug = () => {
+    if (!user?.company_info) return user?.id?.toString() || 'company'
+    const slug = user.company_info
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+    return slug || user?.id?.toString() || 'company'
+  }
+
   const navLinks = [
     { name: 'Home', href: '/', show: true },
     { name: 'Rankings', href: '/leaderboard', show: true },
-    { name: 'Jobs', href: '/jobs', show: true },
+    { name: 'Jobs', href: '/jobs', show: !isRecruiter },
     { name: isRecruiter ? 'Find Talent' : 'My Profile', href: isRecruiter ? '/recruiter' : '/profile', show: isAuthenticated },
     { name: 'Job Posts', href: '/recruiter/jobs', show: isAuthenticated && isRecruiter },
+    { name: 'Vibe Protocol', href: '/vibe-trust', show: true },
     { name: 'Pricing', href: '/pricing', show: true },
   ]
 
@@ -157,7 +170,7 @@ export default function Navbar({
                   href={link.href}
                   className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${isActive
                     ? 'text-cyan-500 bg-cyan-500/10 border border-cyan-500/20'
-                    : 'text-slate-500 hover:text-cyan-400 hover:bg-white/5'
+                    : 'text-slate-600 dark:text-zinc-400 hover:text-cyan-400 hover:bg-black/5 dark:hover:bg-white/5'
                     }`}
                 >
                   {link.name}

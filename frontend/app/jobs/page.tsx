@@ -13,6 +13,8 @@ import Footer from '../../components/Footer'
 import AuthModal from '../../components/AuthModal'
 import DashboardModal from '../../components/DashboardModal'
 import { useAuth } from '../../contexts/AuthContext'
+import LocationInput from '../../components/LocationInput'
+import JobContent from '../../components/JobContent'
 
 export default function JobsPage() {
   const { isAuthenticated, user } = useAuth()
@@ -108,7 +110,7 @@ export default function JobsPage() {
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .replace(/^-|-$/g, '') || 'company'
-    return recruiterId ? `${safeName}-${recruiterId}` : safeName
+    return safeName
   }
 
   return (
@@ -149,12 +151,11 @@ export default function JobsPage() {
               />
             </div>
             <div className="relative">
-              <MapPin className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input
+              <LocationInput
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="Location"
-                className="w-full pl-10 pr-4 py-4 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm font-bold"
+                onChange={setLocation}
+                placeholder="Global Location (e.g. London, Tokyo...)"
+                className="py-4 rounded-xl bg-white/[0.03] border border-white/10 text-white text-sm font-bold"
               />
             </div>
           </div>
@@ -185,26 +186,22 @@ export default function JobsPage() {
                         <span className="inline-flex items-center gap-2"><Briefcase className="w-4 h-4" />{job.job_type}</span>
                         <span className="inline-flex items-center gap-2"><Clock3 className="w-4 h-4" />{job.work_mode}</span>
                       </div>
-                      <div className="max-w-3xl space-y-3">
-                        <div>
-                          <p className="text-cyan-500 text-[10px] uppercase tracking-widest font-black mb-1">About Role</p>
-                          <p className={`text-slate-300 text-sm leading-7 whitespace-pre-line ${expandedJobs[job.id] ? '' : 'line-clamp-6'}`}>
-                            {job.description}
-                          </p>
+                      <div className="max-w-3xl">
+                        <div className="mb-6">
+                          <p className="text-cyan-500 text-[10px] uppercase tracking-widest font-black mb-3">About Role</p>
+                          <JobContent content={job.description} isExpanded={expandedJobs[job.id]} />
                         </div>
                         {job.requirements && (
-                          <div>
-                            <p className="text-cyan-500 text-[10px] uppercase tracking-widest font-black mb-1">Requirements</p>
-                            <p className={`text-slate-400 text-sm leading-7 whitespace-pre-line ${expandedJobs[job.id] ? '' : 'line-clamp-5'}`}>
-                              {job.requirements}
-                            </p>
+                          <div className="mb-6 border-t border-white/5 pt-6">
+                            <p className="text-cyan-500 text-[10px] uppercase tracking-widest font-black mb-3">Requirements</p>
+                            <JobContent content={job.requirements} isExpanded={expandedJobs[job.id]} />
                           </div>
                         )}
                         <button
                           onClick={() => setExpandedJobs(prev => ({ ...prev, [job.id]: !prev[job.id] }))}
-                          className="text-cyan-400 text-[11px] font-black uppercase tracking-widest"
+                          className="px-4 py-2 rounded-lg border border-cyan-500/20 bg-cyan-500/5 text-cyan-400 text-[11px] font-black uppercase tracking-widest hover:bg-cyan-500/10 hover:border-cyan-500/40 transition-all mt-2"
                         >
-                          {expandedJobs[job.id] ? 'Show Less' : 'Show Full Details'}
+                          {expandedJobs[job.id] ? 'Show Less' : 'View Full Details'}
                         </button>
                       </div>
                       {job.salary_range && (

@@ -12,7 +12,6 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
   className = '',
   type = 'default'
 }) => {
-  // Get the appropriate CSS class based on type
   const getTypeClass = () => {
     switch (type) {
       case 'tweet':
@@ -26,9 +25,27 @@ export const FormattedText: React.FC<FormattedTextProps> = ({
     }
   }
 
+  const renderFormattedText = (content: string) => {
+    if (!content) return null
+
+    // Simple regex to match **bold** or *bold*
+    // Handles both **text** and *text* as bold
+    const parts = content.split(/(\*\*.*?\*\*|\*.*?\*)/g)
+
+    return parts.map((part, i) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        return <strong key={i} className="font-black text-white">{part.slice(2, -2)}</strong>
+      }
+      if (part.startsWith('*') && part.endsWith('*')) {
+        return <strong key={i} className="font-black text-white">{part.slice(1, -1)}</strong>
+      }
+      return part
+    })
+  }
+
   return (
-    <div className={`${getTypeClass()} ${className}`}>
-      {text}
+    <div className={`${getTypeClass()} ${className} whitespace-pre-wrap`}>
+      {renderFormattedText(text)}
     </div>
   )
 }

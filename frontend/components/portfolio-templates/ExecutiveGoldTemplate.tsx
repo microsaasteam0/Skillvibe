@@ -1,16 +1,18 @@
 import { motion } from 'framer-motion'
-import { Crown, Github, Linkedin, ExternalLink, ShieldCheck, Save, Award } from 'lucide-react'
+import { Crown, Github, Linkedin, ExternalLink, ShieldCheck, Save, Award, Sparkles, ShieldAlert } from 'lucide-react'
 import EditableText from './EditableText'
 import { useState, useEffect } from 'react'
 
 export default function ExecutiveGoldTemplate({
     data,
     isEditing = false,
-    onSave
+    onSave,
+    vibeNotes = []
 }: {
     data: any,
     isEditing?: boolean,
-    onSave?: (updatedData: any) => void
+    onSave?: (updatedData: any) => void,
+    vibeNotes?: any[]
 }) {
     const [localData, setLocalData] = useState<any>(data)
 
@@ -68,18 +70,41 @@ export default function ExecutiveGoldTemplate({
                                 className="text-xs uppercase tracking-[0.5em] font-black text-[#c6a052]"
                             />
                         </div>
-                        <EditableText
-                            as="h1"
-                            value={full_name}
-                            isEditing={isEditing}
-                            onSave={(v) => setLocalData({ ...localData, full_name: v })}
-                            className="text-7xl md:text-9xl font-black uppercase tracking-tighter leading-[0.85] text-white"
-                        />
+                        <div className="flex flex-col gap-4">
+                            <EditableText
+                                as="h1"
+                                value={full_name}
+                                isEditing={isEditing}
+                                onSave={(v) => setLocalData({ ...localData, full_name: v })}
+                                className="text-7xl md:text-9xl font-black uppercase tracking-tighter leading-[0.85] text-white"
+                            />
+                            {localData.is_verified_trust && (
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.5em] text-[#c6a052] bg-[#c6a052]/10 w-fit px-6 py-2 border border-[#c6a052]/30">
+                                    <ShieldAlert className="w-4 h-4" /> Platinum Verified
+                                </div>
+                            )}
+                        </div>
                         <div className="flex items-center gap-8 pt-4">
                             <div className="flex flex-col">
                                 <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">Profile Grade</span>
                                 <span className="text-3xl font-black text-[#c6a052]">{elite_rating}%</span>
                             </div>
+                            <div className="h-10 w-px bg-zinc-800" />
+                            <div className="flex flex-col">
+                                <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">Current Stage</span>
+                                <span className={`text-2xl font-black ${localData.verification_stage === 3 ? 'text-purple-500' : localData.verification_stage === 2 ? 'text-cyan-500' : 'text-[#c6a052]'}`}>
+                                    {localData.verification_stage === 3 ? 'Titan' : localData.verification_stage === 2 ? 'Pillar' : 'Seed'}
+                                </span>
+                            </div>
+                            {localData.trust_score > 0 && (
+                                <>
+                                    <div className="h-10 w-px bg-zinc-800" />
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] uppercase tracking-widest text-zinc-500 font-bold mb-1">Trust Score</span>
+                                        <span className="text-3xl font-black text-[#c6a052]">+{localData.trust_score}</span>
+                                    </div>
+                                </>
+                            )}
                             <div className="h-10 w-px bg-zinc-800" />
                             <div className="flex gap-6">
                                 {social_links.linkedin && (
@@ -251,6 +276,42 @@ export default function ExecutiveGoldTemplate({
                     </div>
                 </div>
 
+                {vibeNotes.length > 0 && (
+                    <section className="mt-40">
+                        <h2 className="flex items-center gap-4 text-[10px] uppercase tracking-[0.4em] font-black text-zinc-500 mb-16 justify-center text-center">
+                            <span className="w-20 h-px bg-[#c6a052]/30" /> Social Proof & Endorsements <span className="w-20 h-px bg-[#c6a052]/30" />
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                            {vibeNotes.map((note: any, i: number) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, scale: 0.95 }}
+                                    whileInView={{ opacity: 1, scale: 1 }}
+                                    viewport={{ once: true }}
+                                    className="p-10 border border-[#c6a052]/10 bg-gradient-to-br from-[#c6a052]/5 to-transparent rounded-2xl relative group"
+                                >
+                                    <Sparkles className="absolute top-6 right-6 w-4 h-4 text-[#c6a052]/40" />
+                                    <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[#c6a052] mb-6">
+                                        Endorsed by {note.author_role}
+                                    </div>
+                                    <p className="text-zinc-300 font-light leading-relaxed mb-8 italic">
+                                        "{note.content}"
+                                    </p>
+                                    <div className="flex items-center gap-4 pt-6 border-t border-zinc-800">
+                                        <div className="w-10 h-10 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-[10px] font-black text-[#c6a052]">
+                                            {note.author_name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <div className="text-sm font-bold text-white">{note.author_name}</div>
+                                            <div className="text-[10px] uppercase tracking-widest text-zinc-500">{note.vibe_type} Vibe</div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
                 <footer className="mt-40 pt-16 border-t border-zinc-900 flex flex-col md:flex-row justify-between items-center gap-10">
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 border border-[#c6a052]/20 rounded-full flex items-center justify-center">
@@ -260,9 +321,9 @@ export default function ExecutiveGoldTemplate({
                             SkillVibe Prestige Module // 2026 // {full_name}
                         </span>
                     </div>
-                    <div className="flex gap-10 opacity-30">
-                        <div className="text-[8px] uppercase tracking-widest">Global Rank: #001</div>
-                        <div className="text-[8px] uppercase tracking-widest">Status: PRO</div>
+                    <div className="flex gap-10 opacity-30 text-[8px] uppercase tracking-widest">
+                        <span>Elite Network</span>
+                        <span>Verified Profile</span>
                     </div>
                 </footer>
             </main>

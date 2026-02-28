@@ -1,16 +1,18 @@
 import { motion } from 'framer-motion'
-import { BookOpen, Github, Linkedin, Bookmark, Save, ScrollText } from 'lucide-react'
+import { BookOpen, Github, Linkedin, Bookmark, Save, ScrollText, Sparkles, ShieldCheck } from 'lucide-react'
 import EditableText from './EditableText'
 import { useState, useEffect } from 'react'
 
 export default function VintagePaperTemplate({
     data,
     isEditing = false,
-    onSave
+    onSave,
+    vibeNotes = []
 }: {
     data: any,
     isEditing?: boolean,
-    onSave?: (updatedData: any) => void
+    onSave?: (updatedData: any) => void,
+    vibeNotes?: any[]
 }) {
     const [localData, setLocalData] = useState<any>(data)
 
@@ -69,23 +71,38 @@ export default function VintagePaperTemplate({
                         />
                     </motion.div>
 
-                    <EditableText
-                        as="h1"
-                        value={full_name}
-                        isEditing={isEditing}
-                        onSave={(v) => setLocalData({ ...localData, full_name: v })}
-                        className="text-6xl md:text-8xl font-normal leading-none mb-10 italic"
-                    />
+                    <div className="flex flex-col items-center gap-6">
+                        <EditableText
+                            as="h1"
+                            value={full_name}
+                            isEditing={isEditing}
+                            onSave={(v) => setLocalData({ ...localData, full_name: v })}
+                            className="text-6xl md:text-8xl font-normal leading-none mb-4 italic"
+                        />
+                        {localData.is_verified_trust && (
+                            <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.4em] text-[#967b5e] border border-[#967b5e]/30 px-4 py-1.5 opacity-80">
+                                <ShieldCheck className="w-3 h-3" /> Authenticated Entry
+                            </div>
+                        )}
+                    </div>
 
-                    <div className="flex justify-center items-center gap-12 text-[#967b5e]">
+                    <div className="flex justify-center items-center gap-12 text-[#967b5e] mt-10">
                         <div className="flex flex-col">
-                            <span className="text-[10px] uppercase tracking-widest font-bold">ID</span>
-                            <span className="text-xl font-serif">#{localData.id?.slice(0, 8) || 'SV-2026'}</span>
+                            <span className="text-[10px] uppercase tracking-widest font-bold">STAGE</span>
+                            <span className="text-xl font-serif italic text-[#4a3b2d]">
+                                {localData.verification_stage === 3 ? 'TITAN' : localData.verification_stage === 2 ? 'PILLAR' : 'SEED'}
+                            </span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[10px] uppercase tracking-widest font-bold">SCORE</span>
+                            <span className="text-[10px] uppercase tracking-widest font-bold">PROWESS</span>
                             <span className="text-xl font-serif">{elite_rating}/100</span>
                         </div>
+                        {localData.trust_score > 0 && (
+                            <div className="flex flex-col">
+                                <span className="text-[10px] uppercase tracking-widest font-bold">TRUST</span>
+                                <span className="text-xl font-serif">+{localData.trust_score}</span>
+                            </div>
+                        )}
                     </div>
                 </header>
 
@@ -229,6 +246,34 @@ export default function VintagePaperTemplate({
                         </section>
                     </div>
                 </div>
+
+                {vibeNotes.length > 0 && (
+                    <section className="mt-32">
+                        <h2 className="text-[10px] uppercase font-bold tracking-[0.5em] mb-16 text-center text-[#967b5e]">III. Testimonials & Vibe Logs</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                            {vibeNotes.map((note: any, i: number) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    whileInView={{ opacity: 1, x: 0 }}
+                                    viewport={{ once: true }}
+                                    className="p-8 border border-[#2c241e]/10 bg-white/40 group relative"
+                                >
+                                    <Sparkles className="absolute top-4 right-4 w-4 h-4 opacity-10 group-hover:opacity-40 transition-opacity" />
+                                    <div className="text-[10px] font-bold uppercase tracking-widest text-[#967b5e] mb-6">
+                                        {note.author_role} :: {note.vibe_type} vibe
+                                    </div>
+                                    <p className="text-lg italic leading-relaxed text-[#4a3b2d] mb-8">
+                                        "{note.content}"
+                                    </p>
+                                    <div className="text-[10px] font-bold text-[#2c241e]/60 uppercase tracking-widest">
+                                        — Signed, {note.author_name}
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 <footer className="mt-32 pt-16 border-t-2 border-double border-[#2c241e]/20 flex flex-col md:flex-row justify-between items-center gap-10">
                     <div className="text-[10px] uppercase font-bold tracking-widest opacity-40 italic">

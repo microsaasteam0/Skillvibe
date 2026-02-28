@@ -28,6 +28,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', defa
     password: '',
     fullName: '',
     role: 'candidate',
+    companyInfo: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -90,10 +91,10 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', defa
     setIsGoogleLoading(true)
     try {
       if (response.credential) {
-        const success = await googleAuth(response.credential)
+        const success = await googleAuth(response.credential, formData.role)
         if (success) {
           onClose()
-          setFormData({ email: '', username: '', password: '', fullName: '', role: 'candidate' })
+          setFormData({ email: '', username: '', password: '', fullName: '', role: 'candidate', companyInfo: '' })
           setErrors({})
         } else {
           console.error('❌ GoogleAuth returned false')
@@ -159,6 +160,10 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', defa
       } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
         newErrors.username = 'Username can only contain letters, numbers, and underscores'
       }
+
+      if (formData.role === 'recruiter' && !formData.companyInfo) {
+        newErrors.companyInfo = 'Company information is required for recruiters'
+      }
     }
 
     setErrors(newErrors)
@@ -180,7 +185,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', defa
           formData.username,
           formData.password,
           formData.fullName || undefined,
-          formData.role
+          formData.role,
+          formData.role === 'recruiter' ? formData.companyInfo : undefined
         )
       } else if (mode === 'forgot-password') {
         success = await requestPasswordReset(formData.email)
@@ -191,7 +197,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', defa
           setIsSuccessAction(true)
         } else {
           onClose()
-          setFormData({ email: '', username: '', password: '', fullName: '', role: 'candidate' })
+          setFormData({ email: '', username: '', password: '', fullName: '', role: 'candidate', companyInfo: '' })
           setErrors({})
         }
       }
@@ -216,7 +222,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', defa
       setMode(mode === 'login' ? 'register' : 'login')
     }
     setErrors({})
-    setFormData({ email: '', username: '', password: '', fullName: '', role: 'candidate' })
+    setFormData({ email: '', username: '', password: '', fullName: '', role: 'candidate', companyInfo: '' })
     setIsSuccessAction(false)
   }
 
@@ -251,7 +257,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', defa
               onClick={() => {
                 onClose();
                 setIsSuccessAction(false);
-                setFormData({ email: '', username: '', password: '', fullName: '', role: 'candidate' });
+                setFormData({ email: '', username: '', password: '', fullName: '', role: 'candidate', companyInfo: '' });
                 setMode('login');
               }}
               className="w-full py-6 bg-cyan-500 hover:bg-cyan-400 text-black font-black rounded-2xl transition-all duration-500 shadow-xl shadow-cyan-500/30 hover:glow-cyan uppercase tracking-[0.3em] text-[11px]"
@@ -360,7 +366,23 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', defa
             </div>
           )}
 
-
+          {mode === 'register' && formData.role === 'recruiter' && (
+            <div className="space-y-3">
+              <label className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 ml-2">COMPANY INFO / ORG NAME</label>
+              <div className="relative group/input">
+                <Rocket className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-600 group-focus-within/input:text-cyan-500 transition-colors w-5 h-5" />
+                <input
+                  type="text"
+                  value={formData.companyInfo}
+                  onChange={(e) => handleInputChange('companyInfo', e.target.value)}
+                  className={`w-full pl-14 pr-5 py-5 bg-white/[0.03] border rounded-[1.5rem] focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 text-white placeholder-slate-700 transition-all font-bold uppercase text-xs tracking-widest ${errors.companyInfo ? 'border-red-500' : 'border-white/10'}`}
+                  placeholder="ACME Corp"
+                  disabled={isSubmitting}
+                />
+              </div>
+              {errors.companyInfo && <p className="text-red-500 text-[10px] font-black uppercase tracking-widest mt-2 ml-2">{errors.companyInfo}</p>}
+            </div>
+          )}
 
           {mode !== 'forgot-password' && (
             <div className="space-y-3">

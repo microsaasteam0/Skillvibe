@@ -5,8 +5,9 @@ import TerminalVoidTemplate from './TerminalVoidTemplate';
 import MinimalNoirTemplate from './MinimalNoirTemplate';
 import VintagePaperTemplate from './VintagePaperTemplate';
 import ExecutiveGoldTemplate from './ExecutiveGoldTemplate';
+import ObsidianEliteTemplate from './ObsidianEliteTemplate';
 
-export default function PortfolioRenderer({ data, isEditing, onSave }: any) {
+export default function PortfolioRenderer({ data, isEditing, onSave, vibeNotes = [] }: any) {
     if (!data || !data.vibe_data) return (
         <div className="min-h-screen bg-black flex items-center justify-center">
             <div className="text-white text-center">
@@ -19,24 +20,28 @@ export default function PortfolioRenderer({ data, isEditing, onSave }: any) {
     const { template_id } = data;
 
     // Route to appropriate template component
-    if (template_id === 'glass-prism' || template_id === 'default' || template_id === 'creative-specialist') {
-        return <GlassPrismTemplate data={data} isEditing={isEditing} onSave={onSave} />;
+    if (template_id === 'obsidian-elite' || template_id === 'default' || template_id === 'creative-specialist' || template_id === 'ai-visionary') {
+        return <ObsidianEliteTemplate data={data} isEditing={isEditing} onSave={onSave} vibeNotes={vibeNotes} />;
+    }
+
+    if (template_id === 'glass-prism') {
+        return <GlassPrismTemplate data={data} isEditing={isEditing} onSave={onSave} vibeNotes={vibeNotes} />;
     }
 
     if (template_id === 'terminal-void' || template_id === 'cyber-punk' || template_id === 'serial-entrepreneur' || template_id === 'futurist-ops') {
-        return <TerminalVoidTemplate data={data} isEditing={isEditing} onSave={onSave} />;
+        return <TerminalVoidTemplate data={data} isEditing={isEditing} onSave={onSave} vibeNotes={vibeNotes} />;
     }
 
     if (template_id === 'minimal-noir' || template_id === 'venture-capital') {
-        return <MinimalNoirTemplate data={data} isEditing={isEditing} onSave={onSave} />;
+        return <MinimalNoirTemplate data={data} isEditing={isEditing} onSave={onSave} vibeNotes={vibeNotes} />;
     }
 
     if (template_id === 'vintage-classic' || template_id === 'vintage-paper') {
-        return <VintagePaperTemplate data={data} isEditing={isEditing} onSave={onSave} />;
+        return <VintagePaperTemplate data={data} isEditing={isEditing} onSave={onSave} vibeNotes={vibeNotes} />;
     }
 
     if (template_id === 'midnight-gold' || template_id === 'executive-gold' || template_id === 'lead-strategist') {
-        return <ExecutiveGoldTemplate data={data} isEditing={isEditing} onSave={onSave} />;
+        return <ExecutiveGoldTemplate data={data} isEditing={isEditing} onSave={onSave} vibeNotes={vibeNotes} />;
     }
 
     // Fallback to legacy renderer for any other template_id

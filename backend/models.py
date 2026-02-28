@@ -24,6 +24,11 @@ class User(Base):
     auto_save_enabled = Column(Boolean, default=True)
     email_notifications_enabled = Column(Boolean, default=True)
     
+    # Recruiter Info
+    company_info = Column(Text, nullable=True)
+    company_location = Column(String, nullable=True)
+    company_overview = Column(Text, nullable=True)
+    
     # OAuth fields
     google_id = Column(String, unique=True, nullable=True, index=True)
     profile_picture = Column(String, nullable=True)
@@ -230,6 +235,11 @@ class Profile(Base):
     template_id = Column(String, nullable=True)
     landing_page_data = Column(Text, nullable=True) # Legacy
     
+    # Trust System
+    trust_score = Column(Float, default=0.0)
+    is_verified_trust = Column(Boolean, default=False)
+    verification_stage = Column(Integer, default=1) # 1: Seed (0-50), 2: Pillar (51-85), 3: Titan (86-100)
+    
     # Social Interactions
     is_public = Column(Boolean, default=True)
     profile_views = Column(Integer, default=0)
@@ -283,6 +293,19 @@ class Endorsement(Base):
     candidate = relationship("User", foreign_keys=[candidate_id])
     endorser = relationship("User", foreign_keys=[endorser_id])
     skill = relationship("Skill")
+
+class VibeNote(Base):
+    __tablename__ = "vibe_notes"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    profile_id = Column(Integer, ForeignKey("profiles.id"), nullable=False, index=True)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    vibe_type = Column(String, default="professional") # professional, creative, leadership
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    profile = relationship("Profile", foreign_keys=[profile_id])
+    author = relationship("User", foreign_keys=[author_id])
 
 class Rating(Base):
     __tablename__ = "ratings"

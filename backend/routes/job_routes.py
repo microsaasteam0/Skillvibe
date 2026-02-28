@@ -7,9 +7,17 @@ from sqlalchemy.orm import Session
 from auth import get_current_user, get_optional_current_user
 from database import get_db
 from models import JobApplication, JobPosting, Profile, User
-
+import re
 
 job_router = APIRouter(prefix="/jobs", tags=["Jobs"])
+
+def slugify(text: str) -> str:
+    if not text:
+        return ""
+    text = text.lower().strip()
+    text = re.sub(r'[^a-z0-9\s-]', '', text)
+    text = re.sub(r'[\s-]+', '-', text)
+    return text.strip('-')
 
 
 class CreateJobRequest(BaseModel):
@@ -157,29 +165,64 @@ async def my_recruiter_jobs(
 
 @job_router.get("/recruiter/{recruiter_id}/company")
 async def recruiter_company_profile(
-    recruiter_id: int,
+    recruiter_id: str,
     db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
 ):
-    recruiter = db.query(User).filter(User.id == recruiter_id).first()
+    recruiter = None
+    if recruiter_id.isdigit():
+        recruiter = db.query(User).filter(User.id == int(recruiter_id)).first()
+
+    # Prioritize the current user if they match the requested slug (prevents collision lockouts)
+    if not recruiter and current_user and current_user.role == "recruiter":
+        if slugify(current_user.company_info or current_user.full_name or "") == recruiter_id:
+            recruiter = current_user
+    
+    # If not found by ID or passing a slug, try to find recruiter by company slug
     if not recruiter:
-        raise HTTPException(status_code=404, detail="Recruiter not found")
+        recruiters = db.query(User).filter(User.role == "recruiter").all()
+        for r in recruiters:
+            if slugify(r.company_info or r.full_name or "") == recruiter_id:
+                recruiter = r
+                break
+                
+    if not recruiter:
+        # Fallback to checking job postings just in case
+        jobs_all = db.query(JobPosting).filter(JobPosting.is_active == True).all()
+        for j in jobs_all:
+            if slugify(j.company_name or "") == recruiter_id:
+                recruiter = db.query(User).filter(User.id == j.recruiter_id).first()
+                break
+
+    if not recruiter:
+        raise HTTPException(status_code=404, detail="Recruiter or company not found")
 
     jobs = (
         db.query(JobPosting)
-        .filter(JobPosting.recruiter_id == recruiter_id)
+        .filter(JobPosting.recruiter_id == recruiter.id)
         .order_by(JobPosting.created_at.desc())
         .all()
     )
-    if not jobs:
-        raise HTTPException(status_code=404, detail="No company profile found for this recruiter")
+    # Removed the 404 if not jobs constraint so new recruiters can view their profile outline
+    company_name = recruiter.company_info or (recruiter.full_name + "'s Company" if recruiter.full_name else "Unknown Company")
+    company_location = recruiter.company_location or "Remote"
+    company_overview = recruiter.company_overview or ""
 
-    latest_job = jobs[0]
-    company_name = latest_job.company_name
-    company_location = latest_job.location or "Remote"
-    # Use latest job description as company overview fallback.
-    company_overview = (latest_job.description or "").strip()
-    if len(company_overview) > 800:
-        company_overview = company_overview[:800].rstrip() + "..."
+    if jobs:
+        latest_job = jobs[0]
+        # Prefer the explicitly named company from the job if company_info wasn't directly found, or use as fallback
+        if not recruiter.company_info and latest_job.company_name:
+            company_name = latest_job.company_name
+            
+        if not recruiter.company_location and latest_job.location:
+             company_location = latest_job.location
+             
+        # Use latest job description as company overview fallback.
+        if not recruiter.company_overview and latest_job.description:
+             fallback_overview = (latest_job.description or "").strip()
+             if len(fallback_overview) > 800:
+                  fallback_overview = fallback_overview[:800].rstrip() + "..."
+             company_overview = fallback_overview
 
     # Keep response light and fast; avoid expensive per-job aggregate queries.
     open_jobs = [
@@ -193,6 +236,8 @@ async def recruiter_company_profile(
             "salary_range": job.salary_range,
             "is_active": job.is_active,
             "created_at": job.created_at,
+            "description": job.description,
+            "requirements": job.requirements,
         }
         for job in jobs
         if job.is_active
@@ -220,38 +265,65 @@ async def recruiter_company_profile(
 @job_router.put("/recruiter/{recruiter_id}/company")
 async def update_recruiter_company_profile(
     payload: UpdateCompanyProfileRequest,
-    recruiter_id: Optional[int] = None,
+    recruiter_id: Optional[str] = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     if current_user.role not in ["recruiter", "admin"]:
         raise HTTPException(status_code=403, detail="Only recruiters can update company profile")
 
+    # Resolve target recruiter
+    target_recruiter = None
+    if recruiter_id is not None:
+        if recruiter_id.isdigit():
+            target_recruiter = db.query(User).filter(User.id == int(recruiter_id)).first()
+        else:
+            recruiters = db.query(User).filter(User.role == "recruiter").all()
+            for r in recruiters:
+                if slugify(r.company_info or r.full_name or "") == recruiter_id:
+                    target_recruiter = r
+                    break
+        if not target_recruiter:
+            raise HTTPException(status_code=404, detail="Recruiter not found")
+    else:
+        target_recruiter = current_user
+
     # If route includes recruiter_id, enforce ownership (unless admin).
-    if recruiter_id is not None and current_user.role != "admin" and recruiter_id != current_user.id:
+    if recruiter_id is not None and current_user.role != "admin" and target_recruiter.id != current_user.id:
         raise HTTPException(status_code=403, detail="You can only edit your own company profile")
 
     jobs = (
         db.query(JobPosting)
-        .filter(JobPosting.recruiter_id == (recruiter_id if recruiter_id is not None else current_user.id))
+        .filter(JobPosting.recruiter_id == target_recruiter.id)
         .order_by(JobPosting.created_at.desc())
         .all()
     )
-    if not jobs:
-        raise HTTPException(status_code=400, detail="Post at least one job before editing company profile")
-
     company_name = payload.company_name.strip()
     location = (payload.location or "Remote").strip()
     overview = (payload.overview or "").strip()
+    
+    if target_recruiter.company_info and company_name != target_recruiter.company_info:
+        raise HTTPException(status_code=400, detail="Company name cannot be changed once established to maintain URL identity")
+    
+    # Enforce uniqueness of company info slug
+    if company_name:
+        new_slug = slugify(company_name)
+        existing_recruiters = db.query(User).filter(User.role == "recruiter", User.id != target_recruiter.id).all()
+        for r in existing_recruiters:
+            if slugify(r.company_info or "") == new_slug:
+                raise HTTPException(status_code=400, detail="This company name is already taken by another recruiter")
 
-    # Keep company fields consistent across recruiter jobs.
+    # Save the updated profile info to the user
+    target_recruiter.company_info = company_name
+    target_recruiter.company_location = location
+    target_recruiter.company_overview = overview
+
+    # Keep company fields consistent across any existing recruiter jobs.
     for job in jobs:
         job.company_name = company_name
         job.location = location
 
-    # Use latest job description as company overview source.
-    if overview:
-        jobs[0].description = overview
+    # Don't clobber the latest job description with the company overview, they are now separate.
 
     db.commit()
 
@@ -260,7 +332,7 @@ async def update_recruiter_company_profile(
         "company": {
             "name": company_name,
             "location": location,
-            "overview": jobs[0].description,
+            "overview": overview,
             "total_jobs": len(jobs),
             "open_jobs_count": len([j for j in jobs if j.is_active]),
         },

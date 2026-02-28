@@ -31,6 +31,7 @@ class UserCreate(BaseModel):
     password: str
     full_name: Optional[str] = None
     role: Optional[str] = "candidate"
+    company_info: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: int
@@ -39,6 +40,9 @@ class UserResponse(BaseModel):
     full_name: Optional[str] = None
     profile_picture: Optional[str] = None
     role: Optional[str] = "founder"
+    company_info: Optional[str] = None
+    company_location: Optional[str] = None
+    company_overview: Optional[str] = None
     is_active: bool
     is_verified: bool
     is_premium: bool
@@ -75,6 +79,9 @@ class UserProfileUpdate(BaseModel):
     username: Optional[str] = None
     full_name: Optional[str] = None
     profile_picture: Optional[str] = None
+    company_info: Optional[str] = None
+    company_location: Optional[str] = None
+    company_overview: Optional[str] = None
 
 class RoleUpdate(BaseModel):
     role: str
@@ -276,6 +283,9 @@ async def google_oauth_callback(
                 username=user.username,
                 full_name=user.full_name,
                 role=user.role,
+                company_info=user.company_info,
+                company_location=user.company_location,
+                company_overview=user.company_overview,
                 profile_picture=user.profile_picture,
                 is_active=user.is_active,
                 is_verified=user.is_verified,
@@ -394,6 +404,9 @@ async def google_auth(google_data: GoogleAuthRequest, db: Session = Depends(get_
             username=user.username,
             full_name=user.full_name,
             role=user.role,
+            company_info=user.company_info,
+            company_location=user.company_location,
+            company_overview=user.company_overview,
             profile_picture=user.profile_picture,
             is_active=user.is_active,
             is_verified=user.is_verified,
@@ -467,7 +480,8 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks, db:
             username=user_data.username,
             password=user_data.password,
             full_name=user_data.full_name,
-            role=selected_role
+            role=selected_role,
+            company_info=user_data.company_info
         )
         
         # Send verification email in background
@@ -486,6 +500,9 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks, db:
             username=user.username,
             full_name=user.full_name,
             role=user.role,
+            company_info=user.company_info,
+            company_location=user.company_location,
+            company_overview=user.company_overview,
             profile_picture=user.profile_picture,
             is_active=user.is_active,
             is_verified=user.is_verified,
@@ -573,6 +590,9 @@ async def login(
         username=user.username,
         full_name=user.full_name,
         role=user.role,
+        company_info=user.company_info,
+        company_location=user.company_location,
+        company_overview=user.company_overview,
         profile_picture=user.profile_picture,
         is_active=user.is_active,
         is_verified=user.is_verified,
@@ -623,6 +643,9 @@ async def get_current_user_info(current_user: User = Depends(get_current_active_
         username=current_user.username,
         full_name=current_user.full_name,
         role=current_user.role,
+        company_info=current_user.company_info,
+        company_location=current_user.company_location,
+        company_overview=current_user.company_overview,
         profile_picture=current_user.profile_picture,
         is_active=current_user.is_active,
         is_verified=current_user.is_verified,
@@ -676,6 +699,36 @@ async def update_profile(
     if profile_data.profile_picture is not None:
         print(f"✅ Updating profile_picture from {current_user.profile_picture} to {profile_data.profile_picture}")
         current_user.profile_picture = profile_data.profile_picture
+        
+    # Update company info if provided
+    if profile_data.company_info is not None:
+        new_company_info = profile_data.company_info.strip()
+        
+        if current_user.company_info and new_company_info != current_user.company_info:
+            raise HTTPException(status_code=400, detail="Company name cannot be changed once established to maintain URL identity")
+        
+        # Enforce uniqueness of company info slug
+        if new_company_info and new_company_info != current_user.company_info:
+            new_slug = re.sub(r'[^a-zA-Z0-9]', '-', new_company_info).lower()
+            new_slug = re.sub(r'-+', '-', new_slug).strip('-')
+            
+            existing_recruiters = db.query(User).filter(User.role == "recruiter", User.id != current_user.id).all()
+            for r in existing_recruiters:
+                r_slug = re.sub(r'[^a-zA-Z0-9]', '-', (r.company_info or "")).lower()
+                r_slug = re.sub(r'-+', '-', r_slug).strip('-')
+                if r_slug and r_slug == new_slug:
+                    raise HTTPException(status_code=400, detail="This company name is already taken by another recruiter")
+                    
+        print(f"✅ Updating company_info from {current_user.company_info} to {new_company_info}")
+        current_user.company_info = new_company_info
+
+    # Update company location if provided
+    if profile_data.company_location is not None:
+        current_user.company_location = profile_data.company_location
+        
+    # Update company overview if provided
+    if profile_data.company_overview is not None:
+        current_user.company_overview = profile_data.company_overview
     
     try:
         db.commit()
@@ -689,6 +742,9 @@ async def update_profile(
             username=current_user.username,
             full_name=current_user.full_name,
             role=current_user.role,
+            company_info=current_user.company_info,
+            company_location=current_user.company_location,
+            company_overview=current_user.company_overview,
             profile_picture=current_user.profile_picture,
             is_active=current_user.is_active,
             is_verified=current_user.is_verified,
@@ -725,6 +781,9 @@ async def update_role(
             username=current_user.username,
             full_name=current_user.full_name,
             role=current_user.role,
+            company_info=current_user.company_info,
+            company_location=current_user.company_location,
+            company_overview=current_user.company_overview,
             profile_picture=current_user.profile_picture,
             is_active=current_user.is_active,
             is_verified=current_user.is_verified,
@@ -801,6 +860,18 @@ async def get_usage_stats(
         elif current_user.role == 'admin':
             rank = "Admin"
             
+        # Vibe Scores
+        trust_score = 0.0
+        elite_rating = 0.0
+        ranking_score = 0.0
+        verification_stage = 1
+        
+        if profile:
+            trust_score = profile.trust_score
+            elite_rating = profile.elite_rating
+            ranking_score = profile.ranking_score
+            verification_stage = profile.verification_stage
+            
         return {
             "total_generations": total_generations,
             "recent_generations": recent_generations,
@@ -808,7 +879,11 @@ async def get_usage_stats(
             "remaining_requests": remaining_requests,
             "is_premium": current_user.is_premium,
             "reset_period_hours": 24,
-            "leaderboard_rank": rank
+            "leaderboard_rank": rank,
+            "trust_score": trust_score,
+            "elite_rating": elite_rating,
+            "ranking_score": ranking_score,
+            "verification_stage": verification_stage
         }
     except Exception as e:
         print(f"❌ Error in get_usage_stats: {str(e)}")

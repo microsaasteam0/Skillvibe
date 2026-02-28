@@ -40,30 +40,46 @@ export default function Footer({ onSupportClick }: FooterProps) {
 
   const sections = [
     {
-      title: 'Links',
+      title: 'Product',
       links: [
-        { name: 'Home', href: '/', external: false },
-        { name: 'Rankings', href: '/leaderboard', external: false },
-        ...(isAuthenticated ? [
-          { name: isRecruiter ? 'Find Talent' : 'My Profile', href: isRecruiter ? '/recruiter' : '/profile', external: false }
-        ] : []),
+        { name: 'Features', href: '/features', external: false },
         { name: 'Pricing', href: '/pricing', external: false },
+        ...(isAuthenticated
+          ? [{ name: isRecruiter ? 'Find Talent' : 'My Profile', href: isRecruiter ? '/recruiter' : '/profile', external: false }]
+          : [{ name: 'Login / Signup', href: '/auth', external: false }]
+        ),
+      ]
+    },
+    {
+      title: 'Use Cases',
+      links: [
+        { name: 'Leaderboard', href: '/leaderboard', external: false },
+        { name: 'Vibe Protocol', href: '/vibe-trust', external: false },
+        { name: 'Community', href: '/community', external: false },
+        { name: 'Blog', href: '/blog', external: false },
+        { name: 'Jobs', href: '/jobs', external: false },
+      ]
+    },
+    {
+      title: 'Solutions',
+      links: [
+        { name: 'About Us', href: '/about', external: false },
+        { name: 'Updates', href: '/updates', external: false },
+      ]
+    },
+    {
+      title: 'Resources',
+      links: [
+        { name: 'Privacy Policy', href: '/privacy-policy', external: false },
+        { name: 'Terms', href: '/terms-of-service', external: false },
+        { name: 'Cookies', href: '/cookie-policy', external: false },
       ]
     },
     {
       title: 'Company',
       links: [
-        { name: 'About Us', href: '/about', external: false },
-        { name: 'Entrext Labs', href: 'https://www.entrext.com/', external: true },
+        { name: 'Entrext Labs', href: 'https://entrextlabs.entrext.com/', external: true },
         { name: 'Join Us', href: 'https://deformity.ai/d/C-P5znqtG_ZZ', external: true },
-      ]
-    },
-    {
-      title: 'Legal',
-      links: [
-        { name: 'Privacy', href: '/privacy-policy', external: false },
-        { name: 'Terms', href: '/terms-of-service', external: false },
-        { name: 'Cookies', href: '/cookie-policy', external: false },
       ]
     }
   ]
@@ -97,7 +113,8 @@ export default function Footer({ onSupportClick }: FooterProps) {
               </Link>
 
               <p className="text-slate-500 dark:text-slate-500 text-xl font-bold tracking-tight max-w-sm leading-relaxed">
-                The easiest <span className="text-cyan-500">Trust System</span> for the world's best workers.
+                AI‑powered professional verification, Elite Rating & Trust Score for credible tech talent.
+                <span className="text-cyan-500">Authenticate your career</span> and boost your visibility.
               </p>
 
               <div className="flex items-center gap-4">
@@ -139,7 +156,7 @@ export default function Footer({ onSupportClick }: FooterProps) {
           </div>
 
           {/* Links */}
-          <div className="lg:col-span-7 grid grid-cols-1 sm:grid-cols-3 gap-12 pt-8">
+          <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-12 pt-8">
             {sections.map((section) => (
               <div key={section.title}>
                 <h3 className="text-[10px] font-black tracking-[0.4em] text-slate-400 dark:text-slate-600 mb-10 flex items-center gap-3">
@@ -179,7 +196,7 @@ export default function Footer({ onSupportClick }: FooterProps) {
             </div>
           </div>
 
-          <a href="https://entrext.in" target="_blank" className="flex items-center gap-3 glass-panel px-6 py-3 rounded-xl border border-white/10 group hover:glow-cyan transition-all">
+          <a href="https://entrextlabs.entrext.com/" target="_blank" className="flex items-center gap-3 glass-panel px-6 py-3 rounded-xl border border-white/10 group hover:glow-cyan transition-all">
             <span className="text-[10px] font-black tracking-[0.3em] text-slate-500 uppercase">Architected by</span>
             <span className="text-[11px] font-black text-slate-800 dark:text-white uppercase transition-colors group-hover:text-cyan-500">Entrext Labs</span>
             <Target className="w-4 h-4 text-cyan-500 animate-pulse" />

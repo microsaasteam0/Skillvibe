@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Sparkles, Upload, ArrowRight, User, Settings, Edit2, Check, Eye, EyeOff, Globe, Lock, Shield, Zap, Activity, Cpu, Terminal, Radio, Network } from 'lucide-react'
+import { Sparkles, Upload, ArrowRight, User, Settings, Edit2, Check, Eye, EyeOff, Globe, Lock, Shield, Zap, Activity, Cpu, Terminal, Radio, Network, Clock, ArrowUp, Star, MessageSquare, AlertTriangle } from 'lucide-react'
 import Navbar from '../../components/Navbar'
 import Footer from '../../components/Footer'
 import { useAuth } from '../../contexts/AuthContext'
@@ -26,6 +26,8 @@ export default function ProfileRedirectPage() {
     const [showAuthModal, setShowAuthModal] = useState(false)
     const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login')
     const [showDashboard, setShowDashboard] = useState(false)
+    const [vibeHistory, setVibeHistory] = useState<any[]>([])
+    const [vibeScores, setVibeScores] = useState({ trust_score: 0, elite_rating: 0, verification_stage: 1 })
 
     useEffect(() => {
         if (isLoading) return
@@ -49,6 +51,22 @@ export default function ProfileRedirectPage() {
                     setNewSlug(response.slug)
                     setIsPublic(response.is_public ?? true)
                     setStatus('ready')
+
+                    try {
+                        const historyRes = await axios.get(`${API_URL}/api/v1/skillvibe/vibe-history/me`, {
+                            headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+                        })
+                        if (historyRes.data) {
+                            setVibeHistory(historyRes.data.history || [])
+                            setVibeScores({
+                                trust_score: historyRes.data.trust_score || 0,
+                                elite_rating: historyRes.data.elite_rating || 0,
+                                verification_stage: historyRes.data.verification_stage || 1
+                            })
+                        }
+                    } catch (err) {
+                        console.error("Could not load history", err)
+                    }
                 }
             } catch (error: any) {
                 if (error.response?.status === 404) {
@@ -304,6 +322,85 @@ export default function ProfileRedirectPage() {
                                         </div>
                                         <p className="text-[9px] text-slate-700 font-bold uppercase tracking-tight pl-2 px-1">Only letters, numbers and hyphens allowed.</p>
                                     </div>
+                                </div>
+                            </div>
+
+                            {/* Vibe History Panel */}
+                            <div className="glass-card rounded-[3rem] p-10 md:p-14 border border-white/10 relative overflow-hidden group text-left mt-8">
+                                <div className="absolute inset-0 bg-cyber-grid opacity-5 pointer-events-none" />
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 mb-12 relative z-10 w-full justify-between pr-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                                            <Clock className="w-6 h-6 text-indigo-500" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-2xl font-black text-white tracking-tighter uppercase italic">Vibe History</h3>
+                                            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-1">Track your Trust & Prowess points</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex flex-row flex-wrap gap-3">
+                                        <div className="px-4 py-2 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-indigo-400 text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-[0_0_15px_rgba(99,102,241,0.2)]">
+                                            <span className="text-white text-lg">{vibeScores.trust_score}</span> <span className="opacity-70 text-[8px]">Trust</span>
+                                        </div>
+                                        <div className="px-4 py-2 bg-cyan-500/10 border border-cyan-500/30 rounded-xl text-cyan-400 text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                                            <span className="text-white text-lg">{vibeScores.elite_rating}%</span> <span className="opacity-70 text-[8px]">Prowess</span>
+                                        </div>
+                                        <div className={`px-4 py-2 border rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-xl ${vibeScores.verification_stage === 3 ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' : vibeScores.verification_stage === 2 ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400' : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'}`}>
+                                            <span className="text-white text-sm">STAGE {vibeScores.verification_stage}</span>
+                                            <span className="opacity-70 text-[8px] tracking-tighter">
+                                                {vibeScores.verification_stage === 3 ? 'TITAN' : vibeScores.verification_stage === 2 ? 'PILLAR' : 'SEED'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div
+                                    className="relative z-10 space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-4 overscroll-contain"
+                                    data-lenis-prevent="true"
+                                >
+                                    {vibeHistory.length === 0 ? (
+                                        <div className="text-center py-10 opacity-50">
+                                            <p className="text-xs uppercase tracking-widest text-slate-400 font-bold">No tracking history yet.</p>
+                                        </div>
+                                    ) : (
+                                        vibeHistory.map((item, index) => (
+                                            <div key={index} className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between p-5 bg-white/[0.02] rounded-3xl border border-white/5 hover:border-indigo-500/30 transition-all duration-300">
+                                                <div className="flex items-start gap-4">
+                                                    <div className={`p-3 rounded-2xl border-2 ${item.type === 'interaction' ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-500' : item.type === 'vibe_note' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-500' : 'bg-red-500/10 border-red-500/20 text-red-500'}`}>
+                                                        {item.type === 'interaction' && item.action_label === 'Signal Boost' && <ArrowUp className="w-4 h-4" />}
+                                                        {item.type === 'interaction' && item.action_label === 'Shortlisted' && <Star className="w-4 h-4" />}
+                                                        {item.type === 'vibe_note' && <MessageSquare className="w-4 h-4" />}
+                                                        {item.type === 'report' && <AlertTriangle className="w-4 h-4" />}
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="text-sm font-black text-white uppercase tracking-widest mb-1">{item.action_label}</h4>
+                                                        <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase font-bold text-slate-400">
+                                                            <span className="text-white">{item.author_name}</span>
+                                                            <span className="px-2 border border-white/10 rounded-full text-[8px] tracking-widest">{item.author_role}</span>
+                                                            <span>•</span>
+                                                            <span>{new Date(item.created_at).toLocaleDateString()}</span>
+                                                        </div>
+                                                        {item.content && (
+                                                            <p className="mt-2 text-xs text-slate-300 italic">"{item.content}"</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <div className="flex sm:flex-col gap-2 sm:gap-1 justify-end shrink-0 pl-16 sm:pl-0">
+                                                    {item.points_prowess !== 0 && (
+                                                        <div className={`px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 rounded-full text-cyan-400 text-[10px] font-black uppercase tracking-widest text-center shadow-[0_0_10px_rgba(6,182,212,0.2)] ${item.points_prowess < 0 ? 'text-red-400 bg-red-500/10 border-red-500/30 shadow-red-500/20' : ''}`}>
+                                                            {item.points_prowess > 0 ? '+' : ''}{item.points_prowess}% Prowess
+                                                        </div>
+                                                    )}
+                                                    {item.points_trust !== 0 && (
+                                                        <div className={`px-3 py-1 bg-indigo-500/10 border border-indigo-500/30 rounded-full text-indigo-400 text-[10px] font-black uppercase tracking-widest text-center shadow-[0_0_10px_rgba(99,102,241,0.2)] ${item.points_trust < 0 ? 'text-red-400 bg-red-500/10 border-red-500/30 shadow-red-500/20' : ''}`}>
+                                                            {item.points_trust > 0 ? '+' : ''}{item.points_trust} Trust
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
                                 </div>
                             </div>
                         </motion.div>

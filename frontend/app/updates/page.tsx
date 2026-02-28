@@ -2,12 +2,12 @@ import { Metadata } from 'next'
 import UpdatesClient from './UpdatesClient'
 
 export const metadata: Metadata = {
-  title: 'Product Updates & Changelog | BuildInPublic AI Improvement',
-  description: 'Stay informed about the latest BuildInPublic features, AI enhancements, and platform improvements. Track our journey in making content repurposing easier.',
-  keywords: 'BuildInPublic updates, AI changelog, new content features, social media tool updates, product roadmap',
+  title: 'SkillVibe Product Updates & Changelog',
+  description: 'Stay informed about the latest SkillVibe features, Elite Rating improvements, and platform updates. Watch as we refine professional verification and trust scoring.',
+  keywords: 'SkillVibe updates, Elite Rating changelog, professional verification platform, AI trust score',
   openGraph: {
-    title: 'BuildInPublic AI Updates - What\'s New in Content Transformation',
-    description: 'Latest feature releases and AI improvements for the BuildInPublic platform.',
+    title: 'SkillVibe Updates - What\'s New in Professional Verification',
+    description: 'Latest releases and improvements for the SkillVibe platform.',
     type: 'website',
   },
 }

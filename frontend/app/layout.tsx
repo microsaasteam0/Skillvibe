@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   },
   description: 'The elite reputation protocol for modern talent. Verify your prowess, rank against the best, and get discovered by founders.',
   keywords: ['talent ranking', 'skill verification', 'elite portfolio', 'reputation layer', 'AI talent discovery', 'proof of work', 'founder hiring', 'skillvibe', 'SkillVibe AI'],
-  authors: [{ name: 'Entrext Labs', url: 'https://entrext.in' }],
+  authors: [{ name: 'Entrext Labs', url: 'https://entrextlabs.entrext.com/' }],
   creator: 'Entrext Labs',
   publisher: 'Entrext Labs',
   robots: {
@@ -214,7 +214,7 @@ export default function RootLayout({
               "creator": {
                 "@type": "Organization",
                 "name": "Entrext Labs",
-                "url": "https://entrext.in",
+                "url": "https://entrextlabs.entrext.com/",
                 "logo": {
                   "@type": "ImageObject",
                   "url": "https://skillvibe.entrext.com/logo.png"

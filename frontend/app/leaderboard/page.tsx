@@ -16,6 +16,7 @@ export default function LeaderboardPage() {
     const [loading, setLoading] = useState(true)
     const [filterBy, setFilterBy] = useState('rating')
     const [searchTerm, setSearchTerm] = useState('')
+    const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
     const [showAuthModal, setShowAuthModal] = useState(false)
     const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login')
     const [showDashboard, setShowDashboard] = useState(false)
@@ -149,11 +150,16 @@ export default function LeaderboardPage() {
 
                                         {/* Profile Core */}
                                         <div className="w-28 h-28 bg-black rounded-[2rem] flex-shrink-0 border-2 border-white/10 shadow-2xl overflow-hidden relative group-hover:glow-cyan group-hover:scale-105 transition-all duration-700">
-                                            {user.profile_picture ? (
-                                                <img src={user.profile_picture} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" alt="" />
+                                            {user.profile_picture && !imageErrors[user.username] ? (
+                                                <img
+                                                    src={user.profile_picture}
+                                                    onError={() => setImageErrors(prev => ({ ...prev, [user.username]: true }))}
+                                                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                                                    alt=""
+                                                />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center font-black text-white/20 text-4xl uppercase">
-                                                    {(user.username || 'U').charAt(0)}
+                                                    {(user.full_name || user.username || 'U').charAt(0)}
                                                 </div>
                                             )}
                                         </div>

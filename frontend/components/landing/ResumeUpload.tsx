@@ -231,39 +231,7 @@ export default function ResumeUpload({
                         ))}
                     </div>
 
-                    {/* Magic Component */}
-                    <div className="pt-12 border-t border-white/5">
-                        <div className="glass-card p-10 md:p-14 rounded-[3rem] border border-cyan-500/20 text-center relative overflow-hidden group/magic hover:glow-cyan transition-all duration-700">
-                            <div className="absolute inset-0 bg-cyber-grid opacity-10" />
-                            <div className="max-w-3xl mx-auto relative z-10">
-                                <div className="flex items-center gap-4 mb-4 justify-center">
-                                    <Terminal className="w-7 h-7 text-cyan-500" />
-                                    <h3 className="text-3xl md:text-4xl font-black text-white tracking-tighter uppercase italic">CUSTOM STYLE</h3>
-                                </div>
-                                <p className="text-slate-400 font-bold mb-10 text-lg opacity-80">
-                                    Tell us what you want your page to look like and we will make it for you.
-                                </p>
 
-                                <div className="relative max-w-2xl mx-auto">
-                                    <input
-                                        id="magic-vibe-input"
-                                        type="text"
-                                        placeholder="Type your style here..."
-                                        className="w-full h-16 bg-black/60 border-2 border-white/10 rounded-2xl px-8 pr-44 text-sm font-mono tracking-widest text-white placeholder-slate-700 outline-none focus:border-cyan-500/50 transition-all shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]"
-                                    />
-                                    <button
-                                        onClick={() => {
-                                            const val = (document.getElementById('magic-vibe-input') as HTMLInputElement).value;
-                                            if (val) selectTemplate(val.toLowerCase().replace(/\s+/g, '-'));
-                                        }}
-                                        className="absolute right-2 top-2 bottom-2 px-8 bg-cyan-500 text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3 shadow-lg shadow-cyan-500/20"
-                                    >
-                                        START <Zap className="w-4 h-4 fill-current" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Generating Overlay */}

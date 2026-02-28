@@ -69,7 +69,11 @@ export default function RecruiterDashboard() {
             )
 
             if (response.data.voted) {
-                setShortlistedProfiles(prev => new Set([...prev, candidate.slug]))
+                setShortlistedProfiles(prev => {
+                    const newSet = new Set(prev)
+                    newSet.add(candidate.slug)
+                    return newSet
+                })
                 toast.success("Candidate shortlisted!")
             } else {
                 setShortlistedProfiles(prev => {
@@ -106,6 +110,7 @@ export default function RecruiterDashboard() {
 
     const [aiQuery, setAiQuery] = useState('')
     const [isAiSearching, setIsAiSearching] = useState(false)
+    const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({})
 
     const handleAiSearch = async () => {
         if (!aiQuery.trim()) return
@@ -252,17 +257,22 @@ export default function RecruiterDashboard() {
                                     initial={{ opacity: 0, y: 30 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: i * 0.05 }}
-                                    className="group glass-card p-10 rounded-[3.5rem] border border-white/10 hover:border-cyan-500/40 transition-all duration-700 relative overflow-hidden flex flex-col h-full group"
+                                    className="group glass-card p-6 md:p-8 rounded-[3.5rem] border border-white/10 hover:border-cyan-500/40 transition-all duration-700 relative overflow-hidden flex flex-col h-full"
                                 >
                                     <div className="absolute inset-0 bg-cyber-grid opacity-5 pointer-events-none" />
 
                                     <div className="flex justify-between items-start mb-8 relative z-10">
-                                        <div className="w-24 h-24 bg-black rounded-[2rem] border-2 border-white/10 shadow-2xl overflow-hidden relative group-hover:glow-cyan transition-all duration-700">
-                                            {candidate.profile_picture ? (
-                                                <img src={candidate.profile_picture} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" alt="" />
+                                        <div className="w-24 h-24 bg-black rounded-[2rem] border-2 border-white/10 shadow-2xl overflow-hidden relative group-hover:glow-cyan transition-all duration-700 shrink-0">
+                                            {candidate.profile_picture && !imageErrors[candidate.id] ? (
+                                                <img
+                                                    src={candidate.profile_picture}
+                                                    onError={() => setImageErrors(prev => ({ ...prev, [candidate.id]: true }))}
+                                                    className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700"
+                                                    alt=""
+                                                />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center font-black text-4xl text-white/10 uppercase">
-                                                    {(candidate.username || candidate.name || 'U').charAt(0)}
+                                                    {(candidate.full_name || candidate.name || candidate.username || 'U').charAt(0)}
                                                 </div>
                                             )}
                                         </div>
@@ -310,32 +320,32 @@ export default function RecruiterDashboard() {
                                         </p>
                                     </div>
 
-                                    <div className="mt-10 flex gap-4 relative z-10">
+                                    <div className="mt-8 flex gap-3 relative z-10 w-full stretch">
                                         <Link
                                             href={`/profile/${candidate.slug}`}
-                                            className="flex-grow flex items-center justify-center gap-3 py-5 bg-gradient-to-r from-cyan-500/20 to-cyan-500/10 text-cyan-100 border border-cyan-500/40 font-black rounded-2xl text-[11px] uppercase tracking-[0.3em] hover:from-cyan-500/40 hover:to-cyan-500/20 hover:border-cyan-500/60 hover:text-white hover:shadow-cyan-500/50 hover:shadow-lg transition-all duration-500 active:scale-95 group-hover:glow-cyan"
+                                            className="flex-1 flex flex-col xl:flex-row items-center justify-center gap-2 py-4 bg-gradient-to-r from-cyan-500/20 to-cyan-500/10 text-cyan-100 border border-cyan-500/40 font-black rounded-2xl text-[10px] xl:text-[11px] uppercase tracking-widest hover:from-cyan-500/40 hover:to-cyan-500/20 hover:border-cyan-500/60 hover:text-white transition-all duration-500 active:scale-95 group-hover:glow-cyan text-center truncate shrink min-w-0"
                                         >
-                                            <Eye className="w-5 h-5" />
-                                            VIEW VIBE
+                                            <Eye className="w-4 h-4 xl:w-5 xl:h-5 shrink-0" />
+                                            <span className="truncate">VIEW VIBE</span>
                                         </Link>
                                         <button
                                             onClick={() => toggleShortlist(candidate)}
                                             disabled={shortlistingId === candidate.id}
-                                            className="w-16 flex items-center justify-center border rounded-2xl transition-all duration-500 group-hover:scale-105 disabled:opacity-50"
+                                            className="w-14 shrink-0 flex items-center justify-center border rounded-2xl transition-all duration-500 group-hover:scale-105 disabled:opacity-50"
                                             style={{
                                                 backgroundColor: shortlistedProfiles.has(candidate.slug) ? '#06b6d4' : 'rgba(255,255,255,0.05)',
                                                 borderColor: shortlistedProfiles.has(candidate.slug) ? '#06b6d4' : 'rgba(255,255,255,0.1)',
                                                 color: shortlistedProfiles.has(candidate.slug) ? '#000' : '#78716c'
                                             }}
                                         >
-                                            <Heart className="w-6 h-6" fill={shortlistedProfiles.has(candidate.slug) ? 'currentColor' : 'none'} />
+                                            <Heart className="w-5 h-5 flex-shrink-0" fill={shortlistedProfiles.has(candidate.slug) ? 'currentColor' : 'none'} />
                                         </button>
                                         <button
                                             onClick={() => openContactModal(candidate)}
-                                            className="flex items-center justify-center gap-2 px-6 py-5 bg-white/10 text-white border border-white/20 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-cyan-500/20 hover:border-cyan-500/40 transition-all duration-500 active:scale-95"
+                                            className="flex-1 flex flex-col xl:flex-row items-center justify-center gap-2 py-4 bg-white/10 text-white border border-white/20 rounded-2xl text-[10px] xl:text-[11px] font-black uppercase tracking-widest hover:bg-cyan-500/20 hover:border-cyan-500/40 transition-all duration-500 active:scale-95 text-center truncate shrink min-w-0"
                                         >
-                                            <Mail className="w-5 h-5" />
-                                            CONTACT
+                                            <Mail className="w-4 h-4 xl:w-5 xl:h-5 shrink-0" />
+                                            <span className="truncate">CONTACT</span>
                                         </button>
                                     </div>
 

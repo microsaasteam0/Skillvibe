@@ -1,0 +1,5 @@
+Updating database schema...
+Error updating schema: (psycopg2.errors.DuplicateColumn) column "company_info" of relation "users" already exists
+
+[SQL: ALTER TABLE users ADD COLUMN company_info TEXT;]
+(Background on this error at: http://sqlalche.me/e/13/f405)

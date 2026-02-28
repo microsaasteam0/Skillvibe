@@ -77,7 +77,7 @@ export default function MobileMenu({
       { name: isRecruiter ? 'Find Talent' : 'My Profile', href: isRecruiter ? '/recruiter' : '/profile', icon: isRecruiter ? Users : Sparkles },
       ...(isRecruiter ? [{ name: 'Job Posts', href: '/recruiter/jobs', icon: Briefcase }] : []),
     ] : []),
-    { name: 'Jobs', href: '/jobs', icon: Briefcase },
+    ...(!isRecruiter ? [{ name: 'Jobs', href: '/jobs', icon: Briefcase }] : []),
     { name: 'Rankings', href: '/leaderboard', icon: Trophy },
     { name: 'Pricing', href: '/pricing', icon: Crown },
     { name: 'About Us', href: '/about', icon: Info, marketingOnly: true },
@@ -251,7 +251,7 @@ export default function MobileMenu({
                 )}
 
                 <p className="mt-5 text-center text-[10px] text-slate-400 dark:text-slate-600 font-mono">
-                  © 2026 SkillVibe · Entrext Labs
+                  © 2026 SkillVibe · <a href="https://entrextlabs.entrext.com/" target="_blank" className="hover:text-cyan-500 transition-colors">Entrext Labs</a>
                 </p>
               </div>
 

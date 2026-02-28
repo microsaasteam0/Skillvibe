@@ -1,16 +1,18 @@
 import { motion } from 'framer-motion'
-import { Github, Linkedin, ArrowRight, Save, Command, ShieldCheck } from 'lucide-react'
+import { Github, Linkedin, ArrowRight, Save, Command, ShieldCheck, Sparkles, ShieldAlert } from 'lucide-react'
 import EditableText from './EditableText'
 import { useState, useEffect } from 'react'
 
 export default function MinimalNoirTemplate({
     data,
     isEditing = false,
-    onSave
+    onSave,
+    vibeNotes = []
 }: {
     data: any,
     isEditing?: boolean,
-    onSave?: (updatedData: any) => void
+    onSave?: (updatedData: any) => void,
+    vibeNotes?: any[]
 }) {
     const [localData, setLocalData] = useState<any>(data)
 
@@ -65,13 +67,20 @@ export default function MinimalNoirTemplate({
                                     className="text-[10px] uppercase tracking-[0.4em] font-black text-zinc-400"
                                 />
                             </div>
-                            <EditableText
-                                as="h1"
-                                value={full_name}
-                                isEditing={isEditing}
-                                onSave={(v) => setLocalData({ ...localData, full_name: v })}
-                                className="text-7xl md:text-9xl font-bold tracking-tight text-black leading-[0.85]"
-                            />
+                            <div className="flex flex-col gap-6">
+                                <EditableText
+                                    as="h1"
+                                    value={full_name}
+                                    isEditing={isEditing}
+                                    onSave={(v) => setLocalData({ ...localData, full_name: v })}
+                                    className="text-7xl md:text-9xl font-bold tracking-tight text-black leading-[0.85]"
+                                />
+                                {localData.is_verified_trust && (
+                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-400">
+                                        <ShieldAlert className="w-4 h-4" /> Trusted Source Profile
+                                    </div>
+                                )}
+                            </div>
                             <div className="max-w-xl">
                                 <EditableText
                                     as="p"
@@ -85,13 +94,33 @@ export default function MinimalNoirTemplate({
                     </div>
                     <div className="lg:col-span-4 flex flex-col justify-end">
                         <div className="flex flex-col gap-10">
-                            <div className="p-10 border border-zinc-100 rounded-2xl bg-zinc-50/50">
-                                <div className="text-[10px] uppercase tracking-widest text-zinc-400 mb-6 flex items-center gap-2">
-                                    <ShieldCheck className="w-4 h-4" /> Verification Status
+                            <div className="p-10 border border-zinc-100 rounded-2xl bg-zinc-50/50 relative">
+                                {localData.trust_score > 0 && (
+                                    <div className="absolute -top-4 -right-4 bg-black text-white text-[10px] font-black px-4 py-2 rounded-xl rotate-12">
+                                        TRUST +{localData.trust_score}
+                                    </div>
+                                )}
+                                <div className="text-[10px] uppercase tracking-widest text-zinc-400 mb-6 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <ShieldCheck className="w-4 h-4" /> Verification
+                                    </div>
+                                    <div className={`px-2 py-0.5 rounded-full text-[8px] font-black tracking-widest ${localData.verification_stage === 3 ? 'bg-black text-white' :
+                                            localData.verification_stage === 2 ? 'bg-zinc-200 text-black' :
+                                                'bg-zinc-100 text-zinc-400'
+                                        }`}>
+                                        {localData.verification_stage === 3 ? 'STAGE 3: TITAN' :
+                                            localData.verification_stage === 2 ? 'STAGE 2: PILLAR' :
+                                                'STAGE 1: SEED'}
+                                    </div>
                                 </div>
                                 <div className="flex items-baseline gap-2">
                                     <span className="text-6xl font-black">{elite_rating}%</span>
                                     <span className="text-xs font-bold text-zinc-400">Match</span>
+                                </div>
+                                <div className="mt-4 flex gap-1 h-1">
+                                    <div className={`flex-1 rounded-full ${localData.verification_stage >= 1 ? 'bg-black' : 'bg-zinc-100'}`} />
+                                    <div className={`flex-1 rounded-full ${localData.verification_stage >= 2 ? 'bg-black' : 'bg-zinc-100'}`} />
+                                    <div className={`flex-1 rounded-full ${localData.verification_stage >= 3 ? 'bg-black' : 'bg-zinc-100'}`} />
                                 </div>
                                 <p className="mt-4 text-[11px] text-zinc-400 leading-relaxed font-medium">Verified professional data assessed via SkillVibe Assessment.</p>
                             </div>
@@ -256,6 +285,34 @@ export default function MinimalNoirTemplate({
                         </section>
                     </div>
                 </div>
+
+                {vibeNotes.length > 0 && (
+                    <section className="mt-40">
+                        <h3 className="text-[10px] uppercase tracking-[0.4em] font-black text-zinc-300 mb-16 text-center">Vibe Logs // Industry Feedback</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+                            {vibeNotes.map((note: any, i: number) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    className="pt-8 border-t border-zinc-100"
+                                >
+                                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-zinc-400 mb-6">
+                                        <Sparkles className="w-3 h-3 text-black" /> {note.vibe_type} Vibe
+                                    </div>
+                                    <p className="text-zinc-600 font-medium leading-relaxed mb-8">
+                                        "{note.content}"
+                                    </p>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[10px] font-black uppercase tracking-tighter text-black">{note.author_name}</span>
+                                        <span className="text-[8px] font-bold text-zinc-400 uppercase tracking-[0.2em]">{note.author_role}</span>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 <footer className="mt-60 pt-10 border-t border-zinc-100 flex flex-col md:flex-row justify-between items-center gap-6">
                     <div className="text-[10px] font-black text-zinc-300 uppercase tracking-[0.3em]">

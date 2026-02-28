@@ -12,18 +12,15 @@ import { requestCache } from '@/lib/cache-util'
 import Navbar from '../../../components/Navbar'
 import Footer from '../../../components/Footer'
 import { useAuth } from '../../../contexts/AuthContext'
+import LocationInput from '../../../components/LocationInput'
+import JobContent from '../../../components/JobContent'
 
 export default function CompanyProfilePage() {
   const { user } = useAuth()
+  const isRecruiter = user?.role === 'recruiter'
   const params = useParams()
   const rawParam = Array.isArray(params?.id) ? params.id[0] : params?.id
-  const recruiterId = (() => {
-    if (!rawParam) return null
-    const asString = String(rawParam)
-    if (/^\d+$/.test(asString)) return asString
-    const match = asString.match(/-(\d+)$/)
-    return match ? match[1] : null
-  })()
+  const recruiterId = Array.isArray(params?.id) ? params.id[0] : params?.id
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<any>(null)
   const [isEditing, setIsEditing] = useState(false)
@@ -33,6 +30,7 @@ export default function CompanyProfilePage() {
     location: '',
     overview: '',
   })
+  const [expandedJobs, setExpandedJobs] = useState<Record<number, boolean>>({})
 
   const getErrorMessage = (error: any, fallback: string) => {
     const detail = error?.response?.data?.detail
@@ -40,7 +38,22 @@ export default function CompanyProfilePage() {
     if (Array.isArray(detail) && detail.length > 0) {
       const first = detail[0]
       if (typeof first === 'string') return first
-      if (typeof first?.msg === 'string') return first.msg
+
+      // Handle Pydantic specific min_length error
+      if (first?.type === 'string_too_short') {
+        const field = first?.loc?.[first.loc.length - 1]
+        const limit = first?.ctx?.limit_value
+        if (field === 'overview') return `Company overview must be at least ${limit} characters.`
+        return `${field || 'Field'} is too short (min ${limit} characters).`
+      }
+
+      if (typeof first?.msg === 'string') {
+        // Fallback for generic "String should have at least 20 characters"
+        if (first.msg.includes('at least 20 characters')) {
+          return "Company overview must be at least 20 characters long."
+        }
+        return first.msg
+      }
     }
     if (typeof detail?.msg === 'string') return detail.msg
     return fallback
@@ -55,16 +68,21 @@ export default function CompanyProfilePage() {
       }
       setLoading(true)
       try {
-        const cacheKey = `recruiter-company-${recruiterId}`
+        const cacheKey = `recruiter-company-${recruiterId}-${user?.id || 'guest'}`
         const companyData = await requestCache.get(
           cacheKey,
           async () => {
+            const headers: any = {}
+            const token = localStorage.getItem('access_token')
+            if (token) headers.Authorization = `Bearer ${token}`
+
             const response = await axios.get(`${API_URL}/api/v1/jobs/recruiter/${recruiterId}/company`, {
+              headers,
               timeout: 10000,
             })
             return response.data
           },
-          60 * 1000
+          0 // Set TTL to 0 to disable caching and ensure fresh data
         )
         setData(companyData)
         setEditForm({
@@ -92,12 +110,25 @@ export default function CompanyProfilePage() {
         return
       }
 
+      const overviewValue = editForm.overview?.trim() || ''
+      if (!overviewValue) {
+        toast.error('Company overview is required.')
+        setSaving(false)
+        return
+      }
+
+      if (overviewValue.length < 20) {
+        toast.error('Company overview must be at least 20 characters long.')
+        setSaving(false)
+        return
+      }
+
       const response = await axios.put(
         `${API_URL}/api/v1/jobs/recruiter/${recruiterId}/company`,
         {
           company_name: editForm.company_name.trim(),
           location: editForm.location.trim(),
-          overview: editForm.overview.trim(),
+          overview: overviewValue,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       )
@@ -110,7 +141,7 @@ export default function CompanyProfilePage() {
         },
       }
       setData(updated)
-      requestCache.invalidate(`recruiter-company-${recruiterId}`)
+      requestCache.invalidate(`recruiter-company-${recruiterId}-${user?.id || 'guest'}`)
       setIsEditing(false)
       toast.success('Company profile updated')
     } catch (error: any) {
@@ -120,15 +151,15 @@ export default function CompanyProfilePage() {
     }
   }
 
+
+
   return (
     <div className="min-h-screen bg-black font-sans selection:bg-cyan-500/30 overflow-x-hidden">
       <Navbar />
 
       <main className="pt-44 pb-28 relative z-10 container mx-auto px-6">
         <div className="max-w-6xl mx-auto space-y-8">
-          <Link href="/jobs" className="inline-flex items-center gap-2 text-cyan-400 text-xs font-black uppercase tracking-widest">
-            <ArrowLeft className="w-4 h-4" /> Back to Jobs
-          </Link>
+
 
           {loading ? (
             <div className="h-56 rounded-3xl bg-white/5 animate-pulse" />
@@ -155,26 +186,42 @@ export default function CompanyProfilePage() {
                   <span className="inline-flex items-center gap-2"><Briefcase className="w-4 h-4" />{data.company?.open_jobs_count || 0} open jobs</span>
                 </div>
                 {!isEditing ? (
-                  <p className="text-slate-300 text-sm leading-7 whitespace-pre-line">{data.company?.overview || 'No company overview yet.'}</p>
+                  <div data-lenis-prevent="true" className="max-h-[500px] overflow-y-auto pr-4 custom-scrollbar">
+                    {data.company?.overview ? (
+                      <JobContent content={data.company.overview} isExpanded={true} />
+                    ) : (
+                      <p className="text-slate-500 font-bold italic">No company overview yet.</p>
+                    )}
+                  </div>
                 ) : (
                   <div className="space-y-3">
-                    <input
-                      className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 text-white"
-                      value={editForm.company_name}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, company_name: e.target.value }))}
-                      placeholder="Company name"
-                    />
-                    <input
-                      className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 text-white"
+                    <div>
+                      <input
+                        className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        value={editForm.company_name}
+                        disabled={!!user?.company_info}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, company_name: e.target.value }))}
+                        placeholder="Company name"
+                      />
+                      {!!user?.company_info && (
+                        <p className="mt-2 ml-1 text-[10px] text-slate-500 font-black uppercase tracking-widest">
+                          * Company name cannot be changed to maintain URL identity.
+                        </p>
+                      )}
+                    </div>
+                    <LocationInput
                       value={editForm.location}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, location: e.target.value }))}
-                      placeholder="Location"
+                      onChange={(val) => setEditForm(prev => ({ ...prev, location: val }))}
+                      placeholder="Company Headquarters (City, Country)"
+                      className="py-3 rounded-xl bg-white/[0.04] border border-white/10 text-white"
                     />
                     <textarea
+                      data-lenis-prevent="true"
                       className="w-full px-4 py-3 rounded-xl bg-white/[0.04] border border-white/10 text-white min-h-[140px]"
                       value={editForm.overview}
                       onChange={(e) => setEditForm(prev => ({ ...prev, overview: e.target.value }))}
-                      placeholder="Company overview"
+                      placeholder="Company overview (Minimum 20 characters) *"
+                      required
                     />
                     <div className="flex gap-3">
                       <button
@@ -212,10 +259,39 @@ export default function CompanyProfilePage() {
                   (data.open_jobs || []).map((job: any) => (
                     <div key={job.id} className="p-6 rounded-2xl border border-white/10 bg-white/[0.02]">
                       <h3 className="text-2xl font-black text-white uppercase italic">{job.title}</h3>
-                      <p className="text-slate-400 text-sm mt-2">{job.location || 'Remote'} - {job.job_type} - {job.work_mode}</p>
-                      <Link href="/jobs" className="inline-block mt-4 px-4 py-2 rounded-lg bg-cyan-500 text-black text-xs font-black uppercase tracking-widest">
-                        Apply from Jobs Page
-                      </Link>
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <button
+                          onClick={() => setExpandedJobs(prev => ({ ...prev, [job.id]: !prev[job.id] }))}
+                          className="px-4 py-2 rounded-lg border border-white/10 text-white text-xs font-black uppercase tracking-widest hover:bg-white/5 transition-all"
+                        >
+                          {expandedJobs[job.id] ? 'Hide Details' : 'View Job'}
+                        </button>
+                        {!isRecruiter && (
+                          <Link href="/jobs" className="px-4 py-2 rounded-lg bg-cyan-500 text-black text-xs font-black uppercase tracking-widest">
+                            Apply from Jobs Page
+                          </Link>
+                        )}
+                      </div>
+
+                      {expandedJobs[job.id] && (
+                        <div className="mt-6 pt-6 border-t border-white/5 space-y-6">
+                          <div>
+                            <p className="text-cyan-500 text-[10px] uppercase tracking-widest font-black mb-2">Job Description</p>
+                            <JobContent content={job.description} isExpanded={true} />
+                          </div>
+                          {job.requirements && (
+                            <div className="pt-4 border-t border-white/5">
+                              <p className="text-cyan-500 text-[10px] uppercase tracking-widest font-black mb-2">Requirements</p>
+                              <JobContent content={job.requirements} isExpanded={true} />
+                            </div>
+                          )}
+                          {job.salary_range && (
+                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                              Budget: <span className="text-cyan-400">{job.salary_range}</span>
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}

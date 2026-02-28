@@ -64,11 +64,20 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       return
     }
 
-    // Avoid too frequent checks (max once per 5 minutes)
+    // Avoid too frequent checks across page reloads (max once per 5 minutes)
     const now = Date.now()
-    if (now - lastCheck < 5 * 60 * 1000) {
+    const storedLastCheck = parseInt(sessionStorage.getItem('last_payment_check') || '0', 10)
+    const effectiveLastCheck = Math.max(lastCheck, storedLastCheck)
+
+    if (now - effectiveLastCheck < 5 * 60 * 1000) {
+      const storedData = sessionStorage.getItem('subscription_info')
+      if (storedData) {
+        setSubscriptionInfo(JSON.parse(storedData))
+      }
       return
     }
+
+    sessionStorage.setItem('last_payment_check', now.toString())
 
     try {
       setIsLoading(true)
@@ -149,6 +158,11 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
         }
 
         setSubscriptionInfo(subscriptionData)
+        if (subscriptionData) {
+          sessionStorage.setItem('subscription_info', JSON.stringify(subscriptionData))
+        } else {
+          sessionStorage.removeItem('subscription_info')
+        }
         setLastCheck(now)
 
         // console.log('✅ Subscription status updated:', subscriptionData)

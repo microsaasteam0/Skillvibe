@@ -1,16 +1,18 @@
 import { motion } from 'framer-motion'
-import { Terminal, Github, Linkedin, Globe, Cpu, Save, Share2 } from 'lucide-react'
+import { Terminal, Github, Linkedin, Globe, Cpu, Save, Share2, ShieldCheck, Sparkles } from 'lucide-react'
 import EditableText from './EditableText'
 import { useState, useEffect } from 'react'
 
 export default function TerminalVoidTemplate({
     data,
     isEditing = false,
-    onSave
+    onSave,
+    vibeNotes = []
 }: {
     data: any,
     isEditing?: boolean,
-    onSave?: (updatedData: any) => void
+    onSave?: (updatedData: any) => void,
+    vibeNotes?: any[]
 }) {
     const [localData, setLocalData] = useState<any>(data)
 
@@ -65,13 +67,20 @@ export default function TerminalVoidTemplate({
                                 <span className="tracking-[0.2em]">IDENTITY VERIFIED</span>
                                 <span className="animate-pulse">_</span>
                             </div>
-                            <EditableText
-                                as="h1"
-                                value={full_name}
-                                isEditing={isEditing}
-                                onSave={(v) => setLocalData({ ...localData, full_name: v })}
-                                className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]"
-                            />
+                            <div className="flex items-center gap-6">
+                                <EditableText
+                                    as="h1"
+                                    value={full_name}
+                                    isEditing={isEditing}
+                                    onSave={(v) => setLocalData({ ...localData, full_name: v })}
+                                    className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-green-400 drop-shadow-[0_0_10px_rgba(74,222,128,0.5)]"
+                                />
+                                {localData.is_verified_trust && (
+                                    <div className="px-3 py-1 border border-green-500/50 text-[10px] uppercase font-black tracking-widest bg-green-500/20 text-green-400 flex items-center gap-2">
+                                        <ShieldCheck className="w-3 h-3" /> VERIFIED
+                                    </div>
+                                )}
+                            </div>
                             <div className="flex flex-wrap gap-4">
                                 <EditableText
                                     as="span"
@@ -81,8 +90,16 @@ export default function TerminalVoidTemplate({
                                     className="px-3 py-1 bg-green-500/10 border border-green-500/30 text-[10px] uppercase tracking-widest text-green-300"
                                 />
                                 <span className="px-3 py-1 bg-green-500/10 border border-green-500/30 text-[10px] uppercase tracking-widest text-green-300">
-                                    SCORE::{elite_rating}
+                                    STAGE::{localData.verification_stage === 3 ? 'Titan' : localData.verification_stage === 2 ? 'Pillar' : 'Seed'}
                                 </span>
+                                <span className="px-3 py-1 bg-green-500/10 border border-green-500/30 text-[10px] uppercase tracking-widest text-green-300">
+                                    PROWESS::{elite_rating}
+                                </span>
+                                {localData.trust_score > 0 && (
+                                    <span className="px-3 py-1 bg-green-500/10 border border-green-500/50 text-[10px] uppercase tracking-widest text-green-400 font-bold">
+                                        TRUST::{localData.trust_score}
+                                    </span>
+                                )}
                             </div>
                         </div>
 
@@ -236,6 +253,38 @@ export default function TerminalVoidTemplate({
                         </div>
                     </div>
                 </div>
+
+                {vibeNotes.length > 0 && (
+                    <section className="mt-24">
+                        <div className="flex items-center gap-4 mb-12 opacity-40 text-center justify-center">
+                            <div className="h-px w-20 bg-green-500/30" />
+                            <h2 className="text-xs uppercase tracking-[0.4em] font-black whitespace-nowrap">VIBE_CHECK // SOCIAL_LOGS</h2>
+                            <div className="h-px w-20 bg-green-500/30" />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {vibeNotes.map((note: any, i: number) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, scale: 0.98 }}
+                                    whileInView={{ opacity: 1, scale: 1 }}
+                                    viewport={{ once: true }}
+                                    className="p-8 border border-green-500/20 bg-green-500/[0.02] relative group hover:bg-green-500/5 transition-all"
+                                >
+                                    <Sparkles className="absolute top-4 right-4 w-4 h-4 opacity-20" />
+                                    <div className="text-[10px] font-bold opacity-40 uppercase tracking-widest mb-4">
+                                        SOURCE::{note.author_role} :: {note.vibe_type}
+                                    </div>
+                                    <p className="text-green-200 text-sm leading-relaxed mb-6 italic">
+                                        "{note.content}"
+                                    </p>
+                                    <div className="text-[10px] font-bold text-green-400/60 uppercase tracking-tighter">
+                                        AUTHORED_BY::{note.author_name}
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 {/* Footer Data */}
                 <footer className="mt-24 pt-12 border-t border-green-500/20 flex flex-col md:flex-row justify-between items-center gap-10">

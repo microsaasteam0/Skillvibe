@@ -12,6 +12,9 @@ interface User {
   full_name?: string
   profile_picture?: string
   role?: string
+  company_info?: string
+  company_location?: string
+  company_overview?: string
   is_active: boolean
   is_verified: boolean
   is_premium: boolean
@@ -24,8 +27,8 @@ interface AuthContextType {
   isLoading: boolean
   isAuthenticated: boolean
   login: (email: string, password: string, role?: string) => Promise<boolean>
-  register: (email: string, username: string, password: string, fullName?: string, role?: string) => Promise<boolean>
-  googleAuth: (googleToken: string) => Promise<boolean>
+  register: (email: string, username: string, password: string, fullName?: string, role?: string, companyInfo?: string) => Promise<boolean>
+  googleAuth: (googleToken: string, role?: string) => Promise<boolean>
   logout: () => void
   refreshToken: () => Promise<boolean>
   updateUser: (userData: Partial<User>) => void
@@ -321,7 +324,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }
 
-  const googleAuth = async (googleToken: string): Promise<boolean> => {
+  const googleAuth = async (googleToken: string, role?: string): Promise<boolean> => {
     try {
       setIsLoading(true)
       // console.log('🔄 Starting Google Auth with token:', googleToken?.substring(0, 50) + '...')
@@ -339,14 +342,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // console.log('👤 User data from Google auth:', userData)
       // console.log('🖼️ Profile picture from response:', userData.profile_picture)
 
-      // Store tokens and user data
+      // 2. Normalize and check if we need to update role on backend
+      const normalizedRole = role?.toLowerCase()
+      let finalUserData = userData
+      if (normalizedRole && normalizedRole !== userData.role) {
+        try {
+          const roleResponse = await axios.put(
+            `${API_URL}/api/v1/auth/role`,
+            { role: normalizedRole },
+            { headers: { 'Authorization': `Bearer ${access_token}` } }
+          )
+          finalUserData = roleResponse.data
+        } catch (roleErr) {
+          console.warn('Role update failed during googleAuth:', roleErr)
+          toast.error('Could not set account role. Please try again.')
+          return false
+        }
+      }
+
+      // 3. Store tokens and user data
       localStorage.setItem('access_token', access_token)
       localStorage.setItem('refresh_token', refresh_token)
-      localStorage.setItem('user', JSON.stringify(userData))
+      localStorage.setItem('user', JSON.stringify(finalUserData))
 
       setToken(access_token)
       setRefreshTokenValue(refresh_token)
-      setUser(userData)
+      setUser(finalUserData)
       setLastLoginTime(Date.now()) // Track login time
 
       // Set default authorization header
@@ -384,7 +405,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     username: string,
     password: string,
     fullName?: string,
-    role?: string
+    role?: string,
+    companyInfo?: string
   ): Promise<boolean> => {
     try {
       setIsLoading(true)
@@ -396,7 +418,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           username,
           password,
           full_name: fullName,
-          role: (role || 'candidate').toLowerCase()
+          role: (role || 'candidate').toLowerCase(),
+          company_info: companyInfo
         }
       )
 

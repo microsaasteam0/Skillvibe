@@ -53,13 +53,13 @@ export default function TermsOfService() {
                         <div className="inline-flex items-center gap-3 mb-10 px-6 py-2.5 bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-[0.4em] font-mono border border-slate-200 dark:border-slate-800 shadow-2xl relative overflow-hidden group">
                             <div className="absolute inset-0 bg-grid-blueprint opacity-[0.2] pointer-events-none" />
                             <Scale className="w-3.5 h-3.5 relative z-10 animate-pulse" />
-                            <span className="relative z-10">SERVICE_TERMINAL_V1.0</span>
+                            <span className="relative z-10">TERMS_V1.0</span>
                         </div>
                         <h1 className="text-5xl lg:text-8xl font-display font-black text-slate-900 dark:text-white mb-8 tracking-tighter uppercase leading-[0.85]">
-                            Service <br /> <span className="text-indigo-600 dark:text-indigo-500 underline decoration-indigo-500/20">Protocols</span>
+                            Terms <br /> <span className="text-indigo-600 dark:text-indigo-500 underline decoration-indigo-500/20">of Service</span>
                         </h1>
                         <p className="text-lg text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wide max-w-2xl mx-auto mb-10 opacity-80">
-                            The functional architecture of your platform usage. By initializing this engine, you synchronize with our <span className="text-slate-900 dark:text-white">Operational Directives</span>.
+                            These are the simple rules you agree to when using SkillVibe. Follow them and enjoy the service.
                         </p>
                         <div className="flex items-center justify-center gap-4 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 border-t border-slate-200 dark:border-slate-800 pt-8 mt-8">
                             <span>LAST_COMMITTED:</span>
@@ -78,14 +78,14 @@ export default function TermsOfService() {
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center font-black text-sm shadow-xl">01</div>
-                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">_AGREEMENT_SYNCHRONIZATION</h2>
+                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">Agreement</h2>
                                     </div>
                                     <div className="text-slate-600 dark:text-slate-400 leading-relaxed font-bold text-[15px] space-y-6 max-w-3xl">
                                         <p>
-                                            Accessing SkillVibe (skillvibe.ai) establishes a high-fidelity sync with these Terms of Service. Discrepancies in agreement result in terminal decommissioning of system access.
+                                            By using SkillVibe you agree to these terms. If you do not agree, please do not use the site.
                                         </p>
                                         <p>
-                                            Operational assets within this schematic are protected under global copyright and trademark architecture.
+                                            Content on the site is protected by copyright and other laws.
                                         </p>
                                     </div>
                                 </div>
@@ -94,16 +94,16 @@ export default function TermsOfService() {
                                 <div className="space-y-8">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-xl shadow-indigo-600/20">02</div>
-                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">_USAGE_LICENSE_GRANT</h2>
+                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">Usage License</h2>
                                     </div>
                                     <div className="space-y-6">
-                                        <p className="text-slate-600 dark:text-slate-400 font-bold text-[14px] uppercase tracking-wide">PROHIBITED_OPERATIONS:</p>
+                                        <p className="text-slate-600 dark:text-slate-400 font-bold text-[14px] uppercase tracking-wide">You are not allowed to:</p>
                                         <div className="grid md:grid-cols-2 gap-4">
                                             {[
-                                                "Illegal or unauthorized task execution",
-                                                "Software schematic reverse engineering",
-                                                "Generation of deepfakes/misinformation",
-                                                "Unauthorized automated data scraping"
+                                                "Do anything illegal or unauthorized",
+                                                "Reverse-engineer our software",
+                                                "Create fake or misleading content using the service",
+                                                "Scrape data automatically without permission"
                                             ].map((task, i) => (
                                                 <div key={i} className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl">
                                                     <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
@@ -122,9 +122,9 @@ export default function TermsOfService() {
                                             <CheckCircle className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-black text-white mb-2 uppercase tracking-tighter">INTEL_PROPERTY_SAFEGUARD</h3>
+                                            <h3 className="text-lg font-black text-white mb-2 uppercase tracking-tighter">Ownership Guarantee</h3>
                                             <p className="text-slate-400 text-sm font-bold leading-relaxed max-w-xl">
-                                                You retain <span className="text-white underline decoration-indigo-500/50">TOTAL_SOVEREIGNTY</span> over assets uploaded and generated. SkillVibe claims zero equity in your intellectual social capital.
+                                                You retain complete control over everything you upload or create. SkillVibe claims no rights to your content.
                                             </p>
                                         </div>
                                     </div>
@@ -134,13 +134,13 @@ export default function TermsOfService() {
                                 <div className="space-y-8">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 flex items-center justify-center font-black text-sm">03</div>
-                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">_FINANCIAL_ARCHITECTURE</h2>
+                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">Payments</h2>
                                     </div>
                                     <div className="grid md:grid-cols-3 gap-6">
                                         {[
-                                            { title: "RECURRING_BILL", desc: "Periodic synchronization for Pro membership." },
-                                            { title: "NULL_CANCELLATION", desc: "User-initiated protocol termination via dashboard." },
-                                            { title: "REFUND_LIMITATION", desc: "Immediate value distribution = No refund capability." }
+                                            { title: "Subscription", desc: "Your Pro plan renews automatically until you cancel." },
+                                            { title: "Cancellation", desc: "You can cancel anytime from your dashboard." },
+                                            { title: "No refunds", desc: "Payments are non-refundable once processed." }
                                         ].map((item, i) => (
                                             <div key={i} className="p-6 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl">
                                                 <h3 className="text-[10px] font-black text-slate-900 dark:text-white mb-2 uppercase tracking-widest">{item.title}</h3>
@@ -154,12 +154,12 @@ export default function TermsOfService() {
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-amber-600 text-white flex items-center justify-center font-black text-sm shadow-xl shadow-amber-600/20">04</div>
-                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">_SYSTEM_LIMITATIONS</h2>
+                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">System Limitations</h2>
                                     </div>
                                     <div className="p-8 bg-amber-500/5 border border-amber-500/10 rounded-2xl flex items-start gap-6">
                                         <AlertTriangle className="w-6 h-6 text-amber-600 mt-1 flex-shrink-0 animate-pulse" />
                                         <p className="text-slate-600 dark:text-slate-400 text-xs font-bold leading-relaxed uppercase tracking-wide">
-                                            SERVICES OPERATED ON AN 'AS_IS' BASIS. ENTREXT LABS DISCLAIMS ALL WARRANTIES, EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO OPERATIONAL FITNESS OR INTELLECTUAL NON-INFRINGEMENT.
+                                            The service is provided "as is." We make no guarantees about availability or results, and we are not responsible for any losses.
                                         </p>
                                     </div>
                                 </div>
@@ -168,11 +168,11 @@ export default function TermsOfService() {
                                 <div className="pt-16 border-t border-slate-200 dark:border-slate-800">
                                     <div className="flex flex-col md:flex-row items-center justify-between gap-10">
                                         <div className="text-center md:text-left">
-                                            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 uppercase tracking-tighter">PROTOCOL_ENQUIRY</h3>
-                                            <p className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-widest">Submit a dispatch for legal clarification.</p>
+                                            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 uppercase tracking-tighter">Protocol Enquiry</h3>
+                                            <p className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-widest">Questions? Email us at business@entrext.in.</p>
                                         </div>
                                         <a href="mailto:business@entrext.in" className="group px-10 py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
-                                            Contact_Industrial_Legal
+                                            Email Legal
                                             <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                                         </a>
                                     </div>
@@ -185,7 +185,7 @@ export default function TermsOfService() {
                         <div className="text-center pt-8">
                             <Link href="/" className="inline-flex items-center gap-3 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-black uppercase tracking-[0.3em] text-[10px] transition-all group">
                                 <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                                Exit_Service_Protocols
+                                Back to Home
                             </Link>
                         </div>
                     </div>

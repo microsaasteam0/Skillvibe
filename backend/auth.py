@@ -251,7 +251,7 @@ async def get_current_active_user(current_user: User = Depends(get_current_user)
     return current_user
 
 @db_retry(max_retries=3, delay=0.5)
-def create_user(db: Session, email: str, username: str, password: str, full_name: str = None, role: str = "founder"):
+def create_user(db: Session, email: str, username: str, password: str, full_name: str = None, role: str = "founder", company_info: str = None):
     """Create new user"""
     hashed_password = get_password_hash(password)
     verification_token = secrets.token_hex(32)
@@ -262,7 +262,8 @@ def create_user(db: Session, email: str, username: str, password: str, full_name
         role=role,
         hashed_password=hashed_password,
         verification_token=verification_token,
-        auth_provider='local'
+        auth_provider='local',
+        company_info=company_info
     )
     db.add(db_user)
     db.commit()

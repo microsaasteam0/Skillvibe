@@ -10,6 +10,7 @@ import { API_URL } from '@/lib/api-config'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import PortfolioRenderer from '@/components/portfolio-templates/PortfolioRenderer'
+import { useScrollLock } from '@/hooks/useScrollLock'
 
 export default function PortfolioPage() {
     const { slug } = useParams()
@@ -19,8 +20,16 @@ export default function PortfolioPage() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [portfolioData, setPortfolioData] = useState<any>(null)
+    const [vibeNotes, setVibeNotes] = useState<any[]>([])
     const [isEditing, setIsEditing] = useState(false)
+    const [showVibeNoteModal, setShowVibeNoteModal] = useState(false)
+    const [noteContent, setNoteContent] = useState('')
+    const [noteType, setNoteType] = useState('professional')
+    const [submittingNote, setSubmittingNote] = useState(false)
     const [saving, setSaving] = useState(false)
+
+    // Lock page scroll completely (including Lenis) while the vibe note modal is open.
+    useScrollLock(showVibeNoteModal)
 
     useEffect(() => {
         if (!slug) return
@@ -29,7 +38,6 @@ export default function PortfolioPage() {
             setLoading(true)
             setError(null)
             try {
-                // Fetch structured data only (Native rendering flow)
                 const config = localStorage.getItem('access_token')
                     ? { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }
                     : {}
@@ -41,6 +49,13 @@ export default function PortfolioPage() {
 
                 if (response.data && response.data.vibe_data) {
                     setPortfolioData(response.data)
+                    // Fetch notes - non-blocking
+                    try {
+                        const notesRes = await axios.get(`${API_URL}/api/v1/skillvibe/vibe-notes/${slug}`)
+                        setVibeNotes(notesRes.data || [])
+                    } catch (e) {
+                        console.error('Failed to load vibe notes', e)
+                    }
                 } else {
                     setError('not-found')
                 }
@@ -60,14 +75,77 @@ export default function PortfolioPage() {
         fetchPortfolio()
     }, [slug])
 
+    const handleLeaveVibeNote = async () => {
+        if (!isAuthenticated) {
+            toast.error('Log in as a Recruiter to leave a Vibe Note');
+            router.push('/?auth=login&role=recruiter');
+            return;
+        }
+
+        const hasAlreadyPosted = vibeNotes.some((note: any) => note.author_id === user?.id);
+        if (hasAlreadyPosted) {
+            toast.error('You have already left an endorsement for this profile.');
+            return;
+        }
+
+        if (user?.role !== 'recruiter') {
+            toast.error('Only recruiters can leave Vibe Notes');
+            return;
+        }
+        setShowVibeNoteModal(true);
+    };
+
+    const submitVibeNote = async () => {
+        if (!noteContent.trim()) return;
+        setSubmittingNote(true);
+        try {
+            const res = await axios.post(`${API_URL}/api/v1/skillvibe/vibe-note`, {
+                profile_id: portfolioData.id || 0, // We need to make sure 'id' is in the data
+                content: noteContent,
+                vibe_type: noteType
+            }, {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` }
+            });
+
+            if (res.data.trust_score !== undefined) {
+                setPortfolioData((prev: any) => ({
+                    ...prev,
+                    trust_score: res.data.trust_score,
+                    is_verified_trust: res.data.is_verified_trust,
+                    ranking_score: res.data.ranking_score,
+                    elite_rating: res.data.elite_rating ?? prev.elite_rating
+                }));
+            }
+
+            toast.success('Vibe Note posted!');
+            setShowVibeNoteModal(false);
+            setNoteContent('');
+            // Refresh notes
+            const notesRes = await axios.get(`${API_URL}/api/v1/skillvibe/vibe-notes/${slug}`);
+            setVibeNotes(notesRes.data || []);
+        } catch (err: any) {
+            toast.error(err.response?.data?.detail || 'Failed to post Vibe Note');
+        } finally {
+            setSubmittingNote(false);
+        }
+    };
+
     const handleSave = async (updatedData: any) => {
         setSaving(true)
         try {
+            // Ensure template_id is included in the save
+            const dataToSave = {
+                ...updatedData,
+                template_id: portfolioData.template_id
+            }
             await axios.put(`${API_URL}/api/v1/skillvibe/portfolio/update`,
-                updatedData,
+                dataToSave,
                 { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }
             )
-            setPortfolioData(updatedData)
+            setPortfolioData((prev: any) => ({
+                ...prev,
+                ...dataToSave
+            }))
             setIsEditing(false)
             toast.success('Vibe updated!')
         } catch (err) {
@@ -113,6 +191,9 @@ export default function PortfolioPage() {
                 ...prev,
                 upvote_count: response.data.upvotes,
                 ranking_score: response.data.ranking_score,
+                trust_score: response.data.trust_score ?? prev.trust_score,
+                is_verified_trust: response.data.is_verified_trust ?? prev.is_verified_trust,
+                elite_rating: response.data.elite_rating ?? prev.elite_rating,
                 interaction: { ...prev.interaction, upvoted: response.data.voted }
             }));
         } catch (err: any) {
@@ -155,10 +236,13 @@ export default function PortfolioPage() {
                 { reason: 'Reported by recruiter' },
                 { headers: { 'Authorization': `Bearer ${localStorage.getItem('access_token')}` } }
             );
-            // Sync with server
+            // Sync with server truth
             setPortfolioData((prev: any) => ({
                 ...prev,
                 ranking_score: response.data.ranking_score,
+                trust_score: response.data.trust_score ?? prev.trust_score,
+                is_verified_trust: response.data.is_verified_trust ?? prev.is_verified_trust,
+                elite_rating: response.data.elite_rating ?? prev.elite_rating,
                 interaction: { ...prev.interaction, flagged: response.data.flagged }
             }));
         } catch (err: any) {
@@ -246,12 +330,79 @@ export default function PortfolioPage() {
 
     if (portfolioData) {
         return (
-            <div className="relative">
-                <PortfolioRenderer
-                    data={portfolioData}
-                    isEditing={isEditing}
-                    onSave={handleSave}
-                />
+            <div className="dark relative min-h-screen bg-[#0a0a0a]">
+
+                {isEditing && (
+                    <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[200] flex flex-wrap justify-center gap-2 p-2 bg-black/50 backdrop-blur-md rounded-2xl border border-white/10 shadow-2xl">
+                        {['obsidian-elite', 'minimal-noir', 'executive-gold', 'terminal-void', 'glass-prism'].map(t => (
+                            <button
+                                key={t}
+                                onClick={() => setPortfolioData((prev: any) => ({ ...prev, template_id: t }))}
+                                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${portfolioData.template_id === t ? 'bg-cyan-500 text-black shadow-[0_0_15px_rgba(6,182,212,0.4)]' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
+                            >
+                                {t.replace('-', ' ')}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                <div className="relative z-10">
+                    <PortfolioRenderer
+                        data={portfolioData}
+                        isEditing={isEditing}
+                        onSave={handleSave}
+                        vibeNotes={vibeNotes}
+                    />
+                </div>
+
+                {/* Vibe Note Modal */}
+                {showVibeNoteModal && (
+                    <div data-lenis-prevent="true" className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/80 backdrop-blur-md overscroll-contain">
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            className="bg-[#1a1a1a] border border-white/10 p-8 rounded-[2rem] max-w-lg w-full shadow-2xl"
+                        >
+                            <h3 className="text-2xl font-black text-white uppercase italic mb-2 tracking-tighter">LEAVE A <span className="text-cyan-500">VIBE NOTE</span></h3>
+                            <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest mb-6">Social proof for exceptional talent</p>
+
+                            <div className="space-y-4">
+                                <textarea
+                                    className="w-full bg-white/5 border border-white/10 rounded-2xl p-4 text-white text-sm focus:border-cyan-500/50 outline-none min-h-[120px]"
+                                    placeholder="What's it like working with this person? Focus on their 'vibe' and impact..."
+                                    value={noteContent}
+                                    onChange={(e) => setNoteContent(e.target.value)}
+                                />
+                                <div className="flex gap-2">
+                                    {['professional', 'creative', 'leadership'].map(type => (
+                                        <button
+                                            key={type}
+                                            onClick={() => setNoteType(type)}
+                                            className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${noteType === type ? 'bg-cyan-500 text-black border-cyan-500' : 'bg-white/5 text-zinc-500 border-white/10'}`}
+                                        >
+                                            {type}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="flex gap-4 pt-4">
+                                    <button
+                                        onClick={() => setShowVibeNoteModal(false)}
+                                        className="flex-1 py-3 bg-white/5 text-white rounded-xl text-xs font-black uppercase tracking-widest border border-white/10"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={submitVibeNote}
+                                        disabled={submittingNote || !noteContent.trim()}
+                                        className="flex-1 py-3 bg-cyan-500 text-black rounded-xl text-xs font-black uppercase tracking-widest disabled:opacity-50"
+                                    >
+                                        {submittingNote ? 'Posting...' : 'Post Note'}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
 
                 {/* Floating Navigation / Interaction Bar */}
                 <motion.div
@@ -308,6 +459,24 @@ export default function PortfolioPage() {
                                 <ShieldAlert className="w-3.5 h-3.5" />
                                 {portfolioData.interaction?.flagged ? 'Reported' : 'Report'}
                             </button>
+
+                            <div className="w-px h-6 bg-white/10" />
+
+                            {(() => {
+                                const hasPostedNote = vibeNotes.some((note: any) => note.author_id === user?.id);
+                                return (
+                                    <button
+                                        onClick={handleLeaveVibeNote}
+                                        className={`flex items-center gap-3 px-6 py-2 rounded-2xl transition-all text-[10px] font-black uppercase tracking-[0.2em] border ${hasPostedNote
+                                            ? 'bg-cyan-500/20 text-cyan-500 border-cyan-500/30'
+                                            : 'bg-white/5 text-cyan-400 hover:bg-white/10 border-cyan-500/20'
+                                            }`}
+                                    >
+                                        <MessageSquare className="w-3.5 h-3.5" />
+                                        {hasPostedNote ? 'Note Left' : 'Vibe Note'}
+                                    </button>
+                                );
+                            })()}
                         </>
                     )}
                 </motion.div>

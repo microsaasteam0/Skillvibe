@@ -1,16 +1,18 @@
 import { motion } from 'framer-motion'
-import { Sparkles, Github, Linkedin, Globe, Wind, Save } from 'lucide-react'
+import { Sparkles, Github, Linkedin, Globe, Wind, Save, ShieldAlert } from 'lucide-react'
 import EditableText from './EditableText'
 import { useState, useEffect } from 'react'
 
 export default function GlassPrismTemplate({
     data,
     isEditing = false,
-    onSave
+    onSave,
+    vibeNotes = []
 }: {
     data: any,
     isEditing?: boolean,
-    onSave?: (updatedData: any) => void
+    onSave?: (updatedData: any) => void,
+    vibeNotes?: any[]
 }) {
     const [localData, setLocalData] = useState<any>(data)
 
@@ -89,6 +91,27 @@ export default function GlassPrismTemplate({
                                 <span className="text-3xl font-black text-indigo-600">{elite_rating}%</span>
                                 <span className="text-[8px] uppercase tracking-tighter text-zinc-400 font-bold">Prowess</span>
                             </div>
+                            <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className={`absolute -bottom-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full flex items-center gap-2 shadow-lg z-20 ${localData.verification_stage === 3 ? 'bg-purple-600' : localData.verification_stage === 2 ? 'bg-indigo-600' : 'bg-emerald-600'}`}
+                            >
+                                <ShieldAlert className="w-3 h-3 text-white" />
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase tracking-widest whitespace-nowrap text-white">Verification Status</span>
+                                    <span className="text-[8px] font-bold opacity-90 uppercase tracking-tighter text-white">
+                                        {localData.verification_stage === 3 ? 'Stage 3: Titan' :
+                                            localData.verification_stage === 2 ? 'Stage 2: Pillar' :
+                                                'Stage 1: Seed'}
+                                    </span>
+                                </div>
+                            </motion.div>
+                            {localData.trust_score > 0 && (
+                                <div className="absolute -top-4 -right-4 w-12 h-12 rounded-2xl bg-white border border-indigo-100 shadow-xl flex flex-col items-center justify-center rotate-12 z-20">
+                                    <span className="text-xs font-black text-indigo-600">+{localData.trust_score}</span>
+                                    <span className="text-[8px] font-bold text-zinc-400 uppercase">Trust</span>
+                                </div>
+                            )}
                         </div>
                     </motion.div>
                 </header>
@@ -307,6 +330,40 @@ export default function GlassPrismTemplate({
                         </section>
                     </div>
                 </div>
+
+                {vibeNotes.length > 0 && (
+                    <section className="mt-24">
+                        <h2 className="text-xs uppercase tracking-[0.3em] font-black text-zinc-400 mb-12 text-center">Vibe Check // Social Proof</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {vibeNotes.map((note: any, i: number) => (
+                                <motion.div
+                                    key={i}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    className="p-8 rounded-[2.5rem] bg-indigo-50/30 border border-indigo-100/50 relative group"
+                                >
+                                    <Sparkles className="absolute top-6 right-6 w-4 h-4 text-indigo-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="text-indigo-400 text-[10px] font-bold uppercase tracking-widest mb-4">
+                                        Verified {note.author_role}
+                                    </div>
+                                    <p className="text-zinc-700 text-sm font-medium leading-relaxed mb-6 italic">
+                                        "{note.content}"
+                                    </p>
+                                    <div className="flex items-center gap-3 pt-4 border-t border-indigo-100/30">
+                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-100 to-indigo-200 flex items-center justify-center text-[10px] font-black text-indigo-600">
+                                            {note.author_name.charAt(0)}
+                                        </div>
+                                        <div>
+                                            <div className="text-xs font-bold text-zinc-900">{note.author_name}</div>
+                                            <div className="text-[8px] font-bold text-zinc-400 uppercase tracking-widest">{note.vibe_type} vibe</div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
+                    </section>
+                )}
 
                 {/* Footer */}
                 <footer className="mt-24 bg-white/40 backdrop-blur-2xl border border-white/60 p-12 rounded-[3rem] flex flex-col md:flex-row justify-between items-center gap-8">

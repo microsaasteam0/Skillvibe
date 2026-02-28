@@ -53,13 +53,13 @@ export default function PrivacyPolicy() {
                         <div className="inline-flex items-center gap-3 mb-10 px-6 py-2.5 bg-slate-100 dark:bg-slate-900/80 text-slate-900 dark:text-indigo-400 rounded-xl text-[10px] font-black uppercase tracking-[0.4em] font-mono border border-slate-200 dark:border-slate-800 shadow-2xl relative overflow-hidden group">
                             <div className="absolute inset-0 bg-grid-blueprint opacity-[0.2] pointer-events-none" />
                             <Shield className="w-3.5 h-3.5 relative z-10 animate-pulse" />
-                            <span className="relative z-10">LEGAL_DOC_OS_V2.0</span>
+                            <span className="relative z-10">PRIVACY_1.0</span>
                         </div>
                         <h1 className="text-5xl lg:text-8xl font-display font-black text-slate-900 dark:text-white mb-8 tracking-tighter uppercase leading-[0.85]">
-                            Privacy <br /> <span className="text-indigo-600 dark:text-indigo-500 underline decoration-indigo-500/20">Manifesto</span>
+                            Privacy <br /> <span className="text-indigo-600 dark:text-indigo-500 underline decoration-indigo-500/20">Policy</span>
                         </h1>
                         <p className="text-lg text-slate-600 dark:text-slate-400 font-bold uppercase tracking-wide max-w-2xl mx-auto mb-10 opacity-80">
-                            The security schematic for your intellectual journey. We prioritize <span className="text-slate-900 dark:text-white">Data Sovereignty</span> and <span className="text-slate-900 dark:text-white">Identity Integrity</span>.
+                            We respect your privacy and protect your data. This page explains how we handle personal information.
                         </p>
                         <div className="flex items-center justify-center gap-4 text-[10px] font-black uppercase tracking-[0.3em] text-slate-400 dark:text-slate-500 border-t border-slate-200 dark:border-slate-800 pt-8 mt-8">
                             <span>LAST_COMMITTED:</span>
@@ -78,14 +78,14 @@ export default function PrivacyPolicy() {
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center font-black text-sm shadow-xl">01</div>
-                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">_INTRODUCTION_PROTOCOL</h2>
+                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">Introduction</h2>
                                     </div>
-                                    <div className="text-slate-600 dark:text-slate-400 leading-relaxed font-bold text-[15px] space-y-6 max-w-3xl">
+<div className="text-slate-600 dark:text-slate-400 leading-relaxed font-bold text-[15px] space-y-6 max-w-3xl">
                                         <p>
-                                            SkillVibe (the "Reputation Engine") is co-engineered with the belief that transparency requires security. This Manifesto outlines our internal logic for handling your personal data across skillvibe.ai.
+                                            We collect information when you use SkillVibe so we can provide and improve the service. This policy explains what data we collect and how we use it.
                                         </p>
                                         <p>
-                                            By initializing our Services, you synchronize with this security architecture. We decommission any use of your data that does not align with your direct growth protocols.
+                                            When you sign up or log in, you agree to this policy. We do not sell your personal data or use it for anything other than running the platform and providing support.
                                         </p>
                                     </div>
                                 </div>
@@ -94,14 +94,14 @@ export default function PrivacyPolicy() {
                                 <div className="space-y-8">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-xl shadow-indigo-600/20">02</div>
-                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">_IDENTITY_ACQUISITION</h2>
+                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">Identity Acquisition</h2>
                                     </div>
                                     <div className="grid md:grid-cols-2 gap-6">
                                         {[
-                                            { title: "ACCOUNT_SCHEMATIC", desc: "Names, identity emails, and OAuth authentication tokens." },
-                                            { title: "LATENCY_LOGS", desc: "IP addresses, browser schematics, and platform interaction sequences." },
-                                            { title: "INTEL_ASSETS", desc: "Text and URLs submitted for high-velocity repurposing." },
-                                            { title: "TRANSACTION_HASH", desc: "Payment metadata handled via Dodo Payments. We store zero card assets." }
+                                            { title: "Account info", desc: "Your name, email, and login tokens." },
+                                            { title: "Device info", desc: "IP address, browser type, and how you use the site." },
+                                            { title: "Content you add", desc: "Text, links or files you submit." },
+                                            { title: "Payment info", desc: "Transaction details from our payment partner. We never store your card numbers." }
                                         ].map((item, i) => (
                                             <div key={i} className="p-6 bg-slate-50 dark:bg-slate-950/50 border border-slate-200 dark:border-slate-800 rounded-2xl group hover:border-indigo-500/30 transition-all">
                                                 <h3 className="text-[11px] font-black text-slate-900 dark:text-white mb-2 uppercase tracking-widest flex items-center gap-2">
@@ -118,16 +118,16 @@ export default function PrivacyPolicy() {
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 flex items-center justify-center font-black text-sm">03</div>
-                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">_OPERATIONAL_DIRECTIVES</h2>
+                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">Operational Directives</h2>
                                     </div>
                                     <ul className="grid md:grid-cols-2 gap-4">
                                         {[
-                                            "Protocol maintenance and provision",
-                                            "System status and change alerts",
-                                            "High-fidelity customer support",
-                                            "Usage sequence analysis for engine improvement",
-                                            "Operational monitoring and load balancing",
-                                            "Threat detection and integrity shielding"
+                                            "Run and maintain the website",
+                                            "Send you updates and alerts",
+                                            "Provide customer support",
+                                            "Improve our features using usage data",
+                                            "Monitor site performance",
+                                            "Protect against abuse and fraud"
                                         ].map((log, i) => (
                                             <li key={i} className="flex items-center gap-3 text-xs font-bold text-slate-500 uppercase tracking-tight">
                                                 <ChevronRight className="w-3 h-3 text-indigo-500" />
@@ -145,9 +145,9 @@ export default function PrivacyPolicy() {
                                             <Lock className="w-6 h-6" />
                                         </div>
                                         <div>
-                                            <h3 className="text-lg font-black text-white mb-2 uppercase tracking-tighter">IDENTITY_PROTECTION_LOCK</h3>
+                                            <h3 className="text-lg font-black text-white mb-2 uppercase tracking-tighter">Data Protection</h3>
                                             <p className="text-slate-400 text-sm font-bold leading-relaxed max-w-xl">
-                                                Input assets are processed by enterprise-grade AI models. We implement a <span className="text-white underline decoration-indigo-500/50">ZERO_TRAINING_PROTOCOL</span>—your intellectual property is never utilized to enhance public models.
+                                                We use industry-standard security to keep your data safe. We do not train our AI models on your private content.
                                             </p>
                                         </div>
                                     </div>
@@ -157,12 +157,12 @@ export default function PrivacyPolicy() {
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 flex items-center justify-center font-black text-sm">04</div>
-                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">_THIRD_PARTY_SYNC</h2>
+                                        <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-900 dark:text-white">Third-Party Sync</h2>
                                     </div>
                                     <div className="space-y-4">
-                                        <p className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[12px] tracking-widest">AUTHORIZED_SERVICE_NODES:</p>
+<p className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[12px] tracking-widest">We share information with:</p>
                                         <div className="flex flex-wrap gap-4">
-                                            {["OpenAI_LTD", "Pollinations_AI", "Google_Analytics", "Dodo_Payments"].map((node, i) => (
+                                            {['OpenAI (for AI features)', 'Google Analytics', 'Dodo Payments'].map((node, i) => (
                                                 <div key={i} className="px-5 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
                                                     {node}
                                                 </div>
@@ -175,8 +175,8 @@ export default function PrivacyPolicy() {
                                 <div className="pt-16 border-t border-slate-200 dark:border-slate-800">
                                     <div className="flex flex-col md:flex-row items-center justify-between gap-10">
                                         <div className="text-center md:text-left">
-                                            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 uppercase tracking-tighter">LEGAL_SUPPORT_DISPATCH</h3>
-                                            <p className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-widest">Direct communication lines for identity concerns.</p>
+                                            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 uppercase tracking-tighter">Need Help?</h3>
+                                            <p className="text-slate-500 dark:text-slate-400 font-bold text-xs uppercase tracking-widest">Email us at business@entrext.in.</p>
                                         </div>
                                         <a href="mailto:business@entrext.in" className="group px-10 py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl font-black uppercase tracking-[0.2em] text-[10px] shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
                                             Contact_Legal_OS
@@ -192,7 +192,7 @@ export default function PrivacyPolicy() {
                         <div className="text-center pt-8">
                             <Link href="/" className="inline-flex items-center gap-3 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 font-black uppercase tracking-[0.3em] text-[10px] transition-all group">
                                 <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
-                                Terminate_Manifesto_View
+                                Return Home
                             </Link>
                         </div>
                     </div>

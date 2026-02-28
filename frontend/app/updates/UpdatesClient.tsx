@@ -76,7 +76,7 @@ function UpdatesContent() {
             animate={{ opacity: 1, y: 0 }}
             className="text-5xl md:text-7xl font-display font-black text-slate-900 dark:text-white"
           >
-            Building <span className="text-gradient">In Public</span>
+            SkillVibe <span className="text-gradient">Update Log</span>
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -84,7 +84,7 @@ function UpdatesContent() {
             transition={{ delay: 0.1 }}
             className="text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto"
           >
-            The engine is evolving. Track every neural adjustment, UI compilation, and performance benchmark here.
+            Follow our progress as we improve Elite Rating accuracy, add verification features, and fine‑tune platform performance.
           </motion.p>
         </div>
 
@@ -97,39 +97,36 @@ function UpdatesContent() {
         >
           {[
             {
-              version: 'v1.6.0',
-              date: 'February 14, 2025',
-              title: 'The "Innovative Builder" Update',
+              version: 'v2.0.0',
+              date: 'February 14, 2026',
+              title: 'Elite Rating Algorithm Upgrade',
               tag: 'Latest',
               items: [
-                'Integrated blueprint grid background systems across the platform',
-                'Added kinetic scanning light effects to core dashboard cards',
-                'New terminal-inspired animation primitives for headline elements',
-                'Optimized neural distribution engine for X Thread generation',
-                'Enhanced high-contrast distribution badges'
+                'Refined AI scoring with additional career metrics',
+                'Reduced false positives on buzzword-heavy resumes',
+                'Improved performance for large batch verifications',
               ],
               color: 'indigo'
             },
             {
-              version: 'v1.5.0',
-              date: 'February 12, 2025',
-              title: 'Premium Aesthetic Overhaul',
+              version: 'v1.9.0',
+              date: 'December 30, 2025',
+              title: 'Verification Workflow Streamlining',
               items: [
-                'Complete UI overhaul with glassmorphism and modern gradients',
-                'Advanced framer-motion animations across all core pages',
-                'Optimized dark mode with true-black backgrounds',
-                'Interactive usage stats & real-time generation tracking'
+                'Simplified signup path for candidates',
+                'Added recruiter dashboard overview',
+                'Implemented webhook notifications for completed reviews',
               ],
               color: 'emerald'
             },
             {
-              version: 'v1.2.0',
-              date: 'January 22, 2025',
-              title: 'Ecosystem Refinement',
+              version: 'v1.8.0',
+              date: 'November 15, 2025',
+              title: 'UI & Accessibility Improvements',
               items: [
-                'Enhanced FAQ section with expandable design',
-                'Improved theme switcher with smooth transition effects',
-                'Updated pricing logic to support manual downgrades'
+                'Updated dark mode contrast ratios',
+                'Added keyboard navigation shortcuts',
+                'Enhanced mobile responsiveness across pages',
               ],
               color: 'purple'
             }
@@ -195,12 +192,17 @@ function UpdatesContent() {
               </div>
               <h2 className="text-3xl font-black mb-4 tracking-tight">Help Shape the Future</h2>
               <p className="text-indigo-100 mb-8 leading-relaxed">
-                BuildInPublic is built with the community. Your feedback directly determines our roadmap for the next sprint.
+                SkillVibe is built with the community. Your feedback directly determines our roadmap for the next sprint.
               </p>
               <div className="flex gap-4">
                 <div className="flex -space-x-3">
                   {[1, 2, 3, 4].map(i => (
-                    <div key={i} className="w-10 h-10 rounded-full border-2 border-indigo-600 bg-slate-200" />
+                    <img
+                      key={i}
+                      src={`https://i.pravatar.cc/40?img=${i + 10}`}
+                      alt="User avatar"
+                      className="w-10 h-10 rounded-full border-2 border-indigo-600 object-cover"
+                    />
                   ))}
                 </div>
                 <div className="text-xs font-medium text-indigo-100">

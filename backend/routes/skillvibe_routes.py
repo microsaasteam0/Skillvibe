@@ -6,9 +6,10 @@ import json
 import uuid
 import os
 from datetime import datetime, timedelta, timezone
+import random
 
 from database import get_db
-from models import User, Profile, Skill, Endorsement, Rating, ProfileFlag, ProfileInteraction
+from models import User, Profile, Skill, Endorsement, Rating, ProfileFlag, ProfileInteraction, VibeNote, JobPosting, JobApplication
 from auth import get_current_user, get_optional_current_user
 from openai import OpenAI
 import httpx
@@ -211,30 +212,42 @@ async def upload_resume(
 - GitHub: {discovered_gh}
 - Portfolio: {discovered_pf}"""
         system_msg = """
-        You are an Elite Resume Parser. Extract the provided resume into a STRICT JSON format.
+        You are a Cutthroat Executive Headhunter and Integrity Auditor. 
+        Extract the resume into JSON while being EXTREMELY CRITICAL of their "Elite" status.
         
         REQUIRED FIELDS:
         - "full_name": string
-        - "headline": string (Professional title - Synthesize if missing)
-        - "about": string (Full summary/bio section. If short or missing, synthesize a 150-word elite professional narrative based on their experience.)
-        - "skills": list of strings (Include extracted skills + 5 high-impact inferred skills they likely possess.)
-        - "certifications": list of objects { "name": string, "issuer": string, "year": string, "description": string }
-        - "experience": list of objects { "role": string, "company": string, "duration": string, "description": string, "bullets": list of strings }
-        - "education": list of objects { "degree": string, "school": string, "year": string }
-        - "social_links": { "linkedin": string, "github": string, "portfolio": string }
-        - "elite_rating": number (A genuine 0-100 score. Be rigorous. Factor in: 
-            - 40%: Depth and rarity of skills. 
-            - 30%: Brand prestige of companies and schools mentioned.
-            - 20%: Complexity of achievements described in bullets.
-            - 10%: Consistency/duration of professional trajectory.)
-        - "elite_tag": string (A prestige title that fits the rating. If >90: "Industry Titan" or "Visionary Leader". If 75-90: "Strategic Architect". If 60-75: "Rising Specialist".)
+        - "headline": string
+        - "about": string
+        - "skills": list
+        - "experience": list
+        - "social_links": object
+        
+        - "elite_rating": number (A score from 0-100. BE BRUTAL.)
+          SCORING RUBRIC:
+          - 90-100: "Industry Titan" (Worked at Google/OpenAI/Top-tier firms AND has complex, rare technical achievements).
+          - 75-89: "Strategic Architect" (Senior level, proven impact in mid-to-large firms).
+          - 50-74: "Rising Specialist" (Junior/Mid with potential but limited high-stakes proof).
+          - <50: "Junior Talent" (Entry level or vague experience).
+          - DEDUCT 10 points for: Generic summaries, buzzword-overload without project proof, or career gaps.
+        
+        - "elite_tag": string (Matching the rubric above)
+        
+        - "integrity_scan": {
+            "score": number (0.0 to 1.0),
+            "is_potentially_ai_generated": boolean,
+            "anomalies": list,
+            "verdict": string
+          }
         
         CRITICAL RULES:
-        1. EXTRACT everything from the text, then FILL GAPS. If the user didn't write a bio, YOU write one for them that sounds like a $500k/year executive.
-        2. DO NOT CONDENSE. Use the full descriptions and all bullet points.
-        3. SOCIAL LINKS: Capture them EXACTLY as they appear. Preserve all characters including trailing hyphens, dots, underscores, and trailing slashes '/'. DO NOT truncate the URL.
-        4. WORD SPACING: Ensure all extracted sentences have proper word spacing.
-        5. Output ONLY raw JSON.
+        1. RIGOROUS RATING: Most resumes should fall between 30-55. 
+           - Do NOT give 60+ unless they have substantial experience at recognizable firms.
+           - Do NOT give 80+ unless they are a certified industry leader (Principal/Founder level).
+        2. DEDUCT 15 points for: Generic summaries, buzzword-overload without project proof, or career gaps.
+        3. INTEGRITY SCORE: If the resume sounds like it was written by ChatGPT or is too "flowery," set is_potentially_ai_generated to true and drop the rating by 15.
+        4. Output ONLY raw JSON.
+        5. PENALIZE (up to -20) if no quantified metrics are provided (e.g. no revenue, no user growth, no system specs).
         """
         raw_json = await call_pollinations_with_fallback(system_msg, f"{hint_links}\n\nRESUME CONTENT:\n{text_for_ai}")
         
@@ -245,6 +258,8 @@ async def upload_resume(
                     raw_json = part.replace("json", "", 1).strip()
                     break
         parsed_data = json.loads(raw_json)
+        # Store integrity data in profile later
+        integrity_data = parsed_data.get("integrity_scan", {})
     except Exception as e:
         import re
         # Look for links in the original extracted text for better context
@@ -276,17 +291,21 @@ async def upload_resume(
         
         parsed_data = {
             "full_name": current_user.full_name or current_user.username,
-            "headline": "Strategic Professional",
-            "about": "Accomplished visionary with a track record of driving high-impact solutions.",
+            "headline": "Professional Talent",
+            "elite_rating": 45.0,
+            "elite_tag": "Rising Specialist",
+            "about": "Aspiring professional with a focus on modern industry practices.",
             "social_links": {
                 "linkedin": li,
                 "github": gh,
                 "portfolio": "#"
             },
-            "skills": ["Strategic Leadership", "Innovation Management", "Operational Excellence"],
+            "skills": ["Professional Communication", "Problem Solving"],
             "experience": [],
-            "education": []
+            "education": [],
+            "integrity_scan": {"score": 0.5, "verdict": "Fallback used due to extraction delay."}
         }
+        integrity_data = parsed_data["integrity_scan"]
 
     # Ensure social links are clean
     links = parsed_data.get("social_links", {})
@@ -333,13 +352,24 @@ async def upload_resume(
             projects=json.dumps(parsed_data.get("skills", [])),
             social_links=json.dumps(parsed_data.get("social_links", {})),
             location=parsed_data.get("location", "Remote"),
-            elite_rating=parsed_data.get("elite_rating", 75.0),
-            elite_tag=parsed_data.get("elite_tag", parsed_data.get("headline", "Rising Star")),
+            elite_rating=parsed_data.get("elite_rating", 45.0),
+            elite_tag=parsed_data.get("elite_tag", "Rising Specialist"),
             profile_completeness=1.0,
-            ranking_score=parsed_data.get("elite_rating", 75.0),
-            raw_resume_text=extracted_text
+            ranking_score=parsed_data.get("elite_rating", 45.0),
+            raw_resume_text=extracted_text,
+            vibe_data=json.dumps({"integrity": integrity_data}),
+            # Initial trust calc
+            trust_score=0.0,
+            is_verified_trust=False
         )
         db.add(profile)
+        db.flush() # Get ID for trust calc
+        
+        # Calculate initial trust
+        t_score, verified, stage = calculate_trust_logic(profile, db)
+        profile.trust_score = t_score
+        profile.is_verified_trust = verified
+        profile.verification_stage = stage
     else:
         profile.summary = parsed_data.get("about", "")
         profile.experience = json.dumps(parsed_data.get("experience", []))
@@ -351,6 +381,20 @@ async def upload_resume(
         profile.elite_tag = parsed_data.get("elite_tag", parsed_data.get("headline", profile.elite_tag))
         profile.profile_completeness = 1.0
         profile.raw_resume_text = extracted_text
+        
+        # Preserve existing vibe_data but update integrity
+        try:
+            current_vibe = json.loads(profile.vibe_data) if profile.vibe_data else {}
+            current_vibe["integrity"] = integrity_data
+            profile.vibe_data = json.dumps(current_vibe)
+        except:
+            profile.vibe_data = json.dumps({"integrity": integrity_data})
+        
+        # Recalculate Trust
+        t_score, verified, stage = calculate_trust_logic(profile, db)
+        profile.trust_score = t_score
+        profile.is_verified_trust = verified
+        profile.verification_stage = stage
     
     db.commit()
     db.refresh(profile)
@@ -419,6 +463,14 @@ async def generate_portfolio_with_template(
         "midnight-gold": {
             "name": "Midnight Executive",
             "tone": "Extremely prestigious, luxury-themed, and exclusive. Use language that emphasizes rarity and high-stakes success."
+        },
+        "obsidian-elite": {
+            "name": "Obsidian Elite",
+            "tone": "Premium, dark, and high-contrast. Use authoritative, visionary, and reputation-centric language. High-signal content."
+        },
+        "ai-visionary": {
+            "name": "AI Visionary",
+            "tone": "Deeply technical yet visionary. Focus on breakthrough achievements in AI/ML and future-proofing. Bold, high-performance language."
         }
     }
 
@@ -601,6 +653,8 @@ async def update_portfolio(
         profile.elite_tag = data["headline"]
     if "summary" in data:
         profile.summary = data["summary"]
+    if "template_id" in data:
+        profile.template_id = data["template_id"]
     
     # Update structured vibe_data
     if "vibe_data" in data:
@@ -609,6 +663,12 @@ async def update_portfolio(
     # Update social links
     if "social_links" in data:
         profile.social_links = json.dumps(data["social_links"])
+
+    # Recalculate Trust on update
+    t_score, verified, stage = calculate_trust_logic(profile, db)
+    profile.trust_score = t_score
+    profile.is_verified_trust = verified
+    profile.verification_stage = stage
 
     db.commit()
     return {"message": "Vibe updated successfully"}
@@ -653,10 +713,10 @@ async def get_portfolio_data(
         ).first() is not None
 
     return {
+        "id": profile.id,
         "full_name": profile.user.full_name or profile.user.username,
-        "email": profile.user.email,
         "headline": profile.elite_tag or "Elite Professional",
-        "elite_rating": profile.elite_rating,
+        "elite_rating": get_dynamic_prowess(profile)[0],
         "elite_tag": profile.elite_tag,
         "summary": profile.summary,
         "vibe_data": json.loads(profile.vibe_data) if profile.vibe_data else None,
@@ -666,6 +726,9 @@ async def get_portfolio_data(
         "star_count": profile.star_count,
         "flag_count": profile.flag_count or 0,
         "ranking_score": profile.ranking_score,
+        "is_verified_trust": profile.is_verified_trust,
+        "trust_score": profile.trust_score,
+        "verification_stage": get_dynamic_prowess(profile)[1],
         "is_owner": is_owner,
         "interaction": {
             "upvoted": upvoted,
@@ -682,6 +745,24 @@ async def get_portfolio_html(slug: str):
         status_code=410, 
         detail="This endpoint is deprecated. Portfolios are now rendered natively in the frontend."
     )
+
+def get_dynamic_prowess(profile: Profile):
+    """Consistent calculation for Elite Rating (%) and Stage mapping across the app"""
+    base = profile.elite_rating or 30.0 # Lowered base from 50.0
+    bonus = (profile.upvote_count * 0.5) + (profile.star_count * 1.0) + (profile.profile_views * 0.05)
+    penalty = (profile.flag_count or 0) * 2.5 # Increased report penalty to -2.5%
+    
+    percentage = round(max(min(base + bonus - penalty, 100.0), 0.0), 1)
+    
+    # Dynamic Stage Mapping
+    if percentage >= 86.0:
+        stage = 3 # Titan
+    elif percentage >= 55.0:
+        stage = 2 # Pillar
+    else:
+        stage = 1 # Seed
+        
+    return percentage, stage
 
 
 @skillvibe_router.post("/portfolio/{slug}/upvote")
@@ -717,7 +798,8 @@ async def upvote_portfolio(request: Request, slug: str, db: Session = Depends(ge
         profile.upvote_count = max(0, profile.upvote_count - 1)
         db.commit()
         update_ranking(profile.user_id, db)
-        return {"message": "Upvote removed", "upvotes": profile.upvote_count, "voted": False, "ranking_score": profile.ranking_score}
+        prowess, stage = get_dynamic_prowess(profile)
+        return {"message": "Upvote removed", "upvotes": profile.upvote_count, "voted": False, "ranking_score": profile.ranking_score, "trust_score": profile.trust_score, "is_verified_trust": profile.is_verified_trust, "elite_rating": prowess, "verification_stage": stage}
     
     # Create interaction record
     interaction = ProfileInteraction(
@@ -730,7 +812,8 @@ async def upvote_portfolio(request: Request, slug: str, db: Session = Depends(ge
     profile.upvote_count += 1
     db.commit()
     update_ranking(profile.user_id, db)
-    return {"message": "Upvoted!", "upvotes": profile.upvote_count, "voted": True, "ranking_score": profile.ranking_score}
+    prowess, stage = get_dynamic_prowess(profile)
+    return {"message": "Upvoted!", "upvotes": profile.upvote_count, "voted": True, "ranking_score": profile.ranking_score, "trust_score": profile.trust_score, "is_verified_trust": profile.is_verified_trust, "elite_rating": prowess, "verification_stage": stage}
 
 @skillvibe_router.post("/portfolio/{slug}/star")
 async def star_portfolio(request: Request, slug: str, db: Session = Depends(get_db), current_user: User = Depends(get_optional_current_user)):
@@ -764,7 +847,8 @@ async def star_portfolio(request: Request, slug: str, db: Session = Depends(get_
         profile.star_count = max(0, (profile.star_count or 0) - 1)
         db.commit()
         update_ranking(profile.user_id, db)
-        return {"message": "Shortlist removed", "stars": profile.star_count, "voted": False, "ranking_score": profile.ranking_score}
+        prowess, stage = get_dynamic_prowess(profile)
+        return {"message": "Shortlist removed", "stars": profile.star_count, "voted": False, "ranking_score": profile.ranking_score, "trust_score": profile.trust_score, "is_verified_trust": profile.is_verified_trust, "elite_rating": prowess, "verification_stage": stage}
     
     # Create interaction record
     interaction = ProfileInteraction(
@@ -777,7 +861,8 @@ async def star_portfolio(request: Request, slug: str, db: Session = Depends(get_
     profile.star_count += 1
     db.commit()
     update_ranking(profile.user_id, db)
-    return {"message": "Candidate shortlisted", "stars": profile.star_count, "voted": True, "ranking_score": profile.ranking_score}
+    prowess, stage = get_dynamic_prowess(profile)
+    return {"message": "Candidate shortlisted", "stars": profile.star_count, "voted": True, "ranking_score": profile.ranking_score, "trust_score": profile.trust_score, "is_verified_trust": profile.is_verified_trust, "elite_rating": prowess, "verification_stage": stage}
 
 @skillvibe_router.post("/portfolio/{slug}/flag")
 async def flag_portfolio(request: Request, slug: str, data: dict, db: Session = Depends(get_db), current_user: User = Depends(get_optional_current_user)):
@@ -812,19 +897,20 @@ async def flag_portfolio(request: Request, slug: str, data: dict, db: Session = 
         profile.flag_count = max(0, (profile.flag_count or 0) - 1)
         db.commit()
         update_ranking(profile.user_id, db)
-        return {"message": "Report withdrawn.", "flags": profile.flag_count, "ranking_score": profile.ranking_score, "flagged": False}
+        prowess, stage = get_dynamic_prowess(profile)
+        return {"message": "Report withdrawn.", "flags": profile.flag_count, "ranking_score": profile.ranking_score, "flagged": False, "trust_score": profile.trust_score, "is_verified_trust": profile.is_verified_trust, "elite_rating": prowess, "verification_stage": stage}
 
     flag = ProfileFlag(
         profile_id=profile.id, 
         flagger_id=user_id, 
-        reason=reason,
-        ip_address=ip
+        reason=reason
     )
     db.add(flag)
     profile.flag_count = (profile.flag_count or 0) + 1
     db.commit()
     update_ranking(profile.user_id, db)
-    return {"message": "Report received. Audit in progress.", "flags": profile.flag_count, "ranking_score": profile.ranking_score, "flagged": True}
+    prowess, stage = get_dynamic_prowess(profile)
+    return {"message": "Report received. Audit in progress.", "flags": profile.flag_count, "ranking_score": profile.ranking_score, "flagged": True, "trust_score": profile.trust_score, "is_verified_trust": profile.is_verified_trust, "elite_rating": prowess, "verification_stage": stage}
 
 
 @skillvibe_router.post("/contact/{slug}")
@@ -1182,6 +1268,329 @@ async def ai_search_candidates(
     matches = db.query(Profile).filter(Profile.user_id.in_(matched_ids)).all()
     return [{"id": m.user_id, "name": m.user.full_name, "slug": m.slug, "vibe_score": m.ranking_score, "score": m.ranking_score, "ai_match": True} for m in matches]
 
+@skillvibe_router.get("/job-matches/{job_id}")
+async def get_job_matches(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Find the top 3 AI-matched candidates for a specific job posting"""
+    if current_user.role not in ["recruiter", "admin"]:
+        raise HTTPException(status_code=403, detail="Only recruiters can view matches")
+    
+    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+        
+    # Get all candidate profiles
+    profiles = db.query(Profile).filter(Profile.is_public == True).all()
+    candidate_context = []
+    for p in profiles:
+        candidate_context.append({
+            "id": p.user_id,
+            "name": p.user.full_name,
+            "summary": p.summary,
+            "skills": json.loads(p.projects) if p.projects else [],
+            "score": p.ranking_score,
+            "trust_score": p.trust_score
+        })
+
+    try:
+        system_msg = f"""
+        You are a Headhunter AI. Match these candidates to the following job:
+        JOB: {job.title} at {job.company_name}
+        REQUIREMENTS: {job.requirements}
+        
+        Return a JSON object with:
+        - "top_hits": A list of the top 3 BEST candidate IDs.
+        - "match_reasons": A dictionary mapping Candidate ID to a 1-sentence 'Why they fit' explanation.
+        Output ONLY RAW JSON.
+        """
+        raw_result = await call_pollinations_with_fallback(system_msg, json.dumps(candidate_context), preferred_models=["mistral", "qwen-coder"])
+        result = json.loads(raw_result.replace("```json", "").replace("```", "").strip())
+        matched_ids = result.get("top_hits", [])
+        reasons = result.get("match_reasons", {})
+    except Exception as e:
+        print(f"[ERROR] Matching failed: {e}")
+        matched_ids = [p.user_id for p in sorted(profiles, key=lambda x: x.ranking_score, reverse=True)[:3]]
+        reasons = {}
+
+    matches = db.query(Profile).filter(Profile.user_id.in_(matched_ids)).all()
+    output = []
+    for m in matches:
+        output.append({
+            "id": m.user_id,
+            "name": m.user.full_name,
+            "slug": m.slug,
+            "score": m.ranking_score,
+            "trust_score": m.trust_score,
+            "reason": reasons.get(str(m.user_id), "Strong background match identified by AI.")
+        })
+    return output
+
+@skillvibe_router.post("/vibe-note")
+async def add_vibe_note(
+    data: dict = Body(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Allow recruiters to leave social endorsements/vibe notes for talent"""
+    if current_user.role != "recruiter":
+        raise HTTPException(status_code=403, detail="Only recruiters can leave vibe notes")
+        
+    profile_id = data.get("profile_id")
+    content = data.get("content")
+    vibe_type = data.get("vibe_type", "professional")
+    
+    if not profile_id or not content:
+        raise HTTPException(status_code=400, detail="Missing profile ID or content")
+        
+    # Global quality limit for the recruiter (maintain exclusive nature of vibe notes)
+    total_notes_left = db.query(VibeNote).filter(VibeNote.author_id == current_user.id).count()
+    if total_notes_left >= 20:
+        raise HTTPException(
+            status_code=400, 
+            detail="You have reached your total Vibe Note limit (20). To maintain protocol integrity, each recruiter has a finite number of elite endorsements."
+        )
+
+    # Check if recruiter has already left a note for this profile to prevent score gaming
+    existing_note = db.query(VibeNote).filter(
+        VibeNote.profile_id == profile_id,
+        VibeNote.author_id == current_user.id
+    ).first()
+    
+    if existing_note:
+        raise HTTPException(
+            status_code=400, 
+            detail="You have already left a Vibe Note for this profile. Only one endorsement per recruiter is permitted."
+        )
+        
+    note = VibeNote(
+        profile_id=profile_id,
+        author_id=current_user.id,
+        content=content.strip(),
+        vibe_type=vibe_type
+    )
+    db.add(note)
+    db.commit()
+    
+    target_profile = db.query(Profile).filter(Profile.id == profile_id).first()
+    trust_score = 0
+    is_verified_trust = False
+    ranking_score = 0
+    if target_profile:
+        update_ranking(target_profile.user_id, db)
+        db.refresh(target_profile)
+        trust_score = target_profile.trust_score
+        is_verified_trust = target_profile.is_verified_trust
+        ranking_score = target_profile.ranking_score
+        prowess, stage = get_dynamic_prowess(target_profile)
+        
+    return {
+        "message": "Vibe Note added successfully!",
+        "trust_score": trust_score,
+        "is_verified_trust": is_verified_trust,
+        "ranking_score": ranking_score,
+        "elite_rating": prowess,
+        "verification_stage": stage
+    }
+
+@skillvibe_router.get("/vibe-notes/me")
+async def get_my_vibe_notes(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Fetch vibe notes for the current authenticated user"""
+    profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
+    if not profile:
+        return []
+        
+    notes = db.query(VibeNote).filter(VibeNote.profile_id == profile.id).order_by(VibeNote.created_at.desc()).all()
+    
+    return [{
+        "author_id": n.author_id,
+        "author_name": n.author.full_name or n.author.username,
+        "author_role": n.author.role,
+        "content": n.content,
+        "vibe_type": n.vibe_type,
+        "created_at": n.created_at
+    } for n in notes]
+
+@skillvibe_router.get("/vibe-notes/{slug}")
+async def get_vibe_notes(slug: str, db: Session = Depends(get_db)):
+    """Fetch public vibe notes for a creative profile"""
+    profile = db.query(Profile).filter(Profile.slug == slug).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+        
+    notes = db.query(VibeNote).filter(VibeNote.profile_id == profile.id).order_by(VibeNote.created_at.desc()).all()
+    
+    return [{
+        "author_id": n.author_id,
+        "author_name": n.author.full_name or n.author.username,
+        "author_role": n.author.role,
+        "content": n.content,
+        "vibe_type": n.vibe_type,
+        "created_at": n.created_at
+    } for n in notes]
+
+@skillvibe_router.get("/vibe-history/me")
+async def get_my_vibe_history(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Fetch interaction history with points breakdown for the current user"""
+    profile = db.query(Profile).filter(Profile.user_id == current_user.id).first()
+    if not profile:
+        return {"trust_score": 0.0, "elite_rating": 0.0, "history": []}
+        
+    history = []
+    
+    # 1. Profile Interactions (Upvotes/Stars)
+    interactions = db.query(ProfileInteraction, User)\
+        .outerjoin(User, ProfileInteraction.user_id == User.id)\
+        .filter(ProfileInteraction.profile_id == profile.id)\
+        .all()
+        
+    for i, u in interactions:
+        author_name = u.full_name or u.username if u else "Anonymous Recruiter"
+        author_role = u.role if u else "recruiter"
+        point_prowess = 0.5 if i.interaction_type == "upvote" else 1.0
+        point_trust = 0.1 if i.interaction_type == "upvote" else 0.2
+        label = "Signal Boost" if i.interaction_type == "upvote" else "Shortlisted"
+        
+        history.append({
+            "type": "interaction",
+            "action_label": label,
+            "author_name": author_name,
+            "author_role": author_role,
+            "points_prowess": point_prowess,
+            "points_trust": point_trust,
+            "created_at": i.created_at
+        })
+
+    # 2. Vibe Notes
+    notes = db.query(VibeNote)\
+        .join(User, VibeNote.author_id == User.id, isouter=True)\
+        .filter(VibeNote.profile_id == profile.id)\
+        .all()
+        
+    for n in notes:
+        author_name = n.author.full_name or n.author.username if n.author else "Anonymous Recruiter"
+        author_role = n.author.role if n.author else "recruiter"
+        history.append({
+            "type": "vibe_note",
+            "action_label": "Vibe Note",
+            "author_name": author_name,
+            "author_role": author_role,
+            "points_prowess": 0.0,
+            "points_trust": 0.5,
+            "content": n.content,
+            "created_at": n.created_at
+        })
+        
+    # 3. Reports/Flags
+    flags = db.query(ProfileFlag, User)\
+        .outerjoin(User, ProfileFlag.flagger_id == User.id)\
+        .filter(ProfileFlag.profile_id == profile.id)\
+        .all()
+        
+    for f, u in flags:
+        author_name = u.full_name or u.username if u else "Anonymous User"
+        history.append({
+            "type": "report",
+            "action_label": "Reported Profile",
+            "author_name": author_name,
+            "author_role": "user",
+            "points_prowess": -2.5,
+            "points_trust": -0.5,
+            "content": f.reason,
+            "created_at": f.created_at
+        })
+
+    # Sort history by created_at descending
+    history.sort(key=lambda x: x["created_at"] or datetime.min, reverse=True)
+    
+    # Dynamic Prowess and Stage calculation
+    prowess, stage = get_dynamic_prowess(profile)
+
+    return {
+        "trust_score": profile.trust_score,
+        "elite_rating": prowess,
+        "verification_stage": stage,
+        "history": history
+    }
+
+def calculate_trust_logic(profile: Profile, db: Session):
+    """
+    Calculate trust score (0-5) and verification status based on data quality and social proof.
+    """
+    score = 0.0
+    
+    # 1. Data Integrity (up to 2 points)
+    if profile.summary and len(profile.summary) > 100:
+        score += 0.5
+    
+    try:
+        exp = json.loads(profile.experience) if profile.experience else []
+        if len(exp) >= 2: score += 0.5
+    except: pass
+    
+    try:
+        skills = json.loads(profile.projects) if profile.projects else []
+        if len(skills) >= 5: score += 0.5
+    except: pass
+        
+    if profile.location and profile.location != "Remote":
+        score += 0.5
+        
+    # 2. Linkages (1 point)
+    try:
+        links = json.loads(profile.social_links) if profile.social_links else {}
+        valid_links = [k for k, v in links.items() if v and v != "#"]
+        if len(valid_links) >= 2: score += 1.0
+        elif len(valid_links) >= 1: score += 0.5
+    except: pass
+    
+    # 3. Performance Signal (1 point)
+    if profile.elite_rating >= 85:
+        score += 1.0
+    elif profile.elite_rating >= 70:
+        score += 0.5
+        
+    # 4. Social Velocity (Up to 2.0 points)
+    social_score = (profile.upvote_count * 0.1) + (profile.star_count * 0.2) + (profile.profile_views * 0.01)
+    score += min(social_score, 2.0)
+        
+    # 5. AI Integrity Audit (1 point)
+    # Factor in the machine-learning sniff test
+    try:
+        vibe_data = json.loads(profile.vibe_data) if profile.vibe_data else {}
+        integrity = vibe_data.get("integrity", {})
+        ai_integrity_score = integrity.get("score", 0.5) # Fallback to neutral
+        
+        # Integrity score is 0.0 to 1.0, we want it to add up to 1.0 to the Trust Score
+        score += float(ai_integrity_score)
+        
+        # Penalty for high AI generation probability
+        if integrity.get("is_potentially_ai_generated"):
+            score -= 0.5
+    except:
+        pass
+        
+    # 6. Elite Stage Calculation (The 3 Stages)
+    # Uses the dynamic prowess to determine current standing
+    prowess, stage = get_dynamic_prowess(profile)
+
+    # Verification Requirements:
+    vibe_note_count = db.query(VibeNote).filter(VibeNote.profile_id == profile.id).count()
+    score += min(vibe_note_count * 0.5, 1.5)
+    
+    # A user is "Verified" if they are truly elite (90+) OR have peer endorsements (Vibe Notes)
+    has_vibe_notes = vibe_note_count > 0
+    
+    # Penalty for Flags (Deduct 0.5 per flag)
+    score -= (profile.flag_count or 0) * 0.5
+    
+    # Use dynamic prowess for verification check
+    is_verified = (prowess >= 90.0) or (has_vibe_notes and score >= 3.5)
+    
+    return round(max(min(score, 5.0), 0.0), 2), is_verified, stage
+
 def update_ranking(candidate_id: int, db: Session):
     # Smart AI-Hybrid ranking system
     profile = db.query(Profile).filter(Profile.user_id == candidate_id).first()
@@ -1211,6 +1620,21 @@ def update_ranking(candidate_id: int, db: Session):
     # ── ENDORSEMENT FACTOR (0-5 points) ──
     endorsement_impact = min(endorsement_count, 10) * 0.5
     
+    # ── VIBE NOTE FACTOR (0-10 points) ──
+    vibe_note_count = db.query(VibeNote).filter(VibeNote.profile_id == profile.id).count()
+    vibe_impact = min(vibe_note_count * 2.0, 10.0)
+
+    # ── TRUST SYSTEM (0-15 points) ──
+    # verification gives a flat 10 point boost, trust_score adds up to 5
+    
+    # Recalculate Trust Logic
+    t_score, verified, stage = calculate_trust_logic(profile, db)
+    profile.trust_score = t_score
+    profile.is_verified_trust = verified
+    profile.verification_stage = stage
+    
+    trust_impact = (10.0 if profile.is_verified_trust else 0) + min(profile.trust_score or 0, 5.0)
+    
     # ── FLAG PENALTY (0 to -20 points) ──
     # Each flag/report deducts 2 points, capped at -20
     flag_penalty = min((profile.flag_count or 0) * 2.0, 20.0)
@@ -1221,7 +1645,7 @@ def update_ranking(candidate_id: int, db: Session):
     import random
     jitter = random.uniform(0.05, 0.95)
     
-    total_raw = base_floor + completeness_impact + rating_impact + social_impact + view_impact + endorsement_impact - flag_penalty + jitter
+    total_raw = base_floor + completeness_impact + rating_impact + social_impact + view_impact + endorsement_impact + vibe_impact + trust_impact - flag_penalty + jitter
     
     # Final clamping and rounding (minimum 0)
     profile.ranking_score = round(max(min(total_raw * prestige_multiplier, 99.9), 0.0), 2)
