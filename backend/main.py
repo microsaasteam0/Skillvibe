@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 
 # 1. Load env as soon as possible - before any other project imports
-env_path = Path(__file__).resolve().parent.parent / '.env'
+env_path = Path(__file__).resolve().parent / '.env'
 load_dotenv(dotenv_path=env_path)
 
 import time
