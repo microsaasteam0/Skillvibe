@@ -199,9 +199,8 @@ async def normalize_path_middleware(request: Request, call_next):
 allowed_origins = [
     "https://skillvibe.entrext.com",
     "https://skillvibe-alpha.vercel.app",
-    "https://build-in-public.vercel.app",
-    "https://build-in-public-alpha.vercel.app",
-    "https://build-in-public-app.vercel.app",
+    "https://skillvibe-new.vercel.app",
+    "https://skillvibe.vercel.app",
     "http://localhost:3000",
     "http://localhost:8000",
     "https://www.skillvibe.entrext.com"
