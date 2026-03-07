@@ -220,7 +220,9 @@ async def get_current_user(
             
     except Exception as e:
         # Log the error but don't fail authentication
-        print(f"Warning: Subscription check failed for user {user.id}: {e}")
+        print(f"[WARN] Subscription check failed for user {user.id} ({user.email}): {str(e)}")
+        import traceback
+        traceback.print_exc()
     
     return user
 

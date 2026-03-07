@@ -156,173 +156,230 @@ class ConversationResponse(BaseModel):
 @message_router.get("/", response_model=List[ConversationResponse])
 async def get_conversations(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """List all conversations for the current user (Optimized)"""
-    conversations = db.query(Conversation).filter(
-        (Conversation.recruiter_id == current_user.id) | 
-        (Conversation.candidate_id == current_user.id)
-    ).order_by(Conversation.updated_at.desc()).all()
-    
-    if not conversations:
-        return []
-
-    # Batch fetch all other users
-    other_user_ids = {
-        conv.candidate_id if conv.recruiter_id == current_user.id else conv.recruiter_id
-        for conv in conversations
-    }
-    users_map = {
-        u.id: u for u in db.query(User).filter(User.id.in_(other_user_ids)).all()
-    }
-
-    # Batch fetch unread counts
-    from sqlalchemy import func
-    unread_counts = db.query(
-        Message.conversation_id, func.count(Message.id)
-    ).filter(
-        Message.conversation_id.in_([c.id for c in conversations]),
-        Message.sender_id != current_user.id,
-        Message.is_read == False
-    ).group_by(Message.conversation_id).all()
-    
-    unread_map = {conv_id: count for conv_id, count in unread_counts}
-    
-    results = []
-    for conv in conversations:
-        other_id = conv.candidate_id if conv.recruiter_id == current_user.id else conv.recruiter_id
-        other_user = users_map.get(other_id)
+    try:
+        conversations = db.query(Conversation).filter(
+            (Conversation.recruiter_id == current_user.id) | 
+            (Conversation.candidate_id == current_user.id)
+        ).order_by(Conversation.updated_at.desc()).all()
         
-        results.append({
+        if not conversations:
+            return []
+        
+        # Batch fetch all other users
+        other_user_ids = {
+            conv.candidate_id if conv.recruiter_id == current_user.id else conv.recruiter_id
+            for conv in conversations
+        }
+        users_map = {
+            u.id: u for u in db.query(User).filter(User.id.in_(other_user_ids)).all()
+        }
+
+        # Batch fetch unread counts
+        from sqlalchemy import func
+        unread_counts = db.query(
+            Message.conversation_id, func.count(Message.id)
+        ).filter(
+            Message.conversation_id.in_([c.id for c in conversations]),
+            Message.sender_id != current_user.id,
+            Message.is_read == False
+        ).group_by(Message.conversation_id).all()
+        
+        unread_map = {conv_id: count for conv_id, count in unread_counts}
+        
+        results = []
+        for conv in conversations:
+            other_id = conv.candidate_id if conv.recruiter_id == current_user.id else conv.recruiter_id
+            other_user = users_map.get(other_id)
+            
+            results.append({
+                "id": conv.id,
+                "chat_id": conv.chat_id,
+                "recruiter_id": conv.recruiter_id,
+                "candidate_id": conv.candidate_id,
+                "last_message": conv.last_message,
+                "updated_at": conv.updated_at,
+                "other_user_name": other_user.full_name or other_user.username if other_user else "Deleted User",
+                "other_user_pic": other_user.profile_picture if other_user else None,
+                "other_user_company": other_user.company_info if other_user else None,
+                "other_user_role": other_user.role if other_user else None,
+                "other_user_location": other_user.company_location if other_user else None,
+                "unread_count": unread_map.get(conv.id, 0)
+            })
+        
+        return results
+    except Exception as e:
+        print(f"[ERROR] get_conversations failed for user_id={current_user.id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve conversations: {str(e)}")
+
+@message_router.get("/{chat_id}/suggestions")
+async def get_suggested_replies(chat_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get AI suggested replies based on conversation history"""
+    try:
+        conv = db.query(Conversation).filter(Conversation.chat_id == chat_id).first()
+        if not conv:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        if conv.recruiter_id != current_user.id and conv.candidate_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+
+        # Fetch last 5 messages for context
+        messages = db.query(Message).filter(Message.conversation_id == conv.id).order_by(Message.created_at.desc()).limit(5).all()
+        messages.reverse() # Back to chronological
+        
+        # If the last message was sent by ME, don't suggest anything (UX: wait for their reply)
+        if messages and messages[-1].sender_id == current_user.id:
+            return []
+            
+        context = ""
+        for msg in messages:
+            sender_label = "Me" if msg.sender_id == current_user.id else "Other"
+            context += f"{sender_label}: {msg.content}\n"
+        
+        user_role = "recruiter" if conv.recruiter_id == current_user.id else "candidate"
+        
+        suggestions = await generate_suggestions(context, user_role)
+        return suggestions
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] get_suggested_replies failed for chat_id={chat_id}, user_id={current_user.id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to get suggestions: {str(e)}")
+
+@message_router.get("/{chat_id}/info")
+async def get_conversation_info(chat_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get lightweight conversation metadata without loading all messages"""
+    try:
+        conv = db.query(Conversation).filter(Conversation.chat_id == chat_id).first()
+        if not conv:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        if conv.recruiter_id != current_user.id and conv.candidate_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized")
+        
+        other_id = conv.candidate_id if conv.recruiter_id == current_user.id else conv.recruiter_id
+        other_user = db.query(User).filter(User.id == other_id).first()
+        
+        return {
             "id": conv.id,
             "chat_id": conv.chat_id,
             "recruiter_id": conv.recruiter_id,
             "candidate_id": conv.candidate_id,
-            "last_message": conv.last_message,
-            "updated_at": conv.updated_at,
             "other_user_name": other_user.full_name or other_user.username if other_user else "Deleted User",
             "other_user_pic": other_user.profile_picture if other_user else None,
             "other_user_company": other_user.company_info if other_user else None,
             "other_user_role": other_user.role if other_user else None,
             "other_user_location": other_user.company_location if other_user else None,
-            "unread_count": unread_map.get(conv.id, 0)
-        })
-    
-    return results
-
-@message_router.get("/{chat_id}/suggestions")
-async def get_suggested_replies(chat_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Get AI suggested replies based on conversation history"""
-    conv = db.query(Conversation).filter(Conversation.chat_id == chat_id).first()
-    if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    if conv.recruiter_id != current_user.id and conv.candidate_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
-
-    # Fetch last 5 messages for context
-    messages = db.query(Message).filter(Message.conversation_id == conv.id).order_by(Message.created_at.desc()).limit(5).all()
-    messages.reverse() # Back to chronological
-    
-    # If the last message was sent by ME, don't suggest anything (UX: wait for their reply)
-    if messages and messages[-1].sender_id == current_user.id:
-        return []
-        
-    context = ""
-    for msg in messages:
-        sender_label = "Me" if msg.sender_id == current_user.id else "Other"
-        context += f"{sender_label}: {msg.content}\n"
-    
-    user_role = "recruiter" if conv.recruiter_id == current_user.id else "candidate"
-    
-    suggestions = await generate_suggestions(context, user_role)
-    return suggestions
-
-@message_router.get("/{chat_id}/info")
-async def get_conversation_info(chat_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Get lightweight conversation metadata without loading all messages"""
-    conv = db.query(Conversation).filter(Conversation.chat_id == chat_id).first()
-    if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    if conv.recruiter_id != current_user.id and conv.candidate_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    
-    other_id = conv.candidate_id if conv.recruiter_id == current_user.id else conv.recruiter_id
-    other_user = db.query(User).filter(User.id == other_id).first()
-    
-    return {
-        "id": conv.id,
-        "chat_id": conv.chat_id,
-        "recruiter_id": conv.recruiter_id,
-        "candidate_id": conv.candidate_id,
-        "other_user_name": other_user.full_name or other_user.username if other_user else "Deleted User",
-        "other_user_pic": other_user.profile_picture if other_user else None,
-        "other_user_company": other_user.company_info if other_user else None,
-        "other_user_role": other_user.role if other_user else None,
-        "other_user_location": other_user.company_location if other_user else None,
-    }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] get_conversation_info failed for chat_id={chat_id}, user_id={current_user.id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to get conversation info: {str(e)}")
 
 @message_router.get("/{chat_id}", response_model=List[MessageResponse])
 async def get_messages(chat_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Get all messages in a conversation"""
-    conv = db.query(Conversation).filter(Conversation.chat_id == chat_id).first()
-    if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    if conv.recruiter_id != current_user.id and conv.candidate_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to view this conversation")
-    
-    messages = db.query(Message).filter(Message.conversation_id == conv.id).order_by(Message.created_at.asc()).all()
-    
-    return messages
+    try:
+        conv = db.query(Conversation).filter(Conversation.chat_id == chat_id).first()
+        if not conv:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        if conv.recruiter_id != current_user.id and conv.candidate_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to view this conversation")
+        
+        messages = db.query(Message).filter(Message.conversation_id == conv.id).order_by(Message.created_at.asc()).all()
+        
+        # Ensure we're returning serializable objects
+        response_data = []
+        for msg in messages:
+            response_data.append({
+                "id": msg.id,
+                "sender_id": msg.sender_id,
+                "content": msg.content,
+                "created_at": msg.created_at,
+                "is_read": msg.is_read
+            })
+        
+        return response_data
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] get_messages failed for chat_id={chat_id}, user_id={current_user.id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve messages: {str(e)}")
 
 @message_router.post("/{chat_id}/read")
 async def mark_conversation_read(chat_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Mark all messages in a conversation as read"""
-    conv = db.query(Conversation).filter(Conversation.chat_id == chat_id).first()
-    if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    updated_count = db.query(Message).filter(
-        Message.conversation_id == conv.id, 
-        Message.sender_id != current_user.id,
-        Message.is_read == False
-    ).update({"is_read": True})
-    
-    if updated_count > 0:
-        db.commit()
-    
-    return {"status": "success", "marked_read": updated_count}
+    try:
+        conv = db.query(Conversation).filter(Conversation.chat_id == chat_id).first()
+        if not conv:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        updated_count = db.query(Message).filter(
+            Message.conversation_id == conv.id, 
+            Message.sender_id != current_user.id,
+            Message.is_read == False
+        ).update({"is_read": True})
+        
+        if updated_count > 0:
+            db.commit()
+        
+        return {"status": "success", "marked_read": updated_count}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] mark_conversation_read failed for chat_id={chat_id}, user_id={current_user.id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to mark messages as read: {str(e)}")
 
 @message_router.post("/{chat_id}/send")
 async def send_message(chat_id: str, payload: MessageCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Send a new message"""
-    conv = db.query(Conversation).filter(Conversation.chat_id == chat_id).first()
-    if not conv:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-    
-    if conv.recruiter_id != current_user.id and conv.candidate_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not authorized to message here")
-    
-    new_msg = Message(
-        conversation_id=conv.id,
-        sender_id=current_user.id,
-        content=payload.content
-    )
-    
-    conv.last_message = payload.content[:100]
-    conv.updated_at = datetime.utcnow()
-    
-    db.add(new_msg)
-    db.commit()
-    db.refresh(new_msg)
-    
-    # Broadcast to WebSocket users
-    msg_data = {
-        "id": new_msg.id,
-        "sender_id": new_msg.sender_id,
-        "content": new_msg.content,
-        "created_at": new_msg.created_at.isoformat(),
-        "is_read": new_msg.is_read
-    }
-    await manager.broadcast_to_chat(chat_id, msg_data)
-    
-    return new_msg
+    try:
+        conv = db.query(Conversation).filter(Conversation.chat_id == chat_id).first()
+        if not conv:
+            raise HTTPException(status_code=404, detail="Conversation not found")
+        
+        if conv.recruiter_id != current_user.id and conv.candidate_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not authorized to message here")
+        
+        new_msg = Message(
+            conversation_id=conv.id,
+            sender_id=current_user.id,
+            content=payload.content
+        )
+        
+        conv.last_message = payload.content[:100]
+        conv.updated_at = datetime.utcnow()
+        
+        db.add(new_msg)
+        db.commit()
+        db.refresh(new_msg)
+        
+        # Broadcast to WebSocket users
+        msg_data = {
+            "id": new_msg.id,
+            "sender_id": new_msg.sender_id,
+            "content": new_msg.content,
+            "created_at": new_msg.created_at.isoformat(),
+            "is_read": new_msg.is_read
+        }
+        await manager.broadcast_to_chat(chat_id, msg_data)
+        
+        return new_msg
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[ERROR] send_message failed for chat_id={chat_id}, user_id={current_user.id}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to send message: {str(e)}")

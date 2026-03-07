@@ -139,6 +139,7 @@ class SubscriptionManager:
     def check_user_subscription_status(self, user_id: int, db: Session) -> bool:
         """Real-time check if user should have premium access"""
         
+        user = None
         try:
             user = db.query(User).filter(User.id == user_id).first()
             if not user:
@@ -205,7 +206,9 @@ class SubscriptionManager:
             return True
             
         except Exception as e:
-            print(f"[ERROR] Error checking user subscription status: {e}")
+            print(f"[ERROR] Error checking user subscription status for user_id {user_id}: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return user.is_premium if user else False
 
 # Global subscription manager instance
