@@ -48,6 +48,31 @@ export default function ConversationsPage() {
 
         if (user) {
             fetchConversations()
+            
+            // Set up polling to refresh conversations every 3 seconds when visible
+            let pollingInterval: NodeJS.Timeout | null = null
+            
+            const startPolling = () => {
+                if (document.visibilityState === 'visible') {
+                    pollingInterval = setInterval(fetchConversations, 3000)
+                }
+            }
+            
+            const handleVisibilityChange = () => {
+                if (document.visibilityState === 'visible') {
+                    startPolling()
+                } else {
+                    if (pollingInterval) clearInterval(pollingInterval)
+                }
+            }
+            
+            startPolling()
+            document.addEventListener('visibilitychange', handleVisibilityChange)
+            
+            return () => {
+                if (pollingInterval) clearInterval(pollingInterval)
+                document.removeEventListener('visibilitychange', handleVisibilityChange)
+            }
         }
     }, [user, authLoading])
 

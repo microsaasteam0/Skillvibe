@@ -149,50 +149,67 @@ export default function MessagePage() {
             if (!cancelled) setMessagesLoading(false)
         })
 
-        // ── Fetch 3: WebSocket ────────────────────────────────────────────────
+        // ── Fetch 3: Polling for new messages (fallback for Vercel) ────────────
         const active_ref = { active: true }
-        const connectWebSocket = () => {
-            if (socketRef.current || !active_ref.active) return
-            const ws = new WebSocket(`${WS_URL}/api/v1/messages/ws/${chatId}`)
+        let pollingInterval: NodeJS.Timeout | null = null
+        let lastMessageCount = 0
 
-            ws.onopen = () => console.log('[WS] Connected')
+        const pollForNewMessages = async () => {
+            if (!active_ref.active || document.visibilityState !== 'visible') return
 
-            ws.onmessage = (event) => {
-                const data = JSON.parse(event.data)
-                // ① Skip my own messages — already shown via optimistic UI
-                if (data.sender_id === userIdRef.current) return
-                // ② Dedup — skip if ID was already rendered
-                if (shownIds.current.has(data.id)) return
-                shownIds.current.add(data.id)
-                setMessages(prev => [...prev, data])
-                if (document.visibilityState === 'visible') markAsRead(token)
+            try {
+                const res = await axios.get(`${API_URL}/api/v1/messages/${chatId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+                if (cancelled || !active_ref.active) return
+
+                const msgs: Message[] = res.data
+                
+                // Check for new messages
+                const newMessages = msgs.filter(m => !shownIds.current.has(m.id))
+                
+                if (newMessages.length > 0) {
+                    newMessages.forEach(m => shownIds.current.add(m.id))
+                    setMessages(msgs)
+                    // Mark as read if page is visible
+                    if (document.visibilityState === 'visible') {
+                        markAsRead(token)
+                    }
+                }
+            } catch (err) {
+                if (!cancelled && !active_ref.active) {
+                    console.error('Error polling for messages:', err)
+                }
             }
+        }
 
-            ws.onclose = () => {
-                socketRef.current = null
-                if (active_ref.active) setTimeout(connectWebSocket, 3000)
+        // Start polling every 2 seconds when visible
+        const startPolling = () => {
+            if (pollingInterval) clearInterval(pollingInterval)
+            if (document.visibilityState === 'visible') {
+                pollingInterval = setInterval(pollForNewMessages, 2000)
             }
-            ws.onerror = () => ws.close()
-            socketRef.current = ws
         }
-        connectWebSocket()
 
-        // Handle focus/visibility for read receipts
-        const handleInteraction = () => {
-            if (document.visibilityState === 'visible') markAsRead(token)
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                startPolling()
+                markAsRead(token)
+            } else {
+                if (pollingInterval) clearInterval(pollingInterval)
+            }
         }
-        window.addEventListener('focus', handleInteraction)
-        document.addEventListener('visibilitychange', handleInteraction)
+
+        startPolling()
+        document.addEventListener('visibilitychange', handleVisibilityChange)
+        window.addEventListener('focus', () => markAsRead(token))
 
         return () => {
             cancelled = true
             active_ref.active = false
-            window.removeEventListener('focus', handleInteraction)
-            document.removeEventListener('visibilitychange', handleInteraction)
-            if (socketRef.current) {
-                socketRef.current.close()
-                socketRef.current = null
-            }
+            if (pollingInterval) clearInterval(pollingInterval)
+            document.removeEventListener('visibilitychange', handleVisibilityChange)
+            window.removeEventListener('focus', () => markAsRead(token))
         }
     }, [user?.id, chatId])
 
