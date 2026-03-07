@@ -94,40 +94,59 @@ export default function MessagePage() {
     // Main data fetching — fires in parallel for instant feel
     useEffect(() => {
         if (!user || !chatId) return
-        isMountedRef.current = true
 
         const token = localStorage.getItem('access_token')
         if (!token) return
 
-        // ── Fetch 1: Conv metadata (cheap, lightweight) ──────────────────────
-        axios.get(`${API_URL}/api/v1/messages/${chatId}/info`, {
-            headers: { Authorization: `Bearer ${token}` }
-        }).then(res => {
-            if (isMountedRef.current) setConvInfo(res.data)
-        }).catch(err => {
-            toast.error('Could not load conversation')
-            if (err.response?.status === 404 || err.response?.status === 403) {
-                router.push('/messages')
+        // Local cancel flag — immune to Strict Mode double-invoke race
+        let cancelled = false
+
+        // ── Fetch 1: Conv metadata ────────────────────────────────────────────
+        const loadConvInfo = async () => {
+            try {
+                const res = await axios.get(`${API_URL}/api/v1/messages/${chatId}/info`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+                if (!cancelled) setConvInfo(res.data)
+            } catch (err: any) {
+                if (cancelled) return
+                // /info not deployed on this backend — fall back to conversations list
+                if (err.response?.status === 404 || err.response?.status === 405) {
+                    try {
+                        const listRes = await axios.get(`${API_URL}/api/v1/messages/`, {
+                            headers: { Authorization: `Bearer ${token}` }
+                        })
+                        const found = listRes.data.find((c: any) => c.chat_id === chatId)
+                        if (!cancelled && found) setConvInfo(found)
+                    } catch { }
+                } else if (err.response?.status === 403) {
+                    toast.error('You are not part of this conversation')
+                    router.push('/messages')
+                }
+            } finally {
+                if (!cancelled) setConvLoading(false)
             }
-        }).finally(() => {
-            if (isMountedRef.current) setConvLoading(false)
-        })
+        }
+        loadConvInfo()
 
         // ── Fetch 2: Messages ─────────────────────────────────────────────────
         axios.get(`${API_URL}/api/v1/messages/${chatId}`, {
             headers: { Authorization: `Bearer ${token}` }
         }).then(res => {
-            if (!isMountedRef.current) return
+            if (cancelled) return
             const msgs: Message[] = res.data
-            // Seed the dedup set so WS can't re-add any of these
             msgs.forEach(m => shownIds.current.add(m.id))
             setMessages(msgs)
             markAsRead(token)
             fetchSuggestions(token)
         }).catch(err => {
-            if (isMountedRef.current) console.error('Error loading messages:', err)
+            if (cancelled) return
+            console.error('Error loading messages:', err)
+            if (err.response?.status !== 401) {
+                toast.error('Could not load messages. Please refresh.')
+            }
         }).finally(() => {
-            if (isMountedRef.current) setMessagesLoading(false)
+            if (!cancelled) setMessagesLoading(false)
         })
 
         // ── Fetch 3: WebSocket ────────────────────────────────────────────────
@@ -166,8 +185,8 @@ export default function MessagePage() {
         document.addEventListener('visibilitychange', handleInteraction)
 
         return () => {
+            cancelled = true
             active_ref.active = false
-            isMountedRef.current = false
             window.removeEventListener('focus', handleInteraction)
             document.removeEventListener('visibilitychange', handleInteraction)
             if (socketRef.current) {
@@ -211,9 +230,9 @@ export default function MessagePage() {
             const res = await axios.get(`${API_URL}/api/v1/messages/${chatId}/suggestions`, {
                 headers: { Authorization: `Bearer ${token}` }
             })
-            if (isMountedRef.current) setSuggestedReplies(res.data)
+            setSuggestedReplies(res.data)
         } catch { }
-        finally { if (isMountedRef.current) setIsGettingSuggestions(false) }
+        finally { setIsGettingSuggestions(false) }
     }
 
     const handleSendMessage = async (e?: React.FormEvent) => {
