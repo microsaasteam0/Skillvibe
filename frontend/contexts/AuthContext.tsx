@@ -63,65 +63,39 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Preload usage stats function
   const preloadUsageStats = async (userData: User) => {
     try {
-      // console.log('🚀 Preloading usage stats for user:', userData.username)
       const cacheKey = `usage-stats-${userData.id}`
-
-      // Check if we already have cached data
       const existingCache = sessionStorage.getItem(`cache-${cacheKey}`)
-      if (existingCache) {
-        // console.log('📦 Usage stats already cached, skipping preload')
-        return
-      }
+      if (existingCache) return
 
-      // Preload usage stats
       const response = await axios.get(`${API_URL}/api/v1/auth/usage-stats`, {
         timeout: 5000
       })
 
-      // Store in cache with long TTL
       const cacheData = {
         data: response.data,
         timestamp: Date.now()
       }
       sessionStorage.setItem(`cache-${cacheKey}`, JSON.stringify(cacheData))
-      // console.log('✅ Usage stats preloaded and cached')
-
-    } catch (error) {
-      // console.log('⚠️ Failed to preload usage stats:', error)
-      // Don't throw error, just log it
-    }
+    } catch (error) { }
   }
 
   // Preload content history function
   const preloadContentHistory = async (userData: User) => {
     try {
-      // console.log('🚀 Preloading content history for user:', userData.username)
       const cacheKey = `dashboard-content-history-${userData.id}`
-
-      // Check if we already have cached data
       const existingCache = sessionStorage.getItem(`cache-${cacheKey}`)
-      if (existingCache) {
-        // console.log('📦 Content history already cached, skipping preload')
-        return
-      }
+      if (existingCache) return
 
-      // Preload content history (available for all users)
       const response = await axios.get(`${API_URL}/api/v1/content/history`, {
         timeout: 5000
       })
 
-      // Store in cache with long TTL (30 minutes)
       const cacheData = {
         data: response.data || [],
         timestamp: Date.now()
       }
       sessionStorage.setItem(`cache-${cacheKey}`, JSON.stringify(cacheData))
-      // console.log('✅ Content history preloaded and cached')
-
-    } catch (error) {
-      // console.log('⚠️ Failed to preload content history:', error)
-      // Don't throw error, just log it
-    }
+    } catch (error) { }
   }
 
   // Initialize auth state from localStorage
@@ -132,91 +106,56 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const storedRefreshToken = localStorage.getItem('refresh_token')
         const storedUser = localStorage.getItem('user')
 
-        // console.log('🔍 Initializing auth state...')
-        // console.log('📦 Stored token exists:', !!storedToken)
-        // console.log('📦 Stored user exists:', !!storedUser)
-
         if (storedToken && storedUser) {
+          const parsedUser = JSON.parse(storedUser)
           setToken(storedToken)
           setRefreshTokenValue(storedRefreshToken)
-          setUser(JSON.parse(storedUser))
+          setUser(parsedUser)
 
-          // Set default authorization header
           axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
 
-          // console.log('✅ Auth state restored from localStorage')
+          // Set loading to false early so pages can render
+          setIsLoading(false)
 
-          // Preload usage stats immediately after auth restoration
+          // Preload content in background
           setTimeout(() => {
-            preloadUsageStats(JSON.parse(storedUser))
-            preloadContentHistory(JSON.parse(storedUser))
-          }, 100)
+            preloadUsageStats(parsedUser)
+            preloadContentHistory(parsedUser)
+          }, 500)
 
-          // Only verify token occasionally and be more lenient with failures
-          try {
-            // Only verify token once per session to avoid excessive calls
-            const lastVerified = sessionStorage.getItem('token_last_verified')
-            const now = Date.now()
-            const oneHour = 60 * 60 * 1000 // Increased to 1 hour
+          // Background verification
+          setTimeout(async () => {
+            try {
+              const lastVerified = sessionStorage.getItem('token_last_verified')
+              const now = Date.now()
+              const oneHour = 60 * 60 * 1000
 
-            if (!lastVerified || (now - parseInt(lastVerified)) > oneHour) {
-              // console.log('🔄 Verifying token (last verified over 1 hour ago)...')
-              const meResponse = await axios.get(`${API_URL}/api/v1/auth/me`, {
-                timeout: 5000 // 5 second timeout
-              })
-              sessionStorage.setItem('token_last_verified', now.toString())
-              // console.log('✅ Token verification successful')
-
-              // Update user data with fresh data from server
-              const freshUserData = meResponse.data
-              setUser(freshUserData)
-              localStorage.setItem('user', JSON.stringify(freshUserData))
-              // console.log('🔄 User data refreshed from server')
-            } else {
-              // console.log('✅ Token verification skipped (recently verified)')
-            }
-          } catch (error: any) {
-            // console.log('⚠️ Token verification failed:', error.response?.status, error.message)
-
-            // Only clear auth for specific error conditions
-            if (error.response?.status === 401 || error.response?.status === 403) {
-              // Don't clear auth immediately after login (within 30 seconds)
-              const timeSinceLogin = lastLoginTime ? Date.now() - lastLoginTime : Infinity
-              const thirtySeconds = 30 * 1000
-
-              if (timeSinceLogin < thirtySeconds) {
-                // console.log('⚠️ Token verification failed but user just logged in, keeping auth state')
-                return // Don't clear auth immediately after login
+              if (!lastVerified || (now - parseInt(lastVerified)) > oneHour) {
+                const meResponse = await axios.get(`${API_URL}/api/v1/auth/me`, {
+                  timeout: 5000
+                })
+                sessionStorage.setItem('token_last_verified', now.toString())
+                const freshUserData = meResponse.data
+                setUser(freshUserData)
+                localStorage.setItem('user', JSON.stringify(freshUserData))
               }
-
-              // console.log('🔄 Token appears invalid (401/403), attempting refresh...')
-
-              // Try to refresh token first
-              if (storedRefreshToken) {
-                const refreshed = await refreshToken()
-                if (!refreshed) {
-                  // console.log('❌ Token refresh failed, clearing auth')
-                  clearAuthData()
-                } else {
-                  // console.log('✅ Token refreshed successfully')
+            } catch (error: any) {
+              if (error.response?.status === 401 || error.response?.status === 403) {
+                const timeSinceLogin = lastLoginTime ? Date.now() - lastLoginTime : Infinity
+                if (timeSinceLogin > 30000) {
+                  if (storedRefreshToken) {
+                    const refreshed = await refreshToken()
+                    if (!refreshed) clearAuthData()
+                  } else {
+                    clearAuthData()
+                  }
                 }
-              } else {
-                // console.log('❌ No refresh token available, clearing auth')
-                clearAuthData()
               }
-            } else {
-              // For network errors, server errors, etc., keep the user logged in
-              // console.log('⚠️ Token verification failed due to network/server issue, keeping user logged in')
-              // Don't clear auth data - could be temporary network issue
             }
-          }
-        } else {
-          // console.log('📭 No stored auth data found')
+          }, 1000)
         }
       } catch (error) {
-        // console.error('❌ Error initializing auth:', error)
-        // Don't automatically clear auth data on initialization errors
-        // console.log('⚠️ Auth initialization error, but keeping any existing auth state')
+        console.error('Auth initialization error:', error)
       } finally {
         setIsLoading(false)
       }
@@ -228,7 +167,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string, role?: string): Promise<boolean> => {
     try {
       setIsLoading(true)
-
       const normalizedRole = role?.toLowerCase()
       const formData = new URLSearchParams()
       formData.append('username', email)
@@ -241,17 +179,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const response = await axios.post(
         `${API_URL}/api/v1/auth/login`,
         formData,
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        }
+        { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
       )
 
       const { access_token, refresh_token, user: userData } = response.data
-
-      // If the selected role differs from DB role, update it
       let finalUserData = userData
+
       if (normalizedRole && normalizedRole !== userData.role) {
         try {
           const roleResponse = await axios.put(
@@ -261,30 +194,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           )
           finalUserData = roleResponse.data
         } catch (roleErr) {
-          // Role switching is explicit user intent in login flow.
-          // If this fails, do not silently continue with stale role.
-          console.warn('Role update failed:', roleErr)
           toast.error('Could not switch role. Please try again.')
           return false
         }
       }
 
-      // Always fetch fresh user after login/role change to avoid stale role in UI.
-      try {
-        const meResponse = await axios.get(`${API_URL}/api/v1/auth/me`, {
-          headers: { 'Authorization': `Bearer ${access_token}` },
-        })
-        finalUserData = meResponse.data
-      } catch (meErr) {
-        console.warn('Failed to refresh user after login:', meErr)
-      }
-
-      if (normalizedRole && finalUserData?.role !== normalizedRole) {
-        toast.error(`Role is still '${finalUserData?.role || 'unknown'}'. Please retry role switch.`)
-        return false
-      }
-
-      // Store tokens and user data
       localStorage.setItem('access_token', access_token)
       localStorage.setItem('refresh_token', refresh_token)
       localStorage.setItem('user', JSON.stringify(finalUserData))
@@ -293,11 +207,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setRefreshTokenValue(refresh_token)
       setUser(finalUserData)
       setLastLoginTime(Date.now())
-
-      // Set default authorization header
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
 
-      // Preload usage stats
       setTimeout(() => {
         preloadUsageStats(finalUserData)
         preloadContentHistory(finalUserData)
@@ -306,17 +217,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       toast.success('Welcome back!')
       return true
     } catch (error: any) {
-      // console.error('Login error:', error)
-      let message = 'Login failed'
-      if (error.response?.data?.detail) {
-        if (typeof error.response.data.detail === 'string') {
-          message = error.response.data.detail
-        } else if (Array.isArray(error.response.data.detail)) {
-          message = error.response.data.detail[0]?.msg || message
-        } else if (typeof error.response.data.detail === 'object') {
-          message = error.response.data.detail.message || message
-        }
-      }
+      let message = error.response?.data?.detail || 'Login failed'
+      if (typeof message !== 'string') message = message[0]?.msg || 'Login failed'
       toast.error(message)
       return false
     } finally {
@@ -327,24 +229,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const googleAuth = async (googleToken: string, role?: string): Promise<boolean> => {
     try {
       setIsLoading(true)
-      // console.log('🔄 Starting Google Auth with token:', googleToken?.substring(0, 50) + '...')
-
-      const response = await axios.post(
-        `${API_URL}/api/v1/auth/google`,
-        {
-          token: googleToken,
-        }
-      )
-
-      // console.log('✅ Google Auth Response:', response.data)
+      const response = await axios.post(`${API_URL}/api/v1/auth/google`, { token: googleToken })
       const { access_token, refresh_token, user: userData } = response.data
-
-      // console.log('👤 User data from Google auth:', userData)
-      // console.log('🖼️ Profile picture from response:', userData.profile_picture)
-
-      // 2. Normalize and check if we need to update role on backend
       const normalizedRole = role?.toLowerCase()
       let finalUserData = userData
+
       if (normalizedRole && normalizedRole !== userData.role) {
         try {
           const roleResponse = await axios.put(
@@ -354,45 +243,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           )
           finalUserData = roleResponse.data
         } catch (roleErr) {
-          console.warn('Role update failed during googleAuth:', roleErr)
-          toast.error('Could not set account role. Please try again.')
+          toast.error('Could not set account role.')
           return false
         }
       }
 
-      // 3. Store tokens and user data
       localStorage.setItem('access_token', access_token)
       localStorage.setItem('refresh_token', refresh_token)
       localStorage.setItem('user', JSON.stringify(finalUserData))
-
       setToken(access_token)
       setRefreshTokenValue(refresh_token)
       setUser(finalUserData)
-      setLastLoginTime(Date.now()) // Track login time
-
-      // Set default authorization header
+      setLastLoginTime(Date.now())
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
 
-      // Preload usage stats
       setTimeout(() => {
-        preloadUsageStats(userData)
-        preloadContentHistory(userData)
+        preloadUsageStats(finalUserData)
+        preloadContentHistory(finalUserData)
       }, 100)
 
       toast.success('Signed in with Google!')
       return true
     } catch (error: any) {
-      // console.error('❌ Google auth error:', error)
-      let message = 'Google authentication failed'
-      if (error.response?.data?.detail) {
-        if (typeof error.response.data.detail === 'string') {
-          message = error.response.data.detail
-        } else if (Array.isArray(error.response.data.detail)) {
-          message = error.response.data.detail[0]?.msg || message
-        } else if (typeof error.response.data.detail === 'object') {
-          message = error.response.data.detail.message || message
-        }
-      }
+      let message = error.response?.data?.detail || 'Google authentication failed'
       toast.error(message)
       return false
     } finally {
@@ -410,61 +283,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   ): Promise<boolean> => {
     try {
       setIsLoading(true)
-
-      const response = await axios.post(
-        `${API_URL}/api/v1/auth/register`,
-        {
-          email,
-          username,
-          password,
-          full_name: fullName,
-          role: (role || 'candidate').toLowerCase(),
-          company_info: companyInfo
-        }
-      )
+      const response = await axios.post(`${API_URL}/api/v1/auth/register`, {
+        email, username, password, full_name: fullName,
+        role: (role || 'candidate').toLowerCase(),
+        company_info: companyInfo
+      })
 
       const { access_token, refresh_token, user: userData } = response.data
+      if (!access_token || !refresh_token) return true
 
-      // If no tokens were provided (e.g., local user needs verification),
-      // we don't log them in yet.
-      if (!access_token || !refresh_token) {
-        // console.log('📝 Registration successful, but email verification required.')
-        return true
-      }
-
-      // Store tokens and user data
       localStorage.setItem('access_token', access_token)
       localStorage.setItem('refresh_token', refresh_token)
       localStorage.setItem('user', JSON.stringify(userData))
-
       setToken(access_token)
       setRefreshTokenValue(refresh_token)
       setUser(userData)
-      setLastLoginTime(Date.now()) // Track login time
-
-      // Set default authorization header
+      setLastLoginTime(Date.now())
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
 
-      // Preload usage stats
-      setTimeout(() => {
-        preloadUsageStats(userData)
-      }, 100)
-
+      setTimeout(() => preloadUsageStats(userData), 100)
       toast.success('Account created! Please check your email to verify.')
       return true
     } catch (error: any) {
-      // console.error('Registration error:', error)
-      let message = 'Registration failed'
-      if (error.response?.data?.detail) {
-        if (typeof error.response.data.detail === 'string') {
-          message = error.response.data.detail
-        } else if (Array.isArray(error.response.data.detail)) {
-          message = error.response.data.detail[0]?.msg || message
-        } else if (typeof error.response.data.detail === 'object') {
-          message = error.response.data.detail.message || message
-        }
-      }
-      toast.error(message)
+      toast.error(error.response?.data?.detail || 'Registration failed')
       return false
     } finally {
       setIsLoading(false)
@@ -474,67 +315,38 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const refreshToken = async (): Promise<boolean> => {
     try {
       if (!refreshTokenValue) return false
-
-      const response = await axios.post(
-        `${API_URL}/api/v1/auth/refresh`,
-        {
-          refresh_token: refreshTokenValue,
-        }
-      )
-
+      const response = await axios.post(`${API_URL}/api/v1/auth/refresh`, { refresh_token: refreshTokenValue })
       const { access_token } = response.data
-
       localStorage.setItem('access_token', access_token)
       setToken(access_token)
-
-      // Update default authorization header
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
-
       return true
-    } catch (error) {
-      // console.error('Token refresh error:', error)
-      return false
-    }
+    } catch (error) { return false }
   }
 
   const clearAuthData = () => {
-    // Clear stored data
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('user')
-
-    // Clear state
     setToken(null)
     setRefreshTokenValue(null)
     setUser(null)
     setLastLoginTime(null)
-
-    // Remove authorization header
     delete axios.defaults.headers.common['Authorization']
-
-    // Clear all cached usage stats
     if (typeof window !== 'undefined') {
       const keysToRemove: string[] = []
       for (let i = 0; i < sessionStorage.length; i++) {
         const key = sessionStorage.key(i)
-        if (key && key.startsWith('cache-usage-stats-')) {
-          keysToRemove.push(key)
-        }
+        if (key?.startsWith('cache-usage-stats-')) keysToRemove.push(key)
       }
       keysToRemove.forEach(key => sessionStorage.removeItem(key))
     }
   }
 
   const logout = () => {
-    // Only show success message if user was actually logged in
     const wasLoggedIn = !!user && !!token
-
     clearAuthData()
-
-    // Only show logout success if user was actually authenticated
-    if (wasLoggedIn) {
-      toast.success('Logged out successfully.')
-    }
+    if (wasLoggedIn) toast.success('Logged out successfully.')
   }
 
   const updateUser = (userData: Partial<User>) => {
@@ -546,72 +358,47 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }
 
   const forceRestoreAuth = () => {
-    // console.log('🔄 Force restoring auth from localStorage...')
     const storedToken = localStorage.getItem('access_token')
     const storedRefreshToken = localStorage.getItem('refresh_token')
     const storedUser = localStorage.getItem('user')
-
     if (storedToken && storedUser) {
       setToken(storedToken)
       setRefreshTokenValue(storedRefreshToken)
       setUser(JSON.parse(storedUser))
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
-      // console.log('✅ Auth restored from localStorage')
       return true
     }
-    // console.log('❌ No auth data to restore')
     return false
   }
 
-  // Setup axios interceptor for token refresh
   useEffect(() => {
     const interceptor = axios.interceptors.response.use(
       (response) => response,
       async (error) => {
         const originalRequest = error.config
-
-        // Only handle 401 errors for authenticated requests
         if (error.response?.status === 401 && !originalRequest._retry && token) {
           originalRequest._retry = true
-
-          // console.log('🔄 401 error detected, attempting token refresh...')
           const refreshed = await refreshToken()
           if (refreshed) {
-            // console.log('✅ Token refreshed, retrying request')
-            // Get the fresh token from storage
             const newToken = localStorage.getItem('access_token')
             if (newToken) {
               originalRequest.headers['Authorization'] = `Bearer ${newToken}`
               return axios(originalRequest)
             }
           } else {
-            // console.log('❌ Token refresh failed, logging out user')
             clearAuthData()
             toast.error('Your session has expired. Please log in again.')
           }
         }
-
         return Promise.reject(error)
       }
     )
-
-    return () => {
-      axios.interceptors.response.eject(interceptor)
-    }
+    return () => axios.interceptors.response.eject(interceptor)
   }, [token, refreshTokenValue])
 
-  const value: AuthContextType = {
-    user,
-    token,
-    isLoading,
-    isAuthenticated,
-    login,
-    register,
-    googleAuth,
-    logout,
-    refreshToken,
-    updateUser,
-    forceRestoreAuth,
+  const value: AuthContextType = React.useMemo(() => ({
+    user, token, isLoading, isAuthenticated,
+    login, register, googleAuth, logout, refreshToken, updateUser, forceRestoreAuth,
     refreshUser: async () => {
       try {
         if (!token) return null
@@ -621,28 +408,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         localStorage.setItem('user', JSON.stringify(freshUser))
         sessionStorage.setItem('token_last_verified', Date.now().toString())
         return freshUser
-      } catch (error) {
-        console.error('Failed to refresh user:', error)
-        return null
-      }
+      } catch (error) { return null }
     },
     requestPasswordReset: async (email: string) => {
       try {
         setIsLoading(true)
         await axios.post(`${API_URL}/api/v1/auth/request-password-reset`, { email })
-        toast.success('If an account exists with that email, a reset link has been sent.')
+        toast.success('If an account exists, a reset link has been sent.')
         return true
-      } catch (error: any) {
-        // Even if it fails, we typically don't show specific error for security, 
-        // but if the API returns a generic success for all requests, we might never get here unless network error.
-        console.error('Password reset request error:', error)
-        toast.error('Failed to send reset link. Please try again.')
+      } catch (error) {
+        toast.error('Failed to send reset link.')
         return false
-      } finally {
-        setIsLoading(false)
-      }
+      } finally { setIsLoading(false) }
     }
-  }
+  }), [user, token, isLoading, isAuthenticated])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

@@ -66,6 +66,7 @@ class PasswordResetConfirm(BaseModel):
 
 class GoogleAuthRequest(BaseModel):
     token: str
+    role: Optional[str] = None
 
 class UserPreferencesUpdate(BaseModel):
     auto_save_enabled: Optional[bool] = None
@@ -108,6 +109,7 @@ def validate_username(username: str) -> bool:
 async def google_oauth_callback(
     code: str = Form(...),
     state: str = Form(...),
+    role: Optional[str] = Form(default=None),
     db: Session = Depends(get_db)
 ):
     """Handle Google OAuth callback with authorization code"""
@@ -198,6 +200,9 @@ async def google_oauth_callback(
         google_info = await verify_google_token(id_token_str)
         print(f"✅ Google token verified for user: {google_info['email']}")
         
+        # Prepare role if specified
+        requested_role = (role.strip().lower() if role else None)
+        
         # Check if user already exists by Google ID
         user = get_user_by_google_id(db, google_info['google_id'])
         
@@ -235,7 +240,7 @@ async def google_oauth_callback(
             else:
                 print(f"👤 Creating new user from Google info: {google_info['email']}")
                 # Create new user from Google info
-                user = create_google_user(db, google_info)
+                user = create_google_user(db, google_info, role=requested_role)
         else:
             print(f"🔄 Updating existing Google user: {user.email}")
             # Update existing Google user info (but preserve user customizations)
@@ -262,6 +267,21 @@ async def google_oauth_callback(
                 user.full_name = google_info['name']
             db.commit()
             db.refresh(user)
+
+        # Enforce role consistency if it's an existing user
+        # Allow 'founder' to transition to a role, but prevent candidate <-> recruiter switching
+        if requested_role and requested_role in ['candidate', 'recruiter']:
+            if user.role in ['candidate', 'recruiter'] and user.role != requested_role:
+                print(f"❌ Role mismatch for {user.email}: {user.role} vs {requested_role}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Access Denied: This account is permanently registered as a '{user.role}'. To protect platform integrity, you cannot log in as a '{requested_role}'."
+                )
+            elif user.role == "founder":
+                print(f"🔄 Transitioning 'founder' account {user.email} to '{requested_role}'")
+                user.role = requested_role
+                db.commit()
+                db.refresh(user)
         
         print(f"🔑 Creating tokens for user: {user.email}")
         # Create tokens
@@ -309,6 +329,9 @@ async def google_auth(google_data: GoogleAuthRequest, db: Session = Depends(get_
     try:
         print(f"🔄 Google auth request received with token: {google_data.token[:50]}...")
         
+        # Prepare role if specified
+        requested_role = (google_data.role or "").strip().lower() or None
+        
         # Verify Google token and get user info
         google_info = await verify_google_token(google_data.token)
         print(f"✅ Google token verified for user: {google_info['email']}")
@@ -350,7 +373,7 @@ async def google_auth(google_data: GoogleAuthRequest, db: Session = Depends(get_
             else:
                 print(f"👤 Creating new user from Google info: {google_info['email']}")
                 # Create new user from Google info
-                user = create_google_user(db, google_info)
+                user = create_google_user(db, google_info, role=requested_role)
         else:
             print(f"🔄 Updating existing Google user: {user.email}")
             # Update existing Google user info (but preserve user customizations)
@@ -391,6 +414,21 @@ async def google_auth(google_data: GoogleAuthRequest, db: Session = Depends(get_
             )
         
         print(f"🔑 Creating tokens for user: {user.email}")
+        
+        # Enforce role consistency for Google Auth
+        if requested_role and requested_role in ['candidate', 'recruiter']:
+            if user.role in ['candidate', 'recruiter'] and user.role != requested_role:
+                print(f"❌ Role mismatch for {user.email}: {user.role} vs {requested_role}")
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Access Denied: This account is permanently registered as a '{user.role}'. To protect platform integrity, you cannot log in as a '{requested_role}'."
+                )
+            elif user.role == "founder":
+                print(f"🔄 Transitioning 'founder' account {user.email} to '{requested_role}'")
+                user.role = requested_role
+                db.commit()
+                db.refresh(user)
+
         # Create tokens
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
@@ -451,10 +489,11 @@ async def register(user_data: UserCreate, background_tasks: BackgroundTasks, db:
         )
     
     # Check if user already exists
-    if get_user_by_email(db, user_data.email):
+    existing_user = get_user_by_email(db, user_data.email)
+    if existing_user:
         raise HTTPException(
             status_code=400,
-            detail="Email already registered"
+            detail=f"This email is already registered as a {existing_user.role}. Account types cannot be changed once created."
         )
     
     if get_user_by_username(db, user_data.username):
@@ -568,15 +607,22 @@ async def login(
             detail="Please verify your email address before logging in. Check your inbox for the verification link."
         )
 
-    # Honor role selected in login modal (candidate/recruiter) in the same request.
+    # Enforce role consistency for standard Login
     effective_role = selected_role or role
     if effective_role:
         selected_role_normalized = effective_role.strip().lower()
-        allowed_roles = ['candidate', 'recruiter']
-        if selected_role_normalized in allowed_roles and user.role != selected_role_normalized:
-            user.role = selected_role_normalized
-            db.commit()
-            db.refresh(user)
+        if selected_role_normalized in ['candidate', 'recruiter']:
+            if user.role in ['candidate', 'recruiter'] and user.role != selected_role_normalized:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Access Denied: This account is permanently registered as a '{user.role}'. To protect platform integrity, you cannot log in as a '{selected_role_normalized}'.",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+            elif user.role == "founder":
+                print(f"🔄 Transitioning 'founder' account {user.email} to '{selected_role_normalized}'")
+                user.role = selected_role_normalized
+                db.commit()
+                db.refresh(user)
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
@@ -766,33 +812,11 @@ async def update_role(
     current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
-    """Update the user's role (candidate or recruiter)"""
-    allowed_roles = ['candidate', 'recruiter']
-    if role_data.role not in allowed_roles:
-        raise HTTPException(status_code=400, detail=f"Role must be one of: {', '.join(allowed_roles)}")
-    
-    current_user.role = role_data.role
-    try:
-        db.commit()
-        db.refresh(current_user)
-        return UserResponse(
-            id=current_user.id,
-            email=current_user.email,
-            username=current_user.username,
-            full_name=current_user.full_name,
-            role=current_user.role,
-            company_info=current_user.company_info,
-            company_location=current_user.company_location,
-            company_overview=current_user.company_overview,
-            profile_picture=current_user.profile_picture,
-            is_active=current_user.is_active,
-            is_verified=current_user.is_verified,
-            is_premium=current_user.is_premium,
-            created_at=current_user.created_at.isoformat()
-        )
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail="Failed to update role")
+    """Disallow role updates to maintain platform integrity"""
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Account roles are immutable once established. Please contact support if you need to transition your account type."
+    )
 
 @auth_router.get("/usage-stats")
 async def get_usage_stats(

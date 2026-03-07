@@ -162,7 +162,7 @@ async def verify_google_token(token: str) -> dict:
         )
 
 @db_retry(max_retries=3, delay=0.5)
-def create_google_user(db: Session, google_info: dict):
+def create_google_user(db: Session, google_info: dict, role: str = "candidate"):
     """Create new user from Google OAuth info"""
     username = generate_username_from_email(google_info['email'], db)
     
@@ -172,6 +172,7 @@ def create_google_user(db: Session, google_info: dict):
         full_name=google_info['name'],
         google_id=google_info['google_id'],
         profile_picture=google_info['picture'],
+        role=role,
         auth_provider='google',
         is_verified=google_info['email_verified'],
         hashed_password=None  # No password for OAuth users

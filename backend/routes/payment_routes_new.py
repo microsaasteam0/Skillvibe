@@ -383,8 +383,10 @@ async def check_payment_status(
                             pass 
                         except: pass
                 
-                # Priority 3: Last resort - list all and filter manually (since email filter failed)
-                if not actual_premium_status:
+                # Priority 3: Last resort - list all and filter manually (ONLY if frontend provides subscription_id or specifically requests it)
+                # Reduced frequency for general checks to avoid slamming the API
+                sub_id_to_check = request.subscription_id if request else None
+                if not actual_premium_status and sub_id_to_check:
                     print(f"[INFO] Proactive sync: Listing all subscriptions for manual filter")
                     # List all (paginated) and look for our user's email
                     subscriptions_list = dodo_client.subscriptions.list(page_size=20)

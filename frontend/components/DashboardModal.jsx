@@ -19,7 +19,8 @@ import {
   ShieldCheck,
   Quote,
   Dna,
-  Lock
+  Lock,
+  MessageSquare
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuth } from '../contexts/AuthContext'
@@ -312,15 +313,23 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats = n
           <nav className="space-y-3 flex-1">
             {[
               { id: 'overview', name: 'Overview', icon: BarChart3, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
+              { id: 'messages', name: 'Messages', icon: MessageSquare, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
               ...(canViewApplications ? [{ id: 'applications', name: 'Applied Jobs', icon: Briefcase, count: appliedJobs.length, color: 'text-indigo-500', bg: 'bg-indigo-500/10' }] : []),
               { id: 'settings', name: 'Settings', icon: Settings, color: 'text-slate-500', bg: 'bg-white/5' },
             ].map((item) => (
               <button
                 key={item.id}
-                onClick={() => setActiveSection(item.id)}
+                onClick={() => {
+                  if (item.id === 'messages') {
+                    onClose();
+                    router.push('/messages');
+                  } else {
+                    setActiveSection(item.id);
+                  }
+                }}
                 className={`w-full flex items-center gap-5 px-6 py-4 rounded-2xl transition-all duration-500 border border-transparent group relative ${activeSection === item.id
-                    ? 'bg-white/10 border-white/10 text-white shadow-xl translate-x-1'
-                    : 'text-slate-500 hover:text-white hover:bg-white/5'
+                  ? 'bg-white/10 border-white/10 text-white shadow-xl translate-x-1'
+                  : 'text-slate-500 hover:text-white hover:bg-white/5'
                   }`}
               >
                 <div className={`p-2.5 rounded-xl transition-all duration-500 ${activeSection === item.id ? item.bg : 'group-hover:bg-white/5'}`}>
@@ -631,8 +640,8 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats = n
                           </div>
                         </div>
                         <div className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border ${job.status === 'hired' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
-                            job.status === 'rejected' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
-                              'bg-white/5 border-white/10 text-slate-300'
+                          job.status === 'rejected' ? 'bg-red-500/10 border-red-500/20 text-red-500' :
+                            'bg-white/5 border-white/10 text-slate-300'
                           }`}>
                           {job.status}
                         </div>

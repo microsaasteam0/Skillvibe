@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 import random
 
 from database import get_db
-from models import User, Profile, Skill, Endorsement, Rating, ProfileFlag, ProfileInteraction, VibeNote, JobPosting, JobApplication
+from models import User, Profile, Skill, Endorsement, Rating, ProfileFlag, ProfileInteraction, VibeNote
 from auth import get_current_user, get_optional_current_user
 from openai import OpenAI
 import httpx
@@ -59,7 +59,8 @@ def get_pollinations_client():
     api_key = os.getenv("POLLINATIONS_API_KEY")
     if not api_key:
         raise Exception("POLLINATIONS_API_KEY missing in environment")
-    http_client = httpx.Client(timeout=120, verify=False)
+    # Fast timeout for scout responses
+    http_client = httpx.Client(timeout=30, verify=False)
     return OpenAI(
         api_key=api_key,
         base_url="https://gen.pollinations.ai/v1",
@@ -70,9 +71,9 @@ async def call_pollinations_with_fallback(system_prompt: str, user_prompt: str, 
     """Call Pollinations with multiple model fallbacks for robustness"""
     client = get_pollinations_client()
     
-    # Default rotation if none provided
+    # Default rotation if none provided - including 'openai' and 'gemini' for reliability
     if not preferred_models:
-        preferred_models = ["mistral", "qwen-coder", "grok", "kimi"]
+        preferred_models = ["openai", "mistral", "qwen-coder", "gemini", "grok"]
     
     last_error = None
     for model in preferred_models:
@@ -97,7 +98,7 @@ async def call_pollinations_with_fallback(system_prompt: str, user_prompt: str, 
                 content_lower = content.lower()
                 is_junk = (
                     not content or 
-                    (len(content) < 150 and "<html" not in content_lower) or 
+                    (len(content) < 15 and "{" not in content) or 
                     "rate limit" in content_lower or 
                     "internal server error" in content_lower or
                     "model not found" in content_lower or
@@ -520,6 +521,9 @@ You are a World-Class Talent Stylist and Content Strategist. Your goal is to tra
 ### OUTPUT FORMAT (JSON ONLY):
 Return a JSON object with these EXACT keys:
 - "elite_tag": A short 2-3 word prestige title.
+- "category": Choose one: "development", "design", "ai_data", "product", "marketing".
+- "experience_level": Choose one: "junior", "mid", "senior", "elite".
+- "region": Choose one: "americas", "emea", "apac", "south_asia", "remote".
 - "bio_summary": A 150-word high-impact professional narrative.
 - "ai_verdict": A 3-sentence powerful analysis of professional rareity.
 - "skills": A list of objects: [ {{ "category": "...", "tags": ["...", "..."] }} ]
@@ -550,6 +554,12 @@ Return a JSON object with these EXACT keys:
         profile.vibe_data = json.dumps(ai_data)
         profile.template_id = template_id
         profile.profile_completeness = 1.0
+        
+        # Populating the searchable columns
+        profile.category = ai_data.get("category")
+        profile.experience_level = ai_data.get("experience_level")
+        profile.region = ai_data.get("region")
+        
         # Clear legacy data
         profile.landing_page_data = None 
         db.commit()
@@ -1293,77 +1303,39 @@ async def ai_search_candidates(
         })
 
     try:
-        system_msg = "You are an AI Talent Scout for SkillVibe. Given a recruiter's request and candidate profiles, return a JSON object with 'top_candidate_ids' (list of IDs) who best fit the vibe and requirements. Rank them by elite status. Output ONLY the JSON object."
+        system_msg = """
+        You are an AI Talent Scout for SkillVibe. 
+        Given a recruiter's request and candidate profiles, return a JSON object with:
+        - 'matches': A list of objects {id: int, reason: str} for the top candidates who best fit.
+        Rank them by match quality. Output ONLY the JSON object.
+        """
         user_msg = f"Request: {prompt}\n\nCandidates: {json.dumps(candidate_context)}"
-        # Use fast/smart model for search
         raw_result = await call_pollinations_with_fallback(system_msg, user_msg, preferred_models=["mistral", "grok", "kimi"])
-        result = json.loads(raw_result)
-        matched_ids = result.get("top_candidate_ids", [])
+        result = json.loads(raw_result.replace("```json", "").replace("```", "").strip())
+        matches_data = result.get("matches", [])
+        matched_ids = [m.get("id") for m in matches_data]
+        reasons_map = {m.get("id"): m.get("reason") for m in matches_data}
     except Exception:
         matched_ids = []
+        reasons_map = {}
 
     matches = db.query(Profile).filter(Profile.user_id.in_(matched_ids)).all()
-    return [{"id": m.user_id, "name": m.user.full_name, "slug": m.slug, "vibe_score": m.ranking_score, "score": m.ranking_score, "ai_match": True} for m in matches]
-
-@skillvibe_router.get("/job-matches/{job_id}")
-async def get_job_matches(
-    job_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Find the top 3 AI-matched candidates for a specific job posting"""
-    if current_user.role not in ["recruiter", "admin"]:
-        raise HTTPException(status_code=403, detail="Only recruiters can view matches")
+    # Sort matches according to the order in matched_ids
+    matches_sorted = sorted(matches, key=lambda m: matched_ids.index(m.user_id) if m.user_id in matched_ids else 999)
     
-    job = db.query(JobPosting).filter(JobPosting.id == job_id).first()
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
-        
-    # Get all candidate profiles
-    profiles = db.query(Profile).filter(Profile.is_public == True).all()
-    candidate_context = []
-    for p in profiles:
-        candidate_context.append({
-            "id": p.user_id,
-            "name": p.user.full_name,
-            "summary": p.summary,
-            "skills": json.loads(p.projects) if p.projects else [],
-            "score": p.ranking_score,
-            "trust_score": p.trust_score
-        })
+    return [
+        {
+            "id": m.user_id, 
+            "name": m.user.full_name, 
+            "slug": m.slug, 
+            "vibe_score": m.ranking_score, 
+            "score": m.ranking_score, 
+            "reason": reasons_map.get(m.user_id, "Strong match identified by AI."),
+            "ai_match": True
+        } for m in matches_sorted if m.user_id in matched_ids
+    ]
 
-    try:
-        system_msg = f"""
-        You are a Headhunter AI. Match these candidates to the following job:
-        JOB: {job.title} at {job.company_name}
-        REQUIREMENTS: {job.requirements}
-        
-        Return a JSON object with:
-        - "top_hits": A list of the top 3 BEST candidate IDs.
-        - "match_reasons": A dictionary mapping Candidate ID to a 1-sentence 'Why they fit' explanation.
-        Output ONLY RAW JSON.
-        """
-        raw_result = await call_pollinations_with_fallback(system_msg, json.dumps(candidate_context), preferred_models=["mistral", "qwen-coder"])
-        result = json.loads(raw_result.replace("```json", "").replace("```", "").strip())
-        matched_ids = result.get("top_hits", [])
-        reasons = result.get("match_reasons", {})
-    except Exception as e:
-        print(f"[ERROR] Matching failed: {e}")
-        matched_ids = [p.user_id for p in sorted(profiles, key=lambda x: x.ranking_score, reverse=True)[:3]]
-        reasons = {}
 
-    matches = db.query(Profile).filter(Profile.user_id.in_(matched_ids)).all()
-    output = []
-    for m in matches:
-        output.append({
-            "id": m.user_id,
-            "name": m.user.full_name,
-            "slug": m.slug,
-            "score": m.ranking_score,
-            "trust_score": m.trust_score,
-            "reason": reasons.get(str(m.user_id), "Strong background match identified by AI.")
-        })
-    return output
 
 @skillvibe_router.post("/vibe-note")
 async def add_vibe_note(

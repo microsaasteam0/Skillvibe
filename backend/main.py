@@ -37,21 +37,34 @@ async def lifespan(app: FastAPI):
         create_tables()
         print("[OK] Database tables initialized successfully")
         
-        # Manual migration for 'context' column in content_generations
+        # Manual migrations for Profile columns
         try:
-            from sqlalchemy import text
             db_next = next(get_db())
-            # Check if column exists
-            check_query = text("SELECT column_name FROM information_schema.columns WHERE table_name='content_generations' AND column_name='context';")
-            result = db_next.execute(check_query).fetchone()
-            if not result:
-                print("[INFO] Adding 'context' column to 'content_generations'...")
-                db_next.execute(text("ALTER TABLE content_generations ADD COLUMN context TEXT;"))
+            
+            # Check and add 'category'
+            check_cat = text("SELECT column_name FROM information_schema.columns WHERE table_name='profiles' AND column_name='category';")
+            if not db_next.execute(check_cat).fetchone():
+                print("[INFO] Adding 'category' column to 'profiles'...")
+                db_next.execute(text("ALTER TABLE profiles ADD COLUMN category TEXT;"))
                 db_next.commit()
-                print("[OK] Successfully added 'context' column!")
+
+            # Check and add 'experience_level'
+            check_exp = text("SELECT column_name FROM information_schema.columns WHERE table_name='profiles' AND column_name='experience_level';")
+            if not db_next.execute(check_exp).fetchone():
+                print("[INFO] Adding 'experience_level' column to 'profiles'...")
+                db_next.execute(text("ALTER TABLE profiles ADD COLUMN experience_level TEXT;"))
+                db_next.commit()
+
+            # Check and add 'region'
+            check_reg = text("SELECT column_name FROM information_schema.columns WHERE table_name='profiles' AND column_name='region';")
+            if not db_next.execute(check_reg).fetchone():
+                print("[INFO] Adding 'region' column to 'profiles'...")
+                db_next.execute(text("ALTER TABLE profiles ADD COLUMN region TEXT;"))
+                db_next.commit()
+                
             db_next.close()
         except Exception as mig_error:
-            print(f"[WARN] Migration warning: {mig_error}")
+            print(f"[WARN] Profile migration warning: {mig_error}")
         
         # Seed public templates
         try:

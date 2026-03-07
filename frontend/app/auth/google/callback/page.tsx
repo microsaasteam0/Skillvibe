@@ -54,6 +54,12 @@ function GoogleCallbackContent() {
         formData.append('code', String(code))
         formData.append('state', String(state || 'dev-mode'))
 
+        // Pass the role from session storage to the backend
+        const selectedRole = sessionStorage.getItem('google_oauth_role')
+        if (selectedRole) {
+          formData.append('role', selectedRole)
+        }
+
         const authResponse = await axios.post(`${API_URL}/api/v1/auth/google/callback`, formData, {
           timeout: 15000
         })
@@ -61,24 +67,7 @@ function GoogleCallbackContent() {
         if (authResponse.data && authResponse.data.access_token) {
           const accessToken = authResponse.data.access_token
           const refreshToken = authResponse.data.refresh_token || ''
-          const selectedRole = sessionStorage.getItem('google_oauth_role')
-          let finalUser = authResponse.data.user
-
-          axios.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
-
-          if ((selectedRole === 'candidate' || selectedRole === 'recruiter') && finalUser?.role !== selectedRole) {
-            try {
-              const roleResponse = await axios.put(
-                `${API_URL}/api/v1/auth/role`,
-                { role: selectedRole },
-                { headers: { Authorization: `Bearer ${accessToken}` } }
-              )
-              finalUser = roleResponse.data
-            } catch (roleErr) {
-              console.error('Role update after Google callback failed:', roleErr)
-              toast.error('Signed in, but role update failed. Please switch role again.')
-            }
-          }
+          const finalUser = authResponse.data.user
 
           localStorage.setItem('access_token', accessToken)
           localStorage.setItem('refresh_token', refreshToken)
@@ -98,29 +87,11 @@ function GoogleCallbackContent() {
           throw new Error('Sign-in response was invalid. Please try again.')
         }
       } catch (error: any) {
-        if (error.response?.status === 400) {
-          setTimeout(() => {
-            const storedToken = localStorage.getItem('access_token')
-            const storedUser = localStorage.getItem('user')
-            if (storedToken && storedUser) {
-              setStatus('success')
-              setMessage('Session restored. Taking you home...')
-              axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`
-              window.dispatchEvent(new CustomEvent('auth-success', {
-                detail: { user: JSON.parse(storedUser) }
-              }))
-              setTimeout(() => window.location.replace('/'), 800)
-            } else {
-              setStatus('error')
-              setMessage('Could not restore session. Please sign in again.')
-              setTimeout(() => router.push('/'), 3000)
-            }
-          }, 200)
-        } else {
-          setStatus('error')
-          setMessage(error.message || 'Something went wrong. Please try again.')
-          setTimeout(() => router.push('/'), 3000)
-        }
+        setStatus('error')
+        const errorDetail = error.response?.data?.detail || error.message || 'Something went wrong. Please try again.'
+        setMessage(errorDetail)
+        toast.error(errorDetail)
+        setTimeout(() => router.push('/'), 5000)
       } finally {
         processingRef.current = false
       }

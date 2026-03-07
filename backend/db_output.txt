@@ -1,0 +1,28 @@
+--- User: Mohit Sharma (mohit.sharma78791) ---
+ID: 10
+Email: mohit.sharma78791@gmail.com
+Role: candidate
+Company Info: 'GOOGLE'
+Company Location: 'None'
+Profile Pic: 'https://lh3.googleusercontent.com/a/ACg8ocLW9fpRcCmqiBsq18rrfhb8MVbl_EFvbdveyONI40EwlDW-YaSw=s96-c'
+--- User: Mohit Sharma (mohitxsharma09) ---
+ID: 7
+Email: mohitxsharma09@gmail.com
+Role: recruiter
+Company Info: 'Entrext labs'
+Company Location: 'Pune, Maharashtra, India'
+Profile Pic: 'https://lh3.googleusercontent.com/a/ACg8ocJngt1Ld4ajMWBBsukXOoWjuY-l8-kapyxXAzDTvw4kKGhYFw=s96-c'
+--- User: Mohit Sharma (mohitxsharma10) ---
+ID: 9
+Email: mohitxsharma10@gmail.com
+Role: candidate
+Company Info: 'None'
+Company Location: 'None'
+Profile Pic: 'https://lh3.googleusercontent.com/a/ACg8ocKPAIuMP8DvwxLC1y3ANdVPP71gXs4iAydbqnlx07CYDCcWLQ=s96-c'
+--- User: Mohit Sharma (mohitsharmas) ---
+ID: 8
+Email: ptms2525@gmail.com
+Role: candidate
+Company Info: 'Entrext labs 22'
+Company Location: 'Pune, Maharashtra, India'
+Profile Pic: 'https://lh3.googleusercontent.com/a/ACg8ocLvPa2lTHvMuQamrdtgRmy6nrG7vJm_vZtoOO9HIkSOduVZZwRx_g=s96-c'

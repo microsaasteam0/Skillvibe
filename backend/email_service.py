@@ -17,7 +17,7 @@ class BrevoEmailService:
         self.api_url = "https://api.brevo.com/v3/smtp/email"
         self.api_key = os.getenv("BREVO_API_KEY")
         self.sender_email = os.getenv("BREVO_FROM_EMAIL", "mohit@entrext.in")
-        self.sender_name = os.getenv("BREVO_FROM_NAME", "SkillVibe")
+        self.sender_name = os.getenv("BREVO_FROM_NAME", "SkillVibe Support")
         
         if not self.api_key:
             logger.warning("BREVO_API_KEY not found. Email service disabled.")
@@ -43,14 +43,14 @@ class BrevoEmailService:
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Confirm your BuildInPublic account</title> 
+            <title>Confirm your SkillVibe account</title> 
         </head>
         <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f9fafb;">
             <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
                 
                 <!-- Header -->
                 <div style="background-color: #111827; padding: 40px 20px; text-align: center;">
-                    <img src="{logo_url}" alt="BuildInPublic" style="width: 64px; height: 64px; margin-bottom: 16px; border-radius: 12px; background-color: #1f2937; padding: 8px;">
+                    <img src="{logo_url}" alt="SkillVibe" style="width: 64px; height: 64px; margin-bottom: 16px; border-radius: 12px; background-color: #1f2937; padding: 8px;">
                     <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">SkillVibe</h1>
                 </div>
 
@@ -109,14 +109,14 @@ class BrevoEmailService:
         <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Reset your BuildInPublic password</title> 
+            <title>Reset your SkillVibe password</title> 
         </head>
         <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f9fafb;">
             <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
                 
                 <!-- Header -->
                 <div style="background-color: #111827; padding: 40px 20px; text-align: center;">
-                    <img src="{logo_url}" alt="BuildInPublic" style="width: 64px; height: 64px; margin-bottom: 16px; border-radius: 12px; background-color: #1f2937; padding: 8px;">
+                    <img src="{logo_url}" alt="SkillVibe" style="width: 64px; height: 64px; margin-bottom: 16px; border-radius: 12px; background-color: #1f2937; padding: 8px;">
                     <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">SkillVibe</h1>
                 </div>
 
@@ -160,65 +160,45 @@ class BrevoEmailService:
         
         return self.send_email(to_email, subject, html_content)
 
-    def send_recruiter_contact_email(self, to_email: str, candidate_name: str, recruiter_name: str, recruiter_email: str, subject: str, message: str) -> bool:
+    def send_recruiter_contact_email(self, to_email: str, candidate_name: str, recruiter_name: str, recruiter_email: str, subject: str, message: str, action_url: Optional[str] = None, recruiter_company: Optional[str] = None) -> bool:
         """Send a recruiter contact message to a candidate"""
+
+        action_button = ""
+        if action_url:
+            action_button = f"""
+            <div style="margin: 30px 0; text-align: center;">
+                <a href="{action_url}" style="background-color: #4f46e5; color: #ffffff; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; font-size: 16px; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">
+                    Review Opportunity & Connect
+                </a>
+            </div>
+            """
 
         html_content = f"""
         <!DOCTYPE html>
         <html>
-        <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>New Opportunity from SkillVibe</title>
-        </head>
-        <body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f9fafb;">
-            <div style="max-width: 600px; margin: 40px auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
-
-                <!-- Header -->
-                <div style="background-color: #111827; padding: 40px 20px; text-align: center;">
-                    <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.025em;">SkillVibe</h1>
-                    <p style="color: #06b6d4; margin: 8px 0 0 0; font-size: 14px;">Someone reached out to you</p>
-                </div>
-
-                <!-- Content -->
-                <div style="padding: 40px 32px;">
-                    <h2 style="margin-top: 0; color: #111827; font-size: 20px;">Hi {candidate_name},</h2>
-                    <p style="color: #4b5563; font-size: 16px; margin-bottom: 24px;">
-                        <strong>{recruiter_name}</strong> from your SkillVibe network has an exciting opportunity for you!
-                    </p>
-
-                    <!-- Subject -->
-                    <div style="background-color: #f3f4f6; padding: 16px; border-left: 4px solid #06b6d4; margin: 24px 0; border-radius: 4px;">
-                        <p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Subject</p>
-                        <p style="margin: 8px 0 0 0; font-size: 16px; font-weight: 600; color: #111827;">{subject}</p>
-                    </div>
-
-                    <!-- Message -->
-                    <div style="background-color: #f9fafb; padding: 24px; border-radius: 8px; margin: 24px 0;">
-                        <p style="margin: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em;">Message</p>
-                        <p style="margin: 16px 0 0 0; font-size: 14px; color: #4b5563; white-space: pre-wrap; line-height: 1.8;">{message}</p>
-                    </div>
-
-                    <!-- Contact Info -->
-                    <div style="background-color: #f0fdf4; padding: 16px; border-radius: 8px; margin: 24px 0;">
-                        <p style="margin: 0; font-size: 12px; color: #166534; font-weight: 600;">Contact Information</p>
-                        <p style="margin: 8px 0 0 0; font-size: 14px; color: #4b5563;">
-                            Email: <a href="mailto:{recruiter_email}" style="color: #06b6d4; text-decoration: none;">{recruiter_email}</a>
-                        </p>
-                    </div>
-
-                    <p style="color: #6b7280; font-size: 14px; margin-top: 32px;">
-                        This message was sent through SkillVibe. Reply directly to the email address above to connect with them.
-                    </p>
-                </div>
-
-                <!-- Footer -->
-                <div style="background-color: #f9fafb; padding: 24px; text-align: center; border-top: 1px solid #e5e7eb;">
-                    <p style="font-size: 12px; color: #9ca3af; margin: 0;">
-                        &copy; 2026 SkillVibe. All rights reserved.
-                    </p>
-                </div>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; color: #1a1a1a; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="padding-bottom: 20px; border-bottom: 1px solid #eee; margin-bottom: 20px;">
+                <h3 style="color: #4f46e5; margin: 0;">SkillVibe</h3>
             </div>
+            
+            <p>Hi <strong>{candidate_name}</strong>,</p>
+            
+            <p><strong>{recruiter_name}</strong> {f'from <strong>{recruiter_company}</strong>' if recruiter_company else ''} has reached out to you regarding a new opportunity matching your profile on SkillVibe.</p>
+            
+            <div style="background: #f8fafc; padding: 24px; border-radius: 12px; border: 1px solid #e2e8f0; margin: 24px 0;">
+                <p style="margin-top: 0; font-weight: 600; color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Message from Recruiter:</p>
+                <div style="font-size: 15px; color: #334155; white-space: pre-wrap; line-height: 1.8;">{message}</div>
+            </div>
+
+            {action_button}
+            
+            <p style="color: #64748b; font-size: 14px;">If you're interested, we recommend connecting through our secure platform. Alternatively, you can reach out directly at: 
+               <a href="mailto:{recruiter_email}" style="color: #4f46e5; text-decoration: none; font-weight: 500;">{recruiter_email}</a>
+            </p>
+            
+            <p style="font-size: 13px; color: #94a3b8; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px;">
+                Sent via SkillVibe. You received this because your profile is active on our elite recruiter network.
+            </p>
         </body>
         </html>
         """
@@ -266,7 +246,7 @@ class BrevoEmailService:
             payload["textContent"] = text_content
 
         try:
-            logger.info(f"Sending email via Brevo API to {to_email}...")
+            logger.info(f"Sending email via Brevo API to {to_email} with subject: {subject}")
             
             response = requests.post(self.api_url, headers=headers, json=payload)
             

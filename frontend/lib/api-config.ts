@@ -1,1 +1,2 @@
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'https://snippetstream-api22-production.up.railway.app').replace(/\/+$/, '');
+export const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/+$/, '');
+export const WS_URL = API_URL.replace(/^http/, 'ws');

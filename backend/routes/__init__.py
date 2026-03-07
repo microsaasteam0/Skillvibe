@@ -10,11 +10,13 @@ from .job_routes import job_router
 from .dev_routes import dev_router
 from .export_routes import export_router
 from .support_routes import router as support_router
+from .message_routes import message_router
 
 def register_routes(app):
     app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
     app.include_router(skillvibe_router, prefix="/api/v1", tags=["SkillVibe"])
     app.include_router(job_router, prefix="/api/v1", tags=["Jobs"])
+    app.include_router(message_router, prefix="/api/v1", tags=["Messaging"])
     app.include_router(content_router, prefix="/api/v1/content", tags=["Content Management"])
     app.include_router(payment_router, prefix="/api/v1/payment", tags=["Payment & Subscriptions"])
     app.include_router(export_router, tags=["Export"])

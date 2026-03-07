@@ -105,9 +105,9 @@ export default function Navbar({
   const navLinks = [
     { name: 'Home', href: '/', show: true },
     { name: 'Rankings', href: '/leaderboard', show: true },
-    { name: 'Jobs', href: '/jobs', show: !isRecruiter },
-    { name: isRecruiter ? 'Find Talent' : 'My Profile', href: isRecruiter ? '/recruiter' : '/profile', show: isAuthenticated },
-    { name: 'Job Posts', href: '/recruiter/jobs', show: isAuthenticated && isRecruiter },
+    { name: 'AI Scout', href: '/ai-scout', show: isRecruiter },
+    { name: 'Messages', href: '/messages', show: isAuthenticated },
+    { name: isRecruiter ? 'Talent Pool' : 'My Profile', href: isRecruiter ? '/recruiter' : '/profile', show: isAuthenticated },
     { name: 'Vibe Protocol', href: '/vibe-trust', show: true },
     { name: 'Pricing', href: '/pricing', show: true },
   ]

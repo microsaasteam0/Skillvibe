@@ -56,7 +56,7 @@ export default function Footer({ onSupportClick }: FooterProps) {
         { name: 'Vibe Protocol', href: '/vibe-trust', external: false },
         { name: 'Community', href: '/community', external: false },
         { name: 'Blog', href: '/blog', external: false },
-        { name: 'Jobs', href: '/jobs', external: false },
+        { name: 'AI Scout', href: '/ai-scout', external: false },
       ]
     },
     {

@@ -1,0 +1,7 @@
+ID: 4
+Recruiter: Mohit Sharma (mohitxsharma09@gmail.com) [ID:13, Role:recruiter]
+Candidate: Mohit Sharma (mohitxsharma10@gmail.com) [ID:14, Role:candidate]
+Last Msg: Hi Mohit Sharma,
+
+I came across your profile and was impressed by your work and Trust Score. We have
+--------------------

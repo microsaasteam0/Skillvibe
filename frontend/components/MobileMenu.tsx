@@ -75,9 +75,14 @@ export default function MobileMenu({
     { name: 'Home', href: '/', icon: isAuthenticated ? Zap : Home },
     ...(isAuthenticated ? [
       { name: isRecruiter ? 'Find Talent' : 'My Profile', href: isRecruiter ? '/recruiter' : '/profile', icon: isRecruiter ? Users : Sparkles },
-      ...(isRecruiter ? [{ name: 'Job Posts', href: '/recruiter/jobs', icon: Briefcase }] : []),
+      ...(isRecruiter ? [
+        { name: 'Job Posts', href: '/recruiter/jobs', icon: Briefcase },
+        { name: 'AI Scout', href: '/ai-scout', icon: Sparkles },
+        { name: 'Messages', href: '/messages', icon: MessageSquare }
+      ] : [
+        { name: 'Messages', href: '/messages', icon: MessageSquare }
+      ]),
     ] : []),
-    ...(!isRecruiter ? [{ name: 'Jobs', href: '/jobs', icon: Briefcase }] : []),
     { name: 'Rankings', href: '/leaderboard', icon: Trophy },
     { name: 'Pricing', href: '/pricing', icon: Crown },
     { name: 'About Us', href: '/about', icon: Info, marketingOnly: true },

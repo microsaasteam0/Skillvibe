@@ -227,6 +227,9 @@ class Profile(Base):
     projects = Column(Text, nullable=True)
     social_links = Column(Text, nullable=True)
     location = Column(String, default="Remote")
+    category = Column(String, nullable=True) # e.g. development, design, marketing
+    experience_level = Column(String, nullable=True) # e.g. junior, mid, senior, elite
+    region = Column(String, nullable=True) # e.g. americas, emea, apac
     
     # AI & Vibe Engine Fields
     elite_rating = Column(Float, default=0.0)
@@ -317,32 +320,29 @@ class Rating(Base):
     candidate_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     score = Column(Float, nullable=False, default=0.0)
 
-
-class JobPosting(Base):
-    __tablename__ = "job_postings"
-
+class Conversation(Base):
+    __tablename__ = "conversations"
+    
     id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(String, unique=True, index=True, nullable=True) # Professional URL ID
     recruiter_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    title = Column(String, nullable=False)
-    company_name = Column(String, nullable=False)
-    location = Column(String, nullable=True)
-    job_type = Column(String, default="full-time")  # full-time, part-time, contract, internship
-    work_mode = Column(String, default="remote")  # remote, hybrid, onsite
-    salary_range = Column(String, nullable=True)
-    description = Column(Text, nullable=False)
-    requirements = Column(Text, nullable=True)
+    candidate_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    last_message = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
+    messages = relationship("Message", back_populates="conversation")
 
-class JobApplication(Base):
-    __tablename__ = "job_applications"
-
+class Message(Base):
+    __tablename__ = "messages"
+    
     id = Column(Integer, primary_key=True, index=True)
-    job_id = Column(Integer, ForeignKey("job_postings.id"), nullable=False, index=True)
-    candidate_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
-    cover_letter = Column(Text, nullable=True)
-    status = Column(String, default="applied")  # applied, shortlisted, interview, rejected, hired
+    conversation_id = Column(Integer, ForeignKey("conversations.id"), nullable=False, index=True)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    conversation = relationship("Conversation", back_populates="messages")
+

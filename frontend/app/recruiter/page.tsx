@@ -122,10 +122,9 @@ export default function RecruiterDashboard() {
             })
             setCandidates(response.data.map((c: any) => ({
                 ...c,
-                avg_rating: c.vibe_score ? (c.vibe_score / 20).toFixed(1) : '4.8',
-                vibe_score: c.vibe_score || 92,
-                location: 'REMOTE_NODE',
-                ai_summary: 'Target identified via deep neural scan. High alignment with requested architecture.',
+                avg_rating: (c.vibe_score / 20).toFixed(1),
+                location: c.location || 'GLOBAL_NODE',
+                ai_summary: c.reason || 'Verified match identified via deep neural scan.',
                 ai_match: true,
             })))
             toast.success("AI search completed")
@@ -173,11 +172,10 @@ export default function RecruiterDashboard() {
                                 Recruiter Dashboard
                             </motion.div>
                             <h1 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-[0.85] uppercase italic">
-                                FIND <span className="text-gradient-cyan">TOP TALENT.</span>
+                                AI <span className="text-gradient-cyan">TALENT SCOUT.</span>
                             </h1>
                             <p className="text-xl text-slate-500 font-bold max-w-2xl leading-relaxed uppercase tracking-tight opacity-70">
-                                Search candidate profiles by skill, rating, and fit. <br />
-                                Shortlist and review the best matches quickly.
+                                Enter a prompt to find your ideal candidates. Our AI scans the protocol for the top 1% that match your specific needs.
                             </p>
                         </div>
 

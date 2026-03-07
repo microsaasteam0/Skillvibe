@@ -18,7 +18,7 @@ export default function LocationInput({
     onChange,
     placeholder = "Location",
     className = "",
-    iconClassName = "w-4 h-4 text-slate-500"
+    iconClassName = "w-5 h-5 text-slate-400"
 }: LocationInputProps) {
     const [suggestions, setSuggestions] = useState<any[]>([])
     const [loading, setLoading] = useState(false)
@@ -86,14 +86,14 @@ export default function LocationInput({
 
     return (
         <div className="relative w-full" ref={dropdownRef}>
-            <MapPin className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 ${iconClassName}`} />
+            <MapPin className={`absolute left-5 top-1/2 -translate-y-1/2 z-10 pointer-events-none transition-colors ${iconClassName}`} />
             <input
                 type="text"
                 value={inputValue}
                 onChange={handleInputChange}
                 onFocus={() => inputValue.length >= 2 && suggestions.length > 0 && setShowDropdown(true)}
                 placeholder={placeholder}
-                className={`w-full pl-10 pr-10 focus:outline-none focus:border-cyan-500/50 transition-all ${className}`}
+                className={`w-full pl-12 pr-10 focus:outline-none transition-all ${className}`}
             />
 
             {loading && (
