@@ -124,7 +124,7 @@ export default function ConversationsPage() {
                 onUserDashboard={() => setShowDashboard(true)}
             />
 
-            <div className="pt-20 sm:pt-24 md:pt-28 lg:pt-32 pb-16 sm:pb-20 px-3 sm:px-4 md:px-6 text-slate-900 dark:text-white">
+            <div className="pt-4 sm:pt-6 md:pt-8 lg:pt-10 pb-16 sm:pb-20 px-3 sm:px-4 md:px-6 text-slate-900 dark:text-white">
                 <div className="max-w-4xl mx-auto space-y-12">
                     {/* Header */}
                     <div className="space-y-4">

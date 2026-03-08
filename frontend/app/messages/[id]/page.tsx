@@ -358,10 +358,10 @@ export default function MessagePage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-black font-sans selection:bg-cyan-500/30 overflow-y-auto flex flex-col">
+        <div className="h-screen bg-slate-50 dark:bg-black font-sans selection:bg-cyan-500/30 overflow-hidden flex flex-col">
             <Navbar />
 
-            <div className="flex-1 pt-16 sm:pt-20 md:pt-24 pb-4 sm:pb-6 px-3 sm:px-4 md:px-6 flex flex-col max-w-5xl mx-auto w-full">
+            <div className="flex-1 pt-2 sm:pt-4 md:pt-6 pb-4 sm:pb-6 px-3 sm:px-4 md:px-6 flex flex-col max-w-5xl mx-auto w-full overflow-y-auto">
 
                 {/* Header */}
                 {convLoading ? <HeaderSkeleton /> : (
