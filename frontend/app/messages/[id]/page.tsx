@@ -65,6 +65,12 @@ export default function MessagePage() {
     const scrollRef = useRef<HTMLDivElement>(null)
 
     const [messages, setMessages] = useState<Message[]>([])
+    const [displayedMessages, setDisplayedMessages] = useState<Message[]>([])
+    const [isLoadingOlder, setIsLoadingOlder] = useState(false)
+    const [allMessagesLoaded, setAllMessagesLoaded] = useState(false)
+    const MESSAGES_PER_PAGE = 50
+    const [displayCount, setDisplayCount] = useState(MESSAGES_PER_PAGE)
+    
     const [convInfo, setConvInfo] = useState<ConversationInfo | null>(null)
     const [newMessage, setNewMessage] = useState('')
     const [convLoading, setConvLoading] = useState(true)
@@ -83,6 +89,27 @@ export default function MessagePage() {
     // Global dedup set — every displayed message ID goes in here.
     // This is the single source of truth to prevent any duplicate rendering.
     const shownIds = useRef<Set<number>>(new Set())
+
+    // Update displayed messages based on displayCount (pagination)
+    useEffect(() => {
+        if (messages.length > 0) {
+            const startIndex = Math.max(0, messages.length - displayCount)
+            setDisplayedMessages(messages.slice(startIndex))
+            setAllMessagesLoaded(displayCount >= messages.length)
+        }
+    }, [messages, displayCount])
+
+    // Auto-scroll to bottom when new messages arrive
+    useEffect(() => {
+        if (scrollRef.current && displayedMessages.length > 0) {
+            setTimeout(() => {
+                scrollRef.current?.scrollTo({
+                    top: scrollRef.current.scrollHeight,
+                    behavior: 'smooth'
+                })
+            }, 100)
+        }
+    }, [displayedMessages.length])
 
     const chatId = id as string
 
@@ -306,7 +333,7 @@ export default function MessagePage() {
         <div className="min-h-screen bg-slate-50 dark:bg-black font-sans selection:bg-cyan-500/30 overflow-hidden flex flex-col">
             <Navbar />
 
-            <div className="flex-1 pt-24 pb-6 px-4 md:px-6 flex flex-col max-w-5xl mx-auto w-full">
+            <div className="flex-1 pt-16 sm:pt-20 md:pt-24 pb-4 sm:pb-6 px-3 sm:px-4 md:px-6 flex flex-col max-w-5xl mx-auto w-full">
 
                 {/* Header */}
                 {convLoading ? <HeaderSkeleton /> : (
@@ -355,18 +382,30 @@ export default function MessagePage() {
                 {/* Messages */}
                 <div
                     ref={scrollRef}
-                    className="flex-1 glass-card rounded-[2rem] border border-slate-200 dark:border-white/10 mb-4 overflow-y-auto p-6 space-y-4 custom-scrollbar bg-white/5 backdrop-blur-md"
+                    className="flex-1 glass-card rounded-2xl sm:rounded-[2rem] border border-slate-200 dark:border-white/10 mb-4 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4 custom-scrollbar bg-white/5 backdrop-blur-md"
                     style={{ scrollbarWidth: 'thin', scrollbarColor: '#06b6d4 transparent' }}
                 >
                     {messagesLoading ? (
                         <MessagesSkeleton />
-                    ) : messages.length === 0 ? (
+                    ) : displayedMessages.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center space-y-4 opacity-50">
                             <MessageCircle className="w-12 h-12 text-slate-400" />
                             <p className="text-sm font-medium">No messages yet. Send a greeting!</p>
                         </div>
                     ) : (
-                        messages.map((msg) => {
+                        <>
+                            {!allMessagesLoaded && messages.length > displayCount && (
+                                <div className="flex justify-center py-2">
+                                    <button
+                                        onClick={() => setDisplayCount(prev => prev + MESSAGES_PER_PAGE)}
+                                        disabled={isLoadingOlder}
+                                        className="px-4 py-2 text-xs font-black bg-white/10 hover:bg-white/20 text-white rounded-full border border-white/20 transition-all disabled:opacity-50"
+                                    >
+                                        {isLoadingOlder ? 'Loading...' : `Load Older Messages (${messages.length - displayCount} more)`}
+                                    </button>
+                                </div>
+                            )}
+                            {displayedMessages.map((msg) => {
                             const isMine = msg.sender_id === user?.id
                             const isPending = msg.id < 0
                             return (
@@ -385,7 +424,7 @@ export default function MessagePage() {
                                             )}
                                         </div>
                                     )}
-                                    <div className={`max-w-[85%] md:max-w-[70%] p-4 rounded-3xl ${isMine
+                                    <div className={`max-w-[90%] sm:max-w-[85%] md:max-w-[70%] p-3 sm:p-4 rounded-2xl sm:rounded-3xl ${isMine
                                         ? 'bg-gradient-to-br from-cyan-400 to-cyan-600 text-black font-semibold rounded-br-none shadow-[0_0_20px_rgba(6,182,212,0.2)]'
                                         : 'bg-white/10 text-white rounded-bl-none border border-white/10 backdrop-blur-sm'
                                         }`}>
@@ -412,7 +451,8 @@ export default function MessagePage() {
                                     )}
                                 </motion.div>
                             )
-                        })
+                        })}
+                        </>
                     )}
                 </div>
 
@@ -466,14 +506,14 @@ export default function MessagePage() {
                             }
                         }}
                         placeholder="Type your message..."
-                        className="w-full pl-6 pr-20 py-5 bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-3xl focus:ring-4 focus:ring-cyan-500/10 focus:border-cyan-500 text-slate-900 dark:text-white placeholder-slate-500 resize-none min-h-[64px] max-h-32 transition-all shadow-2xl"
+                        className="w-full pl-4 sm:pl-6 pr-16 sm:pr-20 py-3 sm:py-5 bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 rounded-2xl sm:rounded-3xl focus:ring-4 focus:ring-cyan-500/10 focus:border-cyan-500 text-sm sm:text-base text-slate-900 dark:text-white placeholder-slate-500 resize-none min-h-[52px] sm:min-h-[64px] max-h-32 transition-all shadow-2xl"
                     />
                     <button
                         type="submit"
                         disabled={!newMessage.trim() || isSending}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-12 h-12 bg-cyan-500 hover:bg-cyan-400 disabled:bg-white/10 text-black rounded-2xl flex items-center justify-center transition-all disabled:text-white/20 active:scale-90"
+                        className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-10 h-10 sm:w-12 sm:h-12 bg-cyan-500 hover:bg-cyan-400 disabled:bg-white/10 text-black rounded-lg sm:rounded-2xl flex items-center justify-center transition-all disabled:text-white/20 active:scale-90"
                     >
-                        {isSending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+                        {isSending ? <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" /> : <Send className="w-4 h-4 sm:w-5 sm:h-5" />}
                     </button>
                 </form>
             </div>

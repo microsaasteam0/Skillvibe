@@ -138,7 +138,7 @@ export default function ProfileRedirectPage() {
             <div className="fixed inset-0 bg-cyber-grid opacity-10 pointer-events-none" />
             <div className="fixed inset-0 bg-gradient-to-b from-cyan-500/5 via-transparent to-transparent pointer-events-none" />
 
-            <main className="pt-48 pb-48 relative z-10 container mx-auto px-6">
+            <main className="pt-20 sm:pt-32 md:pt-40 lg:pt-48 pb-20 sm:pb-32 md:pb-40 lg:pb-48 relative z-10 container mx-auto px-4 sm:px-6">
                 <div className="max-w-3xl mx-auto text-center">
 
                     {/* Loading State */}

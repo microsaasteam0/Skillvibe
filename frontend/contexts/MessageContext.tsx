@@ -104,11 +104,11 @@ export const MessageProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return () => clearTimeout(timer);
   }, [fetchConversations]);
 
-  // Poll for new messages every 30 seconds
+  // Poll for new messages every 5 seconds (faster updates)
   useEffect(() => {
     const pollInterval = setInterval(() => {
       fetchConversations();
-    }, 30000); // 30 seconds
+    }, 5000); // 5 seconds for faster real-time updates
 
     return () => clearInterval(pollInterval);
   }, [fetchConversations]);

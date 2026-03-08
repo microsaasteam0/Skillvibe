@@ -277,7 +277,7 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats = n
   if (!isOpen) return null
 
   return createPortal(
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-0 sm:p-4 overflow-hidden pointer-events-none">
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-0 sm:p-2 md:p-4 overflow-hidden pointer-events-none">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -290,27 +290,27 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats = n
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
-        className="relative w-full max-w-7xl max-h-[90vh] bg-slate-950/50 sm:h-[90vh] sm:rounded-[4rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col lg:flex-row pointer-events-auto"
+        className="relative w-full h-[100vh] sm:h-[95vh] md:h-[90vh] max-w-full sm:max-w-2xl md:max-w-4xl lg:max-w-7xl bg-slate-950/50 rounded-none sm:rounded-2xl md:rounded-[3rem] lg:rounded-[4rem] border-0 sm:border border-white/10 shadow-2xl overflow-hidden flex flex-col lg:flex-row pointer-events-auto"
         data-lenis-exclude
       >
         {/* Sidebar */}
         <div
-          className="w-full lg:w-96 border-r border-white/5 bg-slate-900/40 p-10 flex flex-col relative z-30 overflow-y-auto min-h-0 pointer-events-auto touch-auto"
+          className="w-full lg:w-96 border-b lg:border-b-0 lg:border-r border-white/5 bg-slate-900/40 p-4 sm:p-6 md:p-8 flex flex-col relative z-30 overflow-y-auto max-h-[40vh] sm:max-h-[50vh] lg:max-h-none min-h-0 pointer-events-auto touch-auto"
           data-lenis-exclude
           onWheel={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center gap-5 mb-12">
-            <div className="w-14 h-14 bg-gradient-to-br from-cyan-500 to-indigo-600 rounded-[1.5rem] flex items-center justify-center shadow-2xl">
-              <BarChart3 className="w-7 h-7 text-white" />
+          <div className="flex items-center gap-3 sm:gap-5 mb-6 sm:mb-12">
+            <div className="w-10 h-10 sm:w-14 sm:h-14 bg-gradient-to-br from-cyan-500 to-indigo-600 rounded-[1.5rem] flex items-center justify-center shadow-2xl flex-shrink-0">
+              <BarChart3 className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
             </div>
-            <div>
-              <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">DASHBOARD</h2>
-              <p className="text-[10px] font-black text-cyan-500/60 uppercase tracking-widest font-mono">Vibe Protocol v4.0</p>
+            <div className="min-w-0">
+              <h2 className="text-lg sm:text-2xl font-black text-white italic tracking-tighter uppercase">DASHBOARD</h2>
+              <p className="text-[8px] sm:text-[10px] font-black text-cyan-500/60 uppercase tracking-widest font-mono">Vibe Protocol v4.0</p>
             </div>
           </div>
 
-          <nav className="space-y-3 flex-1">
+          <nav className="space-y-2 sm:space-y-3 flex-1">
             {[
               { id: 'overview', name: 'Overview', icon: BarChart3, color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
               { id: 'messages', name: 'Messages', icon: MessageSquare, color: 'text-indigo-400', bg: 'bg-indigo-400/10' },
@@ -327,49 +327,49 @@ export default function DashboardModal({ isOpen, onClose, externalUsageStats = n
                     setActiveSection(item.id);
                   }
                 }}
-                className={`w-full flex items-center gap-5 px-6 py-4 rounded-2xl transition-all duration-500 border border-transparent group relative ${activeSection === item.id
+                className={`w-full flex items-center gap-2 sm:gap-5 px-3 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl transition-all duration-500 border border-transparent group relative text-xs sm:text-sm ${activeSection === item.id
                   ? 'bg-white/10 border-white/10 text-white shadow-xl translate-x-1'
                   : 'text-slate-500 hover:text-white hover:bg-white/5'
                   }`}
               >
-                <div className={`p-2.5 rounded-xl transition-all duration-500 ${activeSection === item.id ? item.bg : 'group-hover:bg-white/5'}`}>
-                  <item.icon className={`w-5 h-5 ${activeSection === item.id ? item.color + ' glow-cyan' : ''}`} />
+                <div className={`p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl transition-all duration-500 flex-shrink-0 ${activeSection === item.id ? item.bg : 'group-hover:bg-white/5'}`}>
+                  <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${activeSection === item.id ? item.color + ' glow-cyan' : ''}`} />
                 </div>
-                <span className="flex-1 text-left text-[11px] font-black uppercase tracking-[0.2em]">{item.name}</span>
+                <span className="flex-1 text-left text-[10px] sm:text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] hidden xs:inline">{item.name}</span>
                 {item.count !== undefined && item.count > 0 && (
-                  <span className="px-3 py-1 bg-white/10 rounded-lg text-[9px] font-black font-mono">{item.count}</span>
+                  <span className="px-2 sm:px-3 py-0.5 sm:py-1 bg-white/10 rounded-lg text-[8px] sm:text-[9px] font-black font-mono flex-shrink-0">{item.count}</span>
                 )}
               </button>
             ))}
           </nav>
 
-          <div className="mt-12 space-y-4">
-            <div className="glass-panel p-6 rounded-[2rem] border border-white/5 bg-white/[0.03]">
-              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 font-mono">Vibe Status</p>
-              <div className="flex items-center gap-3">
-                <ShieldCheck className="w-4 h-4 text-cyan-500" />
-                <span className={`text-xs font-black uppercase tracking-widest italic ${stageColor}`}>{stageLabel}</span>
+          <div className="mt-6 sm:mt-12 space-y-2 sm:space-y-4">
+            <div className="glass-panel p-3 sm:p-6 rounded-xl sm:rounded-[2rem] border border-white/5 bg-white/[0.03]">
+              <p className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 sm:mb-3 font-mono">Vibe Status</p>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <ShieldCheck className="w-3 h-3 sm:w-4 sm:h-4 text-cyan-500 flex-shrink-0" />
+                <span className={`text-[9px] sm:text-[10px] font-black uppercase tracking-widest italic ${user?.is_premium ? stageColor : 'text-emerald-400'}`}>{user?.is_premium ? stageLabel : 'SEED STAGE'}</span>
               </div>
             </div>
 
             <button
               onClick={() => { logout(); onClose(); }}
-              className="w-full flex items-center justify-center gap-4 px-6 py-4 text-slate-600 hover:text-white hover:bg-red-500/10 rounded-2xl transition-all border border-transparent hover:border-red-500/20 italic"
+              className="w-full flex items-center justify-center gap-2 sm:gap-4 px-4 sm:px-6 py-2.5 sm:py-4 text-slate-600 hover:text-white hover:bg-red-500/10 rounded-lg sm:rounded-2xl transition-all border border-transparent hover:border-red-500/20 italic text-xs sm:text-sm"
             >
-              <LogOut className="w-5 h-5" />
-              <span className="text-[11px] font-black uppercase tracking-[0.2em]">LOG OUT</span>
+              <LogOut className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] hidden xs:inline">LOG OUT</span>
             </button>
           </div>
         </div>
 
         {/* Main Content Area */}
         <div
-          className="flex-1 overflow-y-auto bg-black/40 backdrop-blur-3xl relative z-20 p-8 sm:p-12 min-h-0 pointer-events-auto touch-auto"
+          className="flex-1 overflow-y-auto bg-black/40 backdrop-blur-3xl relative z-20 p-3 sm:p-6 md:p-8 lg:p-12 min-h-0 pointer-events-auto touch-auto"
           data-lenis-exclude
           onWheel={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
         >
-          <div className="w-full max-w-5xl mx-auto space-y-12">
+          <div className="w-full max-w-5xl mx-auto space-y-6 sm:space-y-12">
             {activeSection === 'overview' && (
               <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
                 {/* Payment Processing Banner */}
