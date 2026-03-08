@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import axios from 'axios'
 import { API_URL } from '@/lib/api-config'
 import toast from 'react-hot-toast'
+import { syncUpvoteLogin, syncUpvoteLogout } from '@/lib/upvote-sync'
 
 interface User {
   id: number
@@ -209,6 +210,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLastLoginTime(Date.now())
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
 
+      // Sync with Upvote widget
+      syncUpvoteLogin(finalUserData)
+
       setTimeout(() => {
         preloadUsageStats(finalUserData)
         preloadContentHistory(finalUserData)
@@ -257,6 +261,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLastLoginTime(Date.now())
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
 
+      // Sync with Upvote widget
+      syncUpvoteLogin(finalUserData)
+
       setTimeout(() => {
         preloadUsageStats(finalUserData)
         preloadContentHistory(finalUserData)
@@ -300,6 +307,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUser(userData)
       setLastLoginTime(Date.now())
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
+
+      // Sync with Upvote widget
+      syncUpvoteLogin(userData)
 
       setTimeout(() => preloadUsageStats(userData), 100)
       toast.success('Account created! Please check your email to verify.')
@@ -346,7 +356,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     const wasLoggedIn = !!user && !!token
     clearAuthData()
-    if (wasLoggedIn) toast.success('Logged out successfully.')
+    if (wasLoggedIn) {
+      // Sync with Upvote widget
+      syncUpvoteLogout()
+      toast.success('Logged out successfully.')
+    }
   }
 
   const updateUser = (userData: Partial<User>) => {

@@ -8,7 +8,7 @@ import { ThemeProvider } from '../contexts/ThemeContext'
 import { PaymentProcessingProvider } from '../contexts/PaymentProcessingContext'
 import { SubscriptionProvider } from '../contexts/SubscriptionContext'
 import { MessageProvider } from '../contexts/MessageContext'
-import SupportWidget from './SupportWidget'
+import UpvoteWidget from './UpvoteWidget'
 import CompanyInfoSetupModal from './CompanyInfoSetupModal'
 
 interface ClientProvidersProps {
@@ -30,7 +30,7 @@ export default function ClientProviders({ children }: ClientProvidersProps) {
             <UserPreferencesProvider>
               <MessageProvider>
                 {children}
-                <SupportWidget />
+                <UpvoteWidget />
                 <ThemedToaster />
                 {mounted && <CompanyInfoSetupModal />}
               </MessageProvider>

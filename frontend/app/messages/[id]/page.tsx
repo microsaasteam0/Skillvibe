@@ -111,6 +111,22 @@ export default function MessagePage() {
         }
     }, [displayedMessages.length])
 
+    // Mark messages as read when chat is opened (Instagram/WhatsApp style)
+    useEffect(() => {
+        if (!messages.length || !user || messagesLoading) return
+
+        const token = localStorage.getItem('access_token')
+        if (!token) return
+
+        // Auto-mark after 1 second so user sees the unread notification briefly
+        const readTimer = setTimeout(() => {
+            markAsRead(token)
+            console.log('[MessagePage] Auto-marked as read')
+        }, 1000)
+
+        return () => clearTimeout(readTimer)
+    }, [messages.length, user, messagesLoading])
+
     const chatId = id as string
 
     // Auth guard
@@ -164,7 +180,8 @@ export default function MessagePage() {
             const msgs: Message[] = res.data
             msgs.forEach(m => shownIds.current.add(m.id))
             setMessages(msgs)
-            markAsRead(token)
+            // Don't mark as read immediately - let user see the notification briefly
+            // markAsRead will be called by useEffect after a delay
             fetchSuggestions(token)
         }).catch(err => {
             if (cancelled) return
@@ -198,9 +215,11 @@ export default function MessagePage() {
                 if (newMessages.length > 0) {
                     newMessages.forEach(m => shownIds.current.add(m.id))
                     setMessages(msgs)
-                    // Mark as read if page is visible
+                    // Auto-mark new messages as read (Instagram/WhatsApp style)
                     if (document.visibilityState === 'visible') {
-                        markAsRead(token)
+                        setTimeout(() => {
+                            markAsRead(token)
+                        }, 500)
                     }
                 }
             } catch (err) {
@@ -221,7 +240,10 @@ export default function MessagePage() {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
                 startPolling()
-                markAsRead(token)
+                // Auto-mark as read when tab becomes visible
+                setTimeout(() => {
+                    markAsRead(token)
+                }, 500)
             } else {
                 if (pollingInterval) clearInterval(pollingInterval)
             }
@@ -229,14 +251,20 @@ export default function MessagePage() {
 
         startPolling()
         document.addEventListener('visibilitychange', handleVisibilityChange)
-        window.addEventListener('focus', () => markAsRead(token))
+        // Auto-mark on window focus (Instagram/WhatsApp behavior)
+        const handleFocus = () => {
+            setTimeout(() => {
+                markAsRead(token)
+            }, 500)
+        }
+        window.addEventListener('focus', handleFocus)
 
         return () => {
             cancelled = true
             active_ref.active = false
             if (pollingInterval) clearInterval(pollingInterval)
             document.removeEventListener('visibilitychange', handleVisibilityChange)
-            window.removeEventListener('focus', () => markAsRead(token))
+            window.removeEventListener('focus', handleFocus)
         }
     }, [user?.id, chatId])
 
@@ -330,7 +358,7 @@ export default function MessagePage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-black font-sans selection:bg-cyan-500/30 overflow-hidden flex flex-col">
+        <div className="min-h-screen bg-slate-50 dark:bg-black font-sans selection:bg-cyan-500/30 overflow-y-auto flex flex-col">
             <Navbar />
 
             <div className="flex-1 pt-16 sm:pt-20 md:pt-24 pb-4 sm:pb-6 px-3 sm:px-4 md:px-6 flex flex-col max-w-5xl mx-auto w-full">
