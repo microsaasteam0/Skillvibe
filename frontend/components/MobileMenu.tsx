@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { Menu, X, Crown, Users, Home, Zap, Sparkles, MessageSquare, Info, LayoutDashboard, LogOut, Rocket, Trophy, Briefcase } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useMessages } from '../contexts/MessageContext'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -31,6 +32,7 @@ export default function MobileMenu({
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const { logout, user: authUser, isAuthenticated: authIsAuthenticated } = useAuth()
+  const { totalUnreadCount } = useMessages()
 
   const user = propUser !== undefined ? propUser : authUser
   const isAuthenticated = propIsAuthenticated !== undefined ? propIsAuthenticated : authIsAuthenticated
@@ -211,7 +213,7 @@ export default function MobileMenu({
                       key={link.name}
                       href={link.href}
                       onClick={closeMenu}
-                      className={`flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all font-black text-sm tracking-[0.1em] uppercase italic ${active
+                      className={`flex items-center gap-3.5 px-4 py-3.5 rounded-2xl transition-all font-black text-sm tracking-[0.1em] uppercase italic relative ${active
                         ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 glow-cyan'
                         : 'text-slate-500 dark:text-slate-400 hover:bg-white/5 hover:text-white border border-transparent'
                         }`}
@@ -222,6 +224,11 @@ export default function MobileMenu({
                         <span className="ml-auto flex h-2 w-2">
                           <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-cyan-400 opacity-75" />
                           <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
+                        </span>
+                      )}
+                      {link.href === '/messages' && totalUnreadCount > 0 && (
+                        <span className="ml-auto inline-flex items-center gap-1 px-2 py-0.5 bg-cyan-500/20 border border-cyan-500/40 rounded-full text-[9px] font-black text-cyan-400 tracking-widest">
+                          {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
                         </span>
                       )}
                     </Link>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Sparkles, Users, Crown, LogOut, LayoutDashboard, Settings, User as UserIcon, Mail } from 'lucide-react'
+import { Sparkles, Users, Crown, LogOut, LayoutDashboard, Settings, User as UserIcon, Mail, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
@@ -10,6 +10,7 @@ import DashboardModal from './DashboardModal.jsx'
 import { useAuth } from '../contexts/AuthContext'
 import { useSubscription } from '../contexts/SubscriptionContext'
 import { usePaymentProcessing } from '../contexts/PaymentProcessingContext'
+import { useMessages } from '../contexts/MessageContext'
 import { requestCache } from '@/lib/cache-util'
 import axios from 'axios'
 import { API_URL } from '@/lib/api-config'
@@ -34,6 +35,7 @@ interface AuthenticatedNavbarProps {
 export default function AuthenticatedNavbar({ activeTab, isLoading = false }: AuthenticatedNavbarProps) {
   const { user, isAuthenticated, logout } = useAuth()
   const { isProcessingPayment } = usePaymentProcessing()
+  const { totalUnreadCount } = useMessages()
   const pathname = usePathname()
   const router = useRouter()
   const [usageStats, setUsageStats] = useState<UsageStats | null>(null)
@@ -209,6 +211,31 @@ export default function AuthenticatedNavbar({ activeTab, isLoading = false }: Au
                   </span>
                 </button>
               )}
+
+              {/* Messages Badge */}
+              <Link
+                href="/messages"
+                className="relative hidden md:flex items-center gap-2 px-3 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-500 rounded-full text-xs font-bold border border-cyan-500/20 transition-all"
+                title="Go to messages"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>
+                  {totalUnreadCount > 0 ? (
+                    <>
+                      <span className="text-[10px] font-black tracking-wider">
+                        {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
+                      </span>
+                    </>
+                  ) : (
+                    'Messages'
+                  )}
+                </span>
+                {totalUnreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 w-full min-w-4">
+                    <span className="animate-pulse inline-flex rounded-full h-4 w-4 bg-cyan-500" />
+                  </span>
+                )}
+              </Link>
 
               <button
                 onClick={logout}

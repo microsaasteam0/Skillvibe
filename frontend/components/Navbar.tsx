@@ -1,6 +1,6 @@
 'use client'
 
-import { Sparkles, Users, Crown, Menu, X, Rocket, Zap, LogIn, LogOut, Trophy, Terminal } from 'lucide-react'
+import { Sparkles, Users, Crown, Menu, X, Rocket, Zap, LogIn, LogOut, Trophy, Terminal, MessageCircle } from 'lucide-react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -11,6 +11,7 @@ import axios from 'axios'
 import { API_URL } from '@/lib/api-config'
 import { requestCache } from '@/lib/cache-util'
 import { useAuth } from '../contexts/AuthContext'
+import { useMessages } from '../contexts/MessageContext'
 
 interface NavbarProps {
   showAuthButtons?: boolean
@@ -44,6 +45,7 @@ export default function Navbar({
   const pathname = usePathname()
   const [scrolled, setScrolled] = useState(false)
   const [internalUsageStats, setInternalUsageStats] = useState<any>(null)
+  const { totalUnreadCount } = useMessages()
 
   const displayUsageStats = usageStats || internalUsageStats
 
@@ -175,16 +177,30 @@ export default function Navbar({
           <div className="hidden md:flex items-center gap-1">
             {visibleLinks.map((link) => {
               const isActive = activeHref === link.href
+              const isMessagesLink = link.name === 'Messages'
+              
               return (
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${isActive
+                  className={`relative px-5 py-2 rounded-xl text-[11px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${isActive
                     ? 'text-cyan-500 bg-cyan-500/10 border border-cyan-500/20'
                     : 'text-slate-600 dark:text-zinc-400 hover:text-cyan-400 hover:bg-black/5 dark:hover:bg-white/5'
                     }`}
                 >
-                  {link.name}
+                  {isMessagesLink && totalUnreadCount > 0 ? (
+                    <>
+                      <span className='flex items-center gap-1.5'>
+                        <MessageCircle className="w-3.5 h-3.5" />
+                        <span className='text-[10px] font-black'>{totalUnreadCount > 99 ? '99+' : totalUnreadCount}</span>
+                      </span>
+                      <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                        <span className="animate-pulse inline-flex rounded-full h-3 w-3 bg-cyan-500" />
+                      </span>
+                    </>
+                  ) : (
+                    link.name
+                  )}
                 </Link>
               )
             })}
