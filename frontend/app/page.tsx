@@ -219,7 +219,7 @@ function HomeContent() {
   }, [isAuthenticated, user?.id])
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100 font-sans relative overflow-hidden">
+    <div className="min-h-screen bg-zinc-50 dark:bg-black selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100 font-sans relative overflow-x-hidden">
       <Navbar
         isAuthenticated={isAuthenticated}
         user={user}

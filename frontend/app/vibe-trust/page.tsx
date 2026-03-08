@@ -46,7 +46,7 @@ export default function VibeTrustPage() {
     }
 
     return (
-        <div className="dark min-h-screen bg-[#050505] text-white selection:bg-indigo-500/30 overflow-hidden">
+        <div className="dark min-h-screen bg-[#050505] text-white selection:bg-indigo-500/30 overflow-x-hidden">
             <Navbar
                 isAuthenticated={isAuthenticated}
                 user={user}

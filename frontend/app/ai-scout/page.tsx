@@ -179,7 +179,7 @@ export default function ScoutPage() {
 
   if (!user || user.role !== 'recruiter') {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-black font-sans selection:bg-cyan-500/30 overflow-x-hidden">
+      <div className="min-h-screen bg-slate-50 dark:bg-black font-sans selection:bg-cyan-500/30">
         <Navbar
           onSignIn={() => { setShowAuthModal(true); setAuthModalMode('login') }}
           onSignUp={() => { setShowAuthModal(true); setAuthModalMode('register') }}
