@@ -31,11 +31,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   }, [])
 
   const pricing = {
-    pro: { monthly: 15, yearly: 144 }
+    pro: { monthly: 19, yearly: 180 }
   }
 
   const planNames = {
-    pro: 'Pro Plan'
+    pro: 'Pillar Elite Pass'
   }
 
   const amount = pricing[selectedPlan as keyof typeof pricing]?.[billingCycle] || 0
@@ -76,31 +76,31 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
   return createPortal(
     <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-xl z-[2000000] flex items-center justify-center p-4">
-      <div className="relative bg-slate-900 dark:bg-[#020617] rounded-[2.5rem] border border-indigo-500/30 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-3xl overflow-hidden animate-kinetic-glow">
+      <div className="relative bg-slate-900 dark:bg-[#020617] rounded-[2.5rem] border border-cyan-500/30 max-w-md w-full max-h-[90vh] overflow-y-auto shadow-3xl overflow-hidden animate-kinetic-glow">
 
         {/* Background */}
         <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
           <div className="absolute inset-0 bg-grid-blueprint-light opacity-[0.15]" />
-          <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/10 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-cyan-500/10 via-transparent to-transparent pointer-events-none" />
 
           {/* Moving Scanline */}
           <div className="absolute inset-0 overflow-hidden opacity-10">
-            <div className="w-full h-1 bg-indigo-500 animate-scanline" />
+            <div className="w-full h-1 bg-cyan-500 animate-scanline" />
           </div>
         </div>
 
         {/* Header */}
         <div className="relative p-8 pb-0 flex items-center justify-between z-10">
           <div className="flex flex-col gap-1">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 text-indigo-400 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-indigo-500/20 mb-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-500/10 text-cyan-400 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border border-cyan-500/20 mb-2">
               <Activity className="w-3 h-3 animate-pulse" />
               SECURE CHECKOUT
             </div>
             <div className="flex items-center gap-3 text-white">
-              <div className="p-2.5 bg-indigo-500/20 rounded-xl border border-indigo-500/30">
-                <Crown className="w-5 h-5 text-indigo-400" />
+              <div className="p-2.5 bg-cyan-500/20 rounded-xl border border-cyan-500/30">
+                <Crown className="w-5 h-5 text-cyan-400" />
               </div>
-              <h2 className="text-xl font-black tracking-tight">Upgrade to Pro</h2>
+              <h2 className="text-xl font-black tracking-tight uppercase italic">UPGRADE TO PILLAR ELITE</h2>
             </div>
           </div>
           <button
@@ -115,13 +115,13 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         <div className="relative p-8 z-10">
 
           {/* Plan Summary Card - Builder Style */}
-          <div className="relative bg-white/5 backdrop-blur-3xl border border-indigo-500/20 rounded-[2rem] p-8 mb-8 overflow-hidden group transition-all duration-500">
+          <div className="relative bg-white/5 backdrop-blur-3xl border border-cyan-500/20 rounded-[2rem] p-8 mb-8 overflow-hidden group transition-all duration-500">
             <div className="absolute inset-0 bg-grid-blueprint-light opacity-5 group-hover:opacity-20 transition-opacity" />
 
             <div className="relative flex justify-between items-start mb-6">
               <div>
-                <p className="text-indigo-400/60 text-[10px] font-black uppercase tracking-widest mb-1">SELECTED PLAN</p>
-                <h3 className="text-2xl font-black text-white tracking-tight">{planNames[selectedPlan as keyof typeof planNames] || selectedPlan}</h3>
+                <p className="text-cyan-400/60 text-[10px] font-black uppercase tracking-widest mb-1">SELECTED PLAN</p>
+                <h3 className="text-2xl font-black text-white tracking-tight uppercase italic">{planNames[selectedPlan as keyof typeof planNames] || selectedPlan}</h3>
               </div>
               <div className="text-right">
                 <div className="flex items-baseline gap-1 justify-end">
@@ -136,20 +136,20 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
               </div>
             </div>
 
-            <div className="h-px bg-gradient-to-r from-transparent via-indigo-500/20 to-transparent my-6"></div>
+            <div className="h-px bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent my-6"></div>
 
             {/* Features */}
             <ul className="grid gap-4">
               {[
-                "20 Daily Posts",
-                "Advanced URL Processing",
-                "Unlimited Saved Posts",
-                "AI Learns Your Voice",
-                "Fast Processing"
+                "Unlimited Resume Uploads",
+                "Unlimited AI Scouting",
+                "Unlimited Candidate Outreach",
+                "Priority Recruiter Access",
+                "Featured on Leaderboard"
               ].map((feature, i) => (
                 <li key={i} className="flex items-center gap-4 text-sm text-slate-300 font-medium group/item">
-                  <div className="flex-shrink-0 w-6 h-6 rounded-lg bg-indigo-500/10 flex items-center justify-center border border-indigo-500/30 group-hover/item:bg-indigo-500/20 transition-colors">
-                    <Check className="w-3.5 h-3.5 text-indigo-400" />
+                  <div className="flex-shrink-0 w-6 h-6 rounded-lg bg-cyan-500/10 flex items-center justify-center border border-cyan-500/30 group-hover/item:bg-cyan-500/20 transition-colors">
+                    <Check className="w-3.5 h-3.5 text-cyan-400" />
                   </div>
                   {feature}
                 </li>
@@ -162,7 +162,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             <button
               onClick={handleCheckout}
               disabled={loading}
-              className="w-full group relative py-5 px-8 bg-indigo-600 text-white rounded-2xl font-black text-md shadow-2xl shadow-indigo-600/30 transition-all hover:scale-[1.02] hover:bg-indigo-700 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
+              className="w-full group relative py-5 px-8 bg-cyan-500 text-black rounded-2xl font-black text-md shadow-2xl shadow-cyan-500/30 transition-all hover:scale-[1.02] hover:bg-cyan-400 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden"
             >
               <div className="absolute inset-0 shimmer-text opacity-30" />
               <span className="relative flex items-center justify-center gap-3 tracking-tight uppercase">
@@ -186,7 +186,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 SECURE
               </div>
               <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700/50">
-                <Lock className="w-3.5 h-3.5 text-indigo-500" />
+                <Lock className="w-3.5 h-3.5 text-cyan-500" />
                 ENCRYPTED
               </div>
             </div>
