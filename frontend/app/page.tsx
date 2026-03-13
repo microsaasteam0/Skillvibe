@@ -115,7 +115,7 @@ function HomeContent() {
             toast.success('🎉 Payment successful! You are now premium!')
             await forceRestoreAuth() // Refresh auth context to update user status
           } else if (response.data.success) {
-            toast.info('Payment received. Premium status pending...')
+            toast('Payment received. Premium status pending...', { icon: 'ℹ️' })
             await forceRestoreAuth() // Still refresh context even if pending
           } else if (!response.data.success) {
             // Payment pending - retry a few times
@@ -147,7 +147,7 @@ function HomeContent() {
                 } else {
                   // Max retries reached
                   toast.dismiss()
-                  toast.info('Payment is processing. You should be upgraded within a few minutes.')
+                  toast('Payment is processing. You should be upgraded within a few minutes.', { icon: 'ℹ️' })
                   await forceRestoreAuth() // Try refresh anyway
                 }
               } catch (retryError) {

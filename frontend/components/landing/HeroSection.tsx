@@ -59,12 +59,12 @@ export default function HeroSection({ isAuthenticated, user, onStartCreating, on
                     transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
                     className="mb-8"
                 >
-                    <h1 className="sr-only">SkillVibe AI Protocol - Elite Proof of Work Verification & Talent Reputation Layer</h1>
-                    <div className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black leading-[0.85] tracking-tighter text-slate-900 dark:text-white drop-shadow-2xl">
+                    <h1 className="text-5xl sm:text-7xl md:text-8xl lg:text-9xl font-black leading-[0.85] tracking-tighter text-slate-900 dark:text-white drop-shadow-2xl">
+                        <span className="sr-only">SkillVibe AI Protocol: </span>
                         {isRecruiter ? 'FIND THE' : 'YOUR NEW'} <br />
                         <span className="text-gradient-cyan drop-shadow-[0_0_30px_rgba(6,182,212,0.3)]">TRUST</span> <br />
                         <span className="italic outline-text dark:text-transparent dark:[-webkit-text-stroke:2px_rgba(255,255,255,0.1)]">SCORE</span>
-                    </div>
+                    </h1>
                 </motion.div>
 
                 {/* Narrative */}

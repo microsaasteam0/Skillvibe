@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect } from 'react'
 
 interface ThemeContextType {
   resolvedTheme: 'dark'
+  setTheme: (theme: string) => void
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
@@ -38,7 +39,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   }, [])
 
   return (
-    <ThemeContext.Provider value={{ resolvedTheme: 'dark' }}>
+    <ThemeContext.Provider value={{ resolvedTheme: 'dark', setTheme: () => {} }}>
       {children}
     </ThemeContext.Provider>
   )

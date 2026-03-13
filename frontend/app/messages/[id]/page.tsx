@@ -196,6 +196,53 @@ export default function MessagePage() {
         // ── Fetch 3: Polling for new messages (fallback for Vercel) ────────────
         const active_ref = { active: true }
         let pollingInterval: NodeJS.Timeout | null = null
+
+        // ── WebSocket Connection for real-time messages ───────────────────────
+        const connectWebSocket = () => {
+            if (!token || !active_ref.active) return
+            
+            // Adjust protocol to wss if https, ws if http
+            const wsProtocol = window.location.protocol === 'https:' || WS_URL.startsWith('https') ? 'wss:' : 'ws:'
+            const wsBaseUrl = WS_URL.replace(/^https?:/, wsProtocol)
+            const wsUrl = `${wsBaseUrl}/api/v1/messages/ws/${chatId}?token=${token}`
+            
+            const ws = new WebSocket(wsUrl)
+            socketRef.current = ws
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data)
+                    const newMsg = data.message || data
+                    
+                    if (newMsg && typeof newMsg.id === 'number') {
+                        if (!shownIds.current.has(newMsg.id)) {
+                            shownIds.current.add(newMsg.id)
+                            setMessages(prev => {
+                                // Replace optimistic message if it exists
+                                const hasOptimistic = prev.some(m => m.id < 0 && m.content === newMsg.content)
+                                if (hasOptimistic) {
+                                    return prev.map(m => (m.id < 0 && m.content === newMsg.content) ? newMsg : m)
+                                }
+                                return [...prev, newMsg]
+                            })
+                            
+                            if (document.visibilityState === 'visible') {
+                                setTimeout(() => markAsRead(token), 500)
+                            }
+                        }
+                    }
+                } catch (err) { }
+            }
+            
+            ws.onclose = () => {
+                socketRef.current = null
+                if (active_ref.active) {
+                    setTimeout(connectWebSocket, 3000)
+                }
+            }
+        }
+        connectWebSocket()
+
         let lastMessageCount = 0
 
         const pollForNewMessages = async () => {
@@ -262,6 +309,11 @@ export default function MessagePage() {
         return () => {
             cancelled = true
             active_ref.active = false
+            shownIds.current.clear()
+            if (socketRef.current) {
+                socketRef.current.close()
+                socketRef.current = null
+            }
             if (pollingInterval) clearInterval(pollingInterval)
             document.removeEventListener('visibilitychange', handleVisibilityChange)
             window.removeEventListener('focus', handleFocus)

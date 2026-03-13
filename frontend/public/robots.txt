@@ -9,8 +9,6 @@ Disallow: /*?token=
 Sitemap: https://skillvibe.entrext.com/sitemap.xml
 
 
-# Crawl-delay for polite crawling
-Crawl-delay: 1
 
 # Specific Bot Instructions
 User-agent: GPTBot

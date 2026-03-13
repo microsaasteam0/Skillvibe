@@ -10,6 +10,80 @@ import toast from 'react-hot-toast'
 import { API_URL } from '@/lib/api-config'
 import { requestCache } from '@/lib/cache-util'
 
+// --- IndexedDB Helpers for Resume Persistence across redirects ---
+const DB_NAME = 'SkillVibe_Files'
+const STORE_NAME = 'files'
+
+function openDB() {
+    return new Promise<IDBDatabase>((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1)
+        req.onupgradeneeded = (e: any) => {
+            const db = e.target.result as IDBDatabase
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME)
+            }
+        }
+        req.onsuccess = () => resolve(req.result)
+        req.onerror = () => reject(req.error)
+    })
+}
+
+async function saveFileLocally(file: File) {
+    try {
+        const db = await openDB()
+        return new Promise<void>((resolve, reject) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite')
+            const store = tx.objectStore(STORE_NAME)
+            store.put(file, 'pending_resume')
+            // Also store pending intent
+            store.put(true, 'pending_upload_intent')
+            tx.oncomplete = () => resolve()
+            tx.onerror = () => reject()
+        })
+    } catch { }
+}
+
+async function getLocalFile(): Promise<{ file: File | null, hadIntent: boolean }> {
+    try {
+        const db = await openDB()
+        return new Promise((resolve) => {
+            const tx = db.transaction(STORE_NAME, 'readonly')
+            const store = tx.objectStore(STORE_NAME)
+            
+            let file: File | null = null
+            let hadIntent = false
+            let completed = 0
+
+            const fileReq = store.get('pending_resume')
+            fileReq.onsuccess = () => { file = fileReq.result || null; checkDone() }
+            fileReq.onerror = () => checkDone()
+
+            const intentReq = store.get('pending_upload_intent')
+            intentReq.onsuccess = () => { hadIntent = !!intentReq.result; checkDone() }
+            intentReq.onerror = () => checkDone()
+
+            function checkDone() {
+                completed++
+                if (completed === 2) resolve({ file, hadIntent })
+            }
+        })
+    } catch { return { file: null, hadIntent: false } }
+}
+
+async function clearLocalFile() {
+    try {
+        const db = await openDB()
+        return new Promise<void>((resolve) => {
+            const tx = db.transaction(STORE_NAME, 'readwrite')
+            const store = tx.objectStore(STORE_NAME)
+            store.delete('pending_resume')
+            store.delete('pending_upload_intent')
+            tx.oncomplete = () => resolve()
+        })
+    } catch { }
+}
+// -----------------------------------------------------------------
+
 export default function ResumeUpload({
     onSuccess,
     isAuthenticated = true,
@@ -32,6 +106,23 @@ export default function ResumeUpload({
     const [resumeCount, setResumeCount] = useState(0)
     const [resumeLimit, setResumeLimit] = useState(2)
     const [isLoadingStats, setIsLoadingStats] = useState(true)
+
+    // Restore File from IndexedDB on Mount
+    useEffect(() => {
+        const restoreFile = async () => {
+            const { file: storedFile, hadIntent } = await getLocalFile()
+            if (storedFile) {
+                setFile(storedFile)
+                if (storedFile.type === 'application/pdf') {
+                    setPreviewUrl(URL.createObjectURL(storedFile))
+                }
+                if (hadIntent) {
+                    setPendingUpload(true)
+                }
+            }
+        }
+        restoreFile()
+    }, [])
 
     // Fetch resume upload limit
     useEffect(() => {
@@ -108,6 +199,7 @@ export default function ResumeUpload({
         if (e.target.files && e.target.files[0]) {
             const selectedFile = e.target.files[0]
             setFile(selectedFile)
+            saveFileLocally(selectedFile)
 
             // Generate preview if PDF
             if (selectedFile.type === 'application/pdf') {
@@ -127,6 +219,7 @@ export default function ResumeUpload({
 
         if (!isAuthenticated && onRequireAuth) {
             setPendingUpload(true)
+            saveFileLocally(file) // Ensure it explicitly writes intent
             onRequireAuth()
             return
         }
@@ -160,6 +253,7 @@ export default function ResumeUpload({
             setExtractedSlug(response.data.slug)
             setStep('vibe')
             toast.success('Profile generated. Score calculated.')
+            clearLocalFile() // Cleanup successfully processed file
         } catch (error) {
             toast.error('Session expired. Please log in again.')
         } finally {
@@ -367,7 +461,7 @@ export default function ResumeUpload({
                                         </button>
                                     )}
                                     <button
-                                        onClick={(e) => { e.stopPropagation(); setFile(null); setPreviewUrl(null); }}
+                                        onClick={(e) => { e.stopPropagation(); setFile(null); setPreviewUrl(null); clearLocalFile(); }}
                                         className="text-[10px] text-red-500 font-black uppercase tracking-widest px-5 py-2 glass-panel border border-red-500/30 rounded-xl hover:bg-red-500/10 flex items-center gap-2"
                                     >
                                         <X className="w-3 h-3" /> EJECT
@@ -505,7 +599,7 @@ export default function ResumeUpload({
                                         OK, START <ArrowRight className="w-4 h-4" />
                                     </button>
                                     <button
-                                        onClick={() => { setShowPreview(false); setFile(null); setPreviewUrl(null); }}
+                                        onClick={() => { setShowPreview(false); setFile(null); setPreviewUrl(null); clearLocalFile(); }}
                                         className="w-full sm:w-auto px-10 py-5 glass-panel text-white font-black rounded-2xl uppercase tracking-[0.2em] text-[10px] hover:bg-red-500/10 hover:text-red-500 transition-all border border-white/10"
                                     >
                                         CANCEL
