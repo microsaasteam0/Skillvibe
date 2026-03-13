@@ -14,13 +14,15 @@ interface PaymentModalProps {
   onClose: () => void
   selectedPlan?: string
   billingCycle?: 'monthly' | 'yearly'
+  viewRole?: 'candidate' | 'recruiter'
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
   selectedPlan = 'pro',
-  billingCycle = 'monthly'
+  billingCycle = 'monthly',
+  viewRole = 'candidate'
 }) => {
   const { updateUser } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -140,13 +142,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
 
             {/* Features */}
             <ul className="grid gap-4">
-              {[
-                "Unlimited Resume Uploads",
+              {(viewRole === 'recruiter' ? [
                 "Unlimited AI Scouting",
                 "Unlimited Candidate Outreach",
+                "Expanded Vibe Notes (Up to 20)",
+                "Priority Recruiter Support",
+                "Advanced Sourcing Dashboard"
+              ] : [
+                "Unlimited Resume Uploads",
+                "AI Resume Analysis",
                 "Priority Recruiter Access",
-                "Featured on Leaderboard"
-              ].map((feature, i) => (
+                "Featured on Leaderboard",
+                "Profile View Analytics"
+              ]).map((feature, i) => (
                 <li key={i} className="flex items-center gap-4 text-sm text-slate-300 font-medium group/item">
                   <div className="flex-shrink-0 w-6 h-6 rounded-lg bg-cyan-500/10 flex items-center justify-center border border-cyan-500/30 group-hover/item:bg-cyan-500/20 transition-colors">
                     <Check className="w-3.5 h-3.5 text-cyan-400" />

@@ -66,6 +66,15 @@ function FAQItem({ faq, index }: FAQItemProps) {
 export default function PricingPage({ onSignUp }: PricingPageProps) {
   const { isAuthenticated, user, updateUser, refreshUser } = useAuth()
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly')
+  const [viewRole, setViewRole] = useState<'candidate' | 'recruiter'>('candidate')
+
+  React.useEffect(() => {
+    if (user?.role === 'recruiter') {
+      setViewRole('recruiter')
+    } else {
+      setViewRole('candidate')
+    }
+  }, [user?.role])
 
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -144,49 +153,87 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
     }
   }
 
-  const plans = [
-    {
-      id: 'free',
-      name: 'SEED STAGE',
-      description: 'Free verification for emerging professionals',
-      price: { monthly: 0, yearly: 0 },
-      badge: 'STARTER',
-      features: [
-        'AI Elite Rating Analysis',
-        'Leaderboard Access',
-        'Vibe Notes Reception',
-        'Basic Talent Scouting (Max 3)',
-        'Starter Outreach (3 total)',
-        'Trust Score Calculation',
-        'Email Support'
-      ],
-      limitations: [],
-      cta: 'GET STARTED',
-      popular: false,
-    },
-    {
-      id: 'pro',
-      name: 'PILLAR ELITE PASS',
-      description: 'Accelerated verification for ambitious professionals',
-      price: { monthly: 19, yearly: 180 },
-      badge: 'PROFESSIONAL',
-      features: [
-        'Unlimited Resume Uploads',
-        'Unlimited AI Scouting',
-        'Unlimited Candidate Outreach',
-        'AI Resume Analysis',
-        'Priority Recruiter Access',
-        'Featured on Leaderboard',
-        'Profile View Analytics',
-        'Vibe Notes Analytics',
-        'Premium Support',
-        'Advanced Profile Dashboard'
-      ],
-      limitations: [],
-      cta: 'UPGRADE TO PILLAR',
-      popular: true,
+  const getPlans = (role: 'candidate' | 'recruiter') => {
+    if (role === 'recruiter') {
+      return [
+        {
+          id: 'free',
+          name: 'SEED RECRUITER',
+          description: 'Basic access to the Talent Protocol',
+          price: { monthly: 0, yearly: 0 },
+          badge: 'STARTER',
+          features: [
+            'Basic Talent Scouting (Max 3)',
+            'Starter Outreach (3 total)',
+            'Limited Vibe Notes (3 total)',
+            'Email Support'
+          ],
+          limitations: [],
+          cta: 'GET STARTED',
+          popular: false,
+        },
+        {
+          id: 'pro',
+          name: 'PILLAR ELITE PASS',
+          description: 'Unlimited sourcing and outreach limits',
+          price: { monthly: 19, yearly: 180 },
+          badge: 'PROFESSIONAL',
+          features: [
+            'Unlimited AI Scouting',
+            'Unlimited Candidate Outreach',
+            'Expanded Vibe Notes (Up to 20)',
+            'Priority Recruiter Support',
+            'Advanced Sourcing Dashboard'
+          ],
+          limitations: [],
+          cta: 'UPGRADE TO PILLAR',
+          popular: true,
+        }
+      ]
     }
-  ]
+    
+    return [
+      {
+        id: 'free',
+        name: 'SEED STAGE',
+        description: 'Free verification for emerging professionals',
+        price: { monthly: 0, yearly: 0 },
+        badge: 'STARTER',
+        features: [
+          'AI Elite Rating Analysis',
+          'Leaderboard Access',
+          'Vibe Notes Reception',
+          'Trust Score Calculation',
+          'Email Support'
+        ],
+        limitations: [],
+        cta: 'GET STARTED',
+        popular: false,
+      },
+      {
+        id: 'pro',
+        name: 'PILLAR ELITE PASS',
+        description: 'Accelerated verification for ambitious professionals',
+        price: { monthly: 19, yearly: 180 },
+        badge: 'PROFESSIONAL',
+        features: [
+          'Unlimited Resume Uploads',
+          'AI Resume Analysis',
+          'Priority Recruiter Access',
+          'Featured on Leaderboard',
+          'Profile View Analytics',
+          'Vibe Notes Analytics',
+          'Premium Support',
+          'Advanced Profile Dashboard'
+        ],
+        limitations: [],
+        cta: 'UPGRADE TO PILLAR',
+        popular: true,
+      }
+    ]
+  }
+
+  const plans = getPlans(viewRole)
 
   const faqs = [
     {
@@ -232,6 +279,30 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
           Choose a plan that matches your current momentum. <br />
           <span className="text-cyan-500/60 font-mono text-sm">[ ENCRYPTION: SECURE ]</span>
         </p>
+
+        {/* Role Toggle */}
+        <div className="flex justify-center pt-6">
+          <div className="glass-panel p-1.5 rounded-2xl border border-white/10 flex gap-1 relative max-w-full hover:border-cyan-500/30 transition-all duration-700">
+            <button
+              onClick={() => setViewRole('candidate')}
+              className={`px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all duration-500 z-10 ${viewRole === 'candidate'
+                ? 'bg-cyan-500 bg-opacity-20 text-cyan-400 shadow-xl shadow-cyan-500/20 border border-cyan-500/30'
+                : 'text-slate-500 hover:text-white border border-transparent'
+                }`}
+            >
+              FOR CANDIDATES
+            </button>
+            <button
+              onClick={() => setViewRole('recruiter')}
+              className={`px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all duration-500 z-10 ${viewRole === 'recruiter'
+                ? 'bg-cyan-500 bg-opacity-20 text-cyan-400 shadow-xl shadow-cyan-500/20 border border-cyan-500/30'
+                : 'text-slate-500 hover:text-white border border-transparent'
+                }`}
+            >
+              FOR RECRUITERS
+            </button>
+          </div>
+        </div>
 
         {/* Improved Billing Toggle */}
         <div className="flex justify-center pt-10">
@@ -380,7 +451,7 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
         </div>
 
         {/* Feature Categories */}
-        {[
+        {(viewRole === 'candidate' ? [
           {
             category: '🎯 VIBE PROTOCOL CORE',
             features: [
@@ -401,10 +472,8 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
             ]
           },
           {
-            category: '👥 RECRUITER DISCOVERY & SOURCING',
+            category: '👥 RECRUITER DISCOVERY',
             features: [
-              { name: 'AI Candidate Scouting', free: 'Max 3 Matches', pro: 'Unlimited', type: 'value' },
-              { name: 'Direct Candidate Outreach', free: '3 Lifetime', pro: 'Unlimited', type: 'value' },
               { name: 'Listed on Public Leaderboard', free: true, pro: true, type: 'bool' },
               { name: 'Priority Recruiter Access', free: false, pro: true, type: 'bool' },
               { name: 'Featured Leaderboard Position', free: false, pro: true, type: 'bool' },
@@ -426,7 +495,31 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
               { name: 'Priority Support', free: false, pro: true, type: 'bool' },
             ]
           },
-        ].map((section, si) => (
+        ] : [
+          {
+            category: '👥 SOURCING & DISCOVERY',
+            features: [
+              { name: 'AI Candidate Scouting', free: 'Max 3 Matches', pro: 'Unlimited', type: 'value' },
+              { name: 'Direct Candidate Outreach', free: '3 Lifetime', pro: 'Unlimited', type: 'value' },
+              { name: 'Search by Vibe Score & Location', free: true, pro: true, type: 'bool' },
+              { name: 'AI Profile Summaries', free: true, pro: true, type: 'bool' },
+            ]
+          },
+          {
+            category: '🎯 ENDORSEMENTS',
+            features: [
+              { name: 'Send Vibe Notes to Candidates', free: 'Max 3 Notes', pro: 'Up to 20 Notes', type: 'value' },
+              { name: 'Candidate Shortlisting', free: true, pro: true, type: 'bool' },
+            ]
+          },
+          {
+            category: '📊 REPORTING & ACCOUNT',
+            features: [
+              { name: 'Advanced Sourcing Dashboard', free: false, pro: true, type: 'bool' },
+              { name: 'Priority Recruiter Support', free: false, pro: true, type: 'bool' },
+            ]
+          }
+        ]).map((section, si) => (
           <div key={si} className="mb-6">
             {/* Category Label */}
             <div className="py-3 px-4 mb-2">
@@ -582,6 +675,7 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
         }
         selectedPlan={selectedPlan}
         billingCycle={billingCycle}
+        viewRole={viewRole}
       />
 
       <AuthModal
