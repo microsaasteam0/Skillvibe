@@ -432,7 +432,7 @@ async def generate_portfolio_with_template(
     # Check resume upload limit for non-premium users
     if not current_user.is_premium:
         resume_limit = 2
-        if current_user.resume_upload_count >= resume_limit:
+        if current_user.resume_upload_count > resume_limit:
             raise HTTPException(
                 status_code=403,
                 detail=f"Resume upload limit reached ({resume_limit}). Upgrade to Pillar Elite for unlimited uploads."
