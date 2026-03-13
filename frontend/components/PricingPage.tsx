@@ -155,6 +155,8 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
         'AI Elite Rating Analysis',
         'Leaderboard Access',
         'Vibe Notes Reception',
+        'Basic Talent Scouting (Max 3)',
+        'Starter Outreach (3 total)',
         'Trust Score Calculation',
         'Email Support'
       ],
@@ -170,6 +172,8 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
       badge: 'PROFESSIONAL',
       features: [
         'Unlimited Resume Uploads',
+        'Unlimited AI Scouting',
+        'Unlimited Candidate Outreach',
         'AI Resume Analysis',
         'Priority Recruiter Access',
         'Featured on Leaderboard',
@@ -397,8 +401,10 @@ export default function PricingPage({ onSignUp }: PricingPageProps) {
             ]
           },
           {
-            category: '👥 RECRUITER DISCOVERY',
+            category: '👥 RECRUITER DISCOVERY & SOURCING',
             features: [
+              { name: 'AI Candidate Scouting', free: 'Max 3 Matches', pro: 'Unlimited', type: 'value' },
+              { name: 'Direct Candidate Outreach', free: '3 Lifetime', pro: 'Unlimited', type: 'value' },
               { name: 'Listed on Public Leaderboard', free: true, pro: true, type: 'bool' },
               { name: 'Priority Recruiter Access', free: false, pro: true, type: 'bool' },
               { name: 'Featured Leaderboard Position', free: false, pro: true, type: 'bool' },

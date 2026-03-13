@@ -1323,7 +1323,7 @@ async def ai_search_candidates(
     # Sort matches according to the order in matched_ids
     matches_sorted = sorted(matches, key=lambda m: matched_ids.index(m.user_id) if m.user_id in matched_ids else 999)
     
-    return [
+    result_matches = [
         {
             "id": m.user_id, 
             "name": m.user.full_name, 
@@ -1334,6 +1334,12 @@ async def ai_search_candidates(
             "ai_match": True
         } for m in matches_sorted if m.user_id in matched_ids
     ]
+    
+    # Enforce free tier candidate limits
+    if not current_user.is_premium:
+        result_matches = result_matches[:3]
+        
+    return result_matches
 
 
 
@@ -1355,11 +1361,12 @@ async def add_vibe_note(
         raise HTTPException(status_code=400, detail="Missing profile ID or content")
         
     # Global quality limit for the recruiter (maintain exclusive nature of vibe notes)
-    total_notes_left = db.query(VibeNote).filter(VibeNote.author_id == current_user.id).count()
-    if total_notes_left >= 20:
+    total_notes_limit = 20 if current_user.is_premium else 3
+    total_notes = db.query(VibeNote).filter(VibeNote.author_id == current_user.id).count()
+    if total_notes >= total_notes_limit:
         raise HTTPException(
-            status_code=400, 
-            detail="You have reached your total Vibe Note limit (20). To maintain protocol integrity, each recruiter has a finite number of elite endorsements."
+            status_code=403, 
+            detail=f"You have reached your Vibe Note limit ({total_notes_limit}). {'Upgrade to Pillar Elite for more.' if not current_user.is_premium else 'This is to maintain protocol integrity.'}"
         )
 
     # Check if recruiter has already left a note for this profile to prevent score gaming

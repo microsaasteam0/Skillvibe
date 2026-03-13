@@ -370,13 +370,21 @@ export default function ScoutPage() {
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Max Candidates:</label>
                   <select
                     value={limit}
-                    onChange={(e) => setLimit(Number(e.target.value))}
+                    onChange={(e) => {
+                      if (!user?.is_premium && Number(e.target.value) > 3) {
+                        toast.error('Upgrade to Pillar Elite to unlock higher candidate limits.')
+                        setLimit(3)
+                        return
+                      }
+                      setLimit(Number(e.target.value))
+                    }}
                     className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer text-slate-900 dark:text-white"
                   >
-                    <option value="5" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Top 5</option>
-                    <option value="10" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Top 10</option>
-                    <option value="20" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Top 20</option>
-                    <option value="50" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Top 50</option>
+                    {!user?.is_premium && <option value="3" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Top 3 (Free Limit)</option>}
+                    <option value="5" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Top 5 {!user?.is_premium ? '🔒' : ''}</option>
+                    <option value="10" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Top 10 {!user?.is_premium ? '🔒' : ''}</option>
+                    <option value="20" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Top 20 {!user?.is_premium ? '🔒' : ''}</option>
+                    <option value="50" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">Top 50 {!user?.is_premium ? '🔒' : ''}</option>
                   </select>
                 </div>
 

@@ -83,7 +83,12 @@ async def scout_candidates(
         })
 
     try:
-        candidate_limit = payload.limit or 10
+        # Enforce free tier candidate limits
+        if not current_user.is_premium:
+            candidate_limit = min(payload.limit or 3, 3)
+        else:
+            candidate_limit = payload.limit or 10
+            
         system_msg = f"""
         You are an AI Talent Headhunter. Match candidates to the recruiter's specific requirements.
         
@@ -171,6 +176,15 @@ def send_outreach(
 
     if not payload.candidate_ids:
         raise HTTPException(status_code=400, detail="No candidates selected.")
+
+    # Enforce free tier outreach limits (max 3 lifetime conversations)
+    if not current_user.is_premium:
+        current_outreach = db.query(Conversation).filter(Conversation.recruiter_id == current_user.id).count()
+        if current_outreach + len(payload.candidate_ids) > 3:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Free Tier Limit Reached ({current_outreach}/3 connections used). Upgrade to Pillar Elite for unlimited talent outreach."
+            )
 
     # Fetch all valid candidates in one query
     target_users = db.query(User).filter(
